@@ -7,6 +7,9 @@ vars:
   # The normalized spec is an intermediate, never committed: the committed artefact is the generated Go code.
   CODEGEN_SPEC: build/management.codegen.json
   MGMT_DIR: internal/logto/mgmt
+  BIN_DIR: bin
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
 
 tasks:
   default:
@@ -39,8 +42,14 @@ tasks:
     cmds:
       - go mod tidy -diff
 
+  build:
+    desc: Build the CLI into bin/.
+    cmds:
+      - mkdir -p {{.BIN_DIR}}
+      - CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN_DIR}}/logtoctl ./cmd/logtoctl
+
   test:
-    desc: Unit tests (no network, no Logto).
+    desc: Unit tests (no network, no Logto; the fake Management API runs in-process).
     cmds:
       - go test -race -count=1 ./...
 
@@ -69,3 +78,4 @@ tasks:
       - task: tidy:check
       - task: lint
       - task: test
+      - task: build

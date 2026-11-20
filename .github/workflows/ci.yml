@@ -4,7 +4,7 @@
 #
 # While the repository is private, every minute counts against the organization's shared free quota, and an exhausted
 # quota blocks every hosted job of the organization until the next month. Hence ONE job running the whole gate (each
-# job is billed rounded up to the minute) and the mise cache.
+# job is billed rounded up to the minute), the mise cache, and e2e in its own path-filtered workflow (e2e.yml).
 #
 # Every step calls a `task` target a developer calls locally: reproduce a red step by running the target it names.
 # Public-repository hygiene: no `pull_request_target`, read-only token, no secret used anywhere, actions pinned by SHA.

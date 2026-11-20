@@ -1,0 +1,49 @@
+---
+# End-to-end suite: Chainsaw on a throwaway k3d cluster, in the Docker daemon of a GitHub-hosted runner.
+# Path-filtered: it runs only when something it exercises changes (see ci.yml for why minutes are counted).
+# Add the operator's code paths here when it exists.
+name: e2e
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'test/e2e/**'
+      - 'mise.toml'
+      - 'Taskfile.yaml'
+      - '.github/workflows/e2e.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'test/e2e/**'
+      - 'mise.toml'
+      - 'Taskfile.yaml'
+      - '.github/workflows/e2e.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  e2e:
+    name: e2e
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Install the pinned toolchain (from mise.toml)
+        uses: jdx/mise-action@dba19683ed58901619b14f395a24841710cb4925  # v4.1.0
+        with:
+          cache: true
+      - name: task e2e
+        run: task e2e
+      - name: task e2e:cluster:down
+        if: always()
+        run: task e2e:cluster:down

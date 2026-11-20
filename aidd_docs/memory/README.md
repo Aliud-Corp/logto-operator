@@ -23,6 +23,7 @@ Refreshed automatically by the memory hook. Do not edit by hand.
 - [coding-assertions.md](coding-assertions.md)
 - [deployment.md](deployment.md)
 - [ecosystem.md](ecosystem.md)
+- [infra.md](infra.md)
 - [integration.md](integration.md)
 - [project-brief.md](project-brief.md)
 - [testing.md](testing.md)

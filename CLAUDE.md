@@ -32,6 +32,7 @@ Read only task-relevant context and linked memory files; complete required reads
 @aidd_docs/memory/coding-assertions.md
 @aidd_docs/memory/deployment.md
 @aidd_docs/memory/ecosystem.md
+@aidd_docs/memory/infra.md
 @aidd_docs/memory/integration.md
 @aidd_docs/memory/project-brief.md
 @aidd_docs/memory/testing.md

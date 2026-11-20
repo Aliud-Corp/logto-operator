@@ -7,6 +7,7 @@ flowchart TD
     mgmt["internal/logto/mgmt: generated client"]
     fake["internal/logto/logtofake: fake Logto"]
     cmd["cmd/logtoctl: CLI"]
+    e2e["test/e2e: Chainsaw suite"]
     api --> tools --> mgmt
     mgmt --> fake
     mgmt --> cmd
@@ -19,6 +20,7 @@ flowchart TD
 - `internal/logto/mgmt/`: generated code plus its three `oapi-codegen` configs; `doc.go` is the only hand-written file.
 - `internal/logto/logtofake/`: in-process fake on the generated server; unmodelled routes answer 501.
 - `cmd/logtoctl/`: the CLI.
+- `test/e2e/`: Chainsaw tests and the k3d cluster config.
 
 ## Entry points
 

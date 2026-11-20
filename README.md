@@ -8,4 +8,5 @@ Status: skeleton. Design: [docs/plan.md](docs/plan.md). Contributing: [CONTRIBUT
 ```bash
 mise install      # pinned toolchain
 task check        # the CI gate, locally
+task e2e          # Chainsaw suite on a throwaway k3d cluster (needs Docker)
 ```

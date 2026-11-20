@@ -1,6 +1,6 @@
 ---
 objective: "`logtoctl plan|apply|check|render` reconciles the M1 core kinds of a `LogtoConfig` against every Logto of the support window (1.44, 1.45, 1.46): the reference configuration is created on an empty Logto, a second apply writes nothing, check exits 0 then 2 after a manual edit, and no secret ever reaches argv, stdout or logs."
-status: pending
+status: in-progress
 ---
 
 <!-- Fill or omit these sections; never add, rename, or reorder one. -->

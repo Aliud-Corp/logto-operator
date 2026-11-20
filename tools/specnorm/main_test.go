@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -64,18 +65,29 @@ func TestAnOverlaySetsItsKey(t *testing.T) {
 	}
 }
 
-// The real input: the vendored spec must normalize with the real overlays. An upgrade of Logto that moves an overlay
-// target fails here, before the generator runs.
-func TestTheVendoredSpecNormalizes(t *testing.T) {
-	raw, err := os.ReadFile("../../api/logto/management.openapi.json")
+// The real inputs: every vendored spec of the support window must normalize with the real overlays. A Logto upgrade
+// that moves an overlay target fails here, before the generator runs.
+func TestEveryVendoredSpecNormalizes(t *testing.T) {
+	files, err := filepath.Glob("../../api/logto/*.openapi.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, n, err := Normalize(raw, overlays)
-	if err != nil {
-		t.Fatal(err)
+	if len(files) == 0 {
+		t.Fatal("no vendored spec found under api/logto/")
 	}
-	if n == 0 {
-		t.Fatal("no literal format rewritten: the normalization step may no longer be needed")
+	for _, f := range files {
+		t.Run(filepath.Base(f), func(t *testing.T) {
+			raw, err := os.ReadFile(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, n, err := Normalize(raw, overlays)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if n == 0 {
+				t.Fatal("no literal format rewritten: the normalization step may no longer be needed")
+			}
+		})
 	}
 }

@@ -1,0 +1,45 @@
+# A throwaway Logto for the integration tests and `task spec:refresh`: Postgres plus the Logto version named by
+# LOGTO_VERSION (one of api/logto/versions.txt). Everything listens on 127.0.0.1 only. Nothing here is meant to be
+# kept: `task it:down` removes the containers and the volume.
+#
+# Logto's image needs its database seeded and altered before it starts; a GitHub service container cannot override
+# an image's entrypoint, which is why the same compose file runs locally and on the CI runner.
+name: logto-operator-it
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: logto
+      POSTGRES_PASSWORD: logto
+      POSTGRES_DB: logto
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logto -d logto"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  logto:
+    image: ghcr.io/logto-io/logto:${LOGTO_VERSION:?set LOGTO_VERSION (see api/logto/versions.txt)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["sh", "-c", "npm run cli db seed -- --swe && npm run alteration deploy latest && npm start"]
+    environment:
+      DB_URL: postgres://logto:logto@postgres:5432/logto
+      ENDPOINT: http://localhost:3001
+      ADMIN_ENDPOINT: http://localhost:3002
+    ports:
+      - "127.0.0.1:3001:3001"
+      - "127.0.0.1:3002:3002"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3001/api/status || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 60
+      start_period: 15s
+
+volumes:
+  pgdata:

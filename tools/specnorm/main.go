@@ -1,8 +1,8 @@
 // Command specnorm turns Logto's vendored Management API OpenAPI document into the input of oapi-codegen.
 //
-// The vendored file (api/logto/management.openapi.json) stays byte-identical to what Logto serves: it is the
-// source, and a source is never edited by hand. Logto's generator, however, encodes a zod literal as a JSON string
-// inside `format` (`{"type":"string","format":"\"Social\""}`), which is not OpenAPI and which kin-openapi (the
+// The vendored files (api/logto/<version>.openapi.json) stay byte-identical to what each Logto version serves:
+// they are sources, and a source is never edited by hand. Logto's generator, however, encodes a zod literal as a JSON
+// string inside `format` (`{"type":"string","format":"\"Social\""}`), which is not OpenAPI and which kin-openapi (the
 // loader of oapi-codegen) rejects outright: "format ... may not contain a double quote". This program rewrites
 // exactly that construct into what it means, a one-value `enum`.
 //

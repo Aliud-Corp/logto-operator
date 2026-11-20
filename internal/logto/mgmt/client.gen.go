@@ -1343,7 +1343,7 @@ type ClientInterface interface {
 
 	// InitInteractionWithBody Init new interaction
 	//
-	// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject; if the pinned user has no method that can reach the selected authentication context class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
+	// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject. If the session already satisfies the class the step-up pursues and the request forces no fresh authentication, the interaction is finished with the session's context untouched and a redirect URL is returned. If the pinned user has no method that can reach that class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -1352,12 +1352,30 @@ type ClientInterface interface {
 
 	// InitInteraction Init new interaction
 	//
-	// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject; if the pinned user has no method that can reach the selected authentication context class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
+	// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject. If the session already satisfies the class the step-up pursues and the request forces no fresh authentication, the interaction is finished with the session's context untouched and a redirect URL is returned. If the pinned user has no method that can reach that class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
 	//
 	// Takes a body of the `application/json` content type.
 	//
 	// Corresponds with PUT /api/experience (the `InitInteraction` operationId).
 	InitInteraction(ctx context.Context, body InitInteractionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AbortInteractionWithBody Abort interaction
+	//
+	// Finish the current interaction with an `access_denied` OAuth error and return the URL that resumes the OIDC flow. Following it redirects the user agent back to the client's redirect URI with the error, preserving the authorization request's `state` and `iss`. The endpoint works at any interaction step, including consent, and is intended for flows where the client application owns the user-facing UI, so an abort surfaces there instead of on the hosted experience.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/experience/abort (the `AbortInteraction` operationId).
+	AbortInteractionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AbortInteraction Abort interaction
+	//
+	// Finish the current interaction with an `access_denied` OAuth error and return the URL that resumes the OIDC flow. Following it redirects the user agent back to the client's redirect URI with the error, preserving the authorization request's `state` and `iss`. The endpoint works at any interaction step, including consent, and is intended for flows where the client application owns the user-facing UI, so an abort surfaces there instead of on the hosted experience.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/experience/abort (the `AbortInteraction` operationId).
+	AbortInteraction(ctx context.Context, body AbortInteractionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// IdentifyUserWithBody Identify user for the current interaction
 	//
@@ -1386,7 +1404,7 @@ type ClientInterface interface {
 
 	// UpdateInteractionEventWithBody Update interaction event
 	//
-	// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`, while keeping all the verification records data.
+	// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`. The verification records are kept, but any user already identified in this interaction is discarded, along with everything staged against that identification: the pending profile data, any MFA factor bound in this interaction, and the trusted-device opt-in. Identify the user again before submitting. A verification record answers only for the account it was made against, so it cannot identify a different user after the switch.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -1395,12 +1413,19 @@ type ClientInterface interface {
 
 	// UpdateInteractionEvent Update interaction event
 	//
-	// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`, while keeping all the verification records data.
+	// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`. The verification records are kept, but any user already identified in this interaction is discarded, along with everything staged against that identification: the pending profile data, any MFA factor bound in this interaction, and the trusted-device opt-in. Identify the user again before submitting. A verification record answers only for the account it was made against, so it cannot identify a different user after the switch.
 	//
 	// Takes a body of the `application/json` content type.
 	//
 	// Corresponds with PUT /api/experience/interaction-event (the `UpdateInteractionEvent` operationId).
 	UpdateInteractionEvent(ctx context.Context, body UpdateInteractionEventJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetDirectSignIn Get the direct sign-in target of the current interaction
+	//
+	// Return the `direct_sign_in` value carried by the current interaction's authorization request, or an empty object when the interaction did not start from direct sign-in. The value is read from the interaction's OIDC parameters, so it is scoped to this interaction and remains available even before the experience interaction is initialized. Used by the hosted experience to return a failed direct sign-in to the client application instead of falling back to the hosted sign-in page.
+	//
+	// Corresponds with GET /api/experience/interaction/direct-sign-in (the `GetDirectSignIn` operationId).
+	GetDirectSignIn(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateSignInPasskeyAuthentication Create passkey sign-in WebAuthn authentication
 	//
@@ -1536,7 +1561,7 @@ type ClientInterface interface {
 
 	// SubmitInteraction Submit interaction
 	//
-	// Submit the current interaction. <br/>- Submit the verified user identity to the OIDC provider for further authentication (SignIn and Register). <br/>- Update the user's profile data if any (SignIn and Register). <br/>- Reset the password and clear all the interaction records (ForgotPassword).
+	// Submit the current interaction. <br/>- Submit the verified user identity to the OIDC provider for further authentication (SignIn and Register). <br/>- Update the user's profile data if any (SignIn and Register). <br/>- Reset the password and clear all the interaction records (ForgotPassword). <br/>- Complete a step-up interaction: the interaction must have reached the authentication context class the authorization request selected, and only the methods it established are written to the account, with no sign-in side effect.
 	//
 	// Corresponds with POST /api/experience/submit (the `SubmitInteraction` operationId).
 	SubmitInteraction(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1649,7 +1674,7 @@ type ClientInterface interface {
 
 	// CreatePasswordVerificationWithBody Create password verification record
 	//
-	// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
+	// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), `identifier` may be omitted: the password is then verified against that user's credential, the subject is read from the interaction storage, and the request never carries a raw identifier. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -1658,7 +1683,7 @@ type ClientInterface interface {
 
 	// CreatePasswordVerification Create password verification record
 	//
-	// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
+	// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), `identifier` may be omitted: the password is then verified against that user's credential, the subject is read from the interaction storage, and the request never carries a raw identifier. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -1800,7 +1825,7 @@ type ClientInterface interface {
 
 	// CreateAndSendVerificationCodeWithBody Create and send verification code
 	//
-	// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier.
+	// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), the identifier may carry only its `type`: the code is then sent to that user's primary email or phone with the `SignIn` template, the subject is read from the interaction storage, and the request never carries a raw identifier. This variant is only accepted with the `SignIn` interaction event.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -1809,7 +1834,7 @@ type ClientInterface interface {
 
 	// CreateAndSendVerificationCode Create and send verification code
 	//
-	// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier.
+	// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), the identifier may carry only its `type`: the code is then sent to that user's primary email or phone with the `SignIn` template, the subject is read from the interaction storage, and the request never carries a raw identifier. This variant is only accepted with the `SignIn` interaction event.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -1818,7 +1843,7 @@ type ClientInterface interface {
 
 	// VerifyVerificationCodeVerificationWithBody Verify verification code
 	//
-	// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified.
+	// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified. For a code sent to the subject the interaction carries (an identifier with only its `type`), the identifier likewise carries only its `type`: the code is verified against the identifier the record was sent to, and the request never carries a raw identifier.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -1827,7 +1852,7 @@ type ClientInterface interface {
 
 	// VerifyVerificationCodeVerification Verify verification code
 	//
-	// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified.
+	// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified. For a code sent to the subject the interaction carries (an identifier with only its `type`), the identifier likewise carries only its `type`: the code is verified against the identifier the record was sent to, and the request never carries a raw identifier.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2130,14 +2155,14 @@ type ClientInterface interface {
 
 	// GetMfaSettings Get MFA settings
 	//
-	// Get MFA settings for the user. This endpoint requires the Identities scope. Returns current MFA configuration preferences.
+	// Get MFA settings for the user. This endpoint requires the Identities scope. Returns whether the user has enabled MFA and whether MFA verification is skipped at sign-in. `enabled` is omitted for users who predate the flag, which is treated as enabled when the user has usable factors.
 	//
 	// Corresponds with GET /api/my-account/mfa-settings (the `GetMfaSettings` operationId).
 	GetMfaSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateMfaSettingsWithBody Update MFA settings
 	//
-	// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured.
+	// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured. Set `enabled` to `true` when turning verification on so an explicit MFA disablement no longer overrides the preference; omit it to keep the stored value.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2146,7 +2171,7 @@ type ClientInterface interface {
 
 	// UpdateMfaSettings Update MFA settings
 	//
-	// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured.
+	// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured. Set `enabled` to `true` when turning verification on so an explicit MFA disablement no longer overrides the preference; omit it to keep the stored value.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2162,7 +2187,7 @@ type ClientInterface interface {
 
 	// AddMfaVerificationWithBody Add a MFA verification
 	//
-	// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions.
+	// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions. Adding a backup code factor replaces any exhausted backup code record.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -2171,7 +2196,7 @@ type ClientInterface interface {
 
 	// AddMfaVerification Add a MFA verification
 	//
-	// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions.
+	// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions. Adding a backup code factor replaces any exhausted backup code record.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2259,6 +2284,67 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/my-account/password (the `UpdatePassword` operationId).
 	UpdatePassword(ctx context.Context, body UpdatePasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListMyAccountPersonalAccessTokens List personal access tokens
+	//
+	// List all personal access tokens of the signed-in user, including expired ones, sorted by creation time in descending order. The token secret values are never returned. The personal-access-tokens scope is required.
+	//
+	// Corresponds with GET /api/my-account/personal-access-tokens (the `ListMyAccountPersonalAccessTokens` operationId).
+	ListMyAccountPersonalAccessTokens(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateMyAccountPersonalAccessTokenNameWithBody Rename a personal access token
+	//
+	// Rename a personal access token of the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PATCH /api/my-account/personal-access-tokens (the `UpdateMyAccountPersonalAccessTokenName` operationId).
+	UpdateMyAccountPersonalAccessTokenNameWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateMyAccountPersonalAccessTokenName Rename a personal access token
+	//
+	// Rename a personal access token of the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PATCH /api/my-account/personal-access-tokens (the `UpdateMyAccountPersonalAccessTokenName` operationId).
+	UpdateMyAccountPersonalAccessTokenName(ctx context.Context, body UpdateMyAccountPersonalAccessTokenNameJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateMyAccountPersonalAccessTokenWithBody Create a personal access token
+	//
+	// Create a personal access token for the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required. The token secret value is returned only in this response. The expiration time is required, must be in the future, and must be at most 365 days from now. A user can have at most 20 unexpired personal access tokens.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/my-account/personal-access-tokens (the `CreateMyAccountPersonalAccessToken` operationId).
+	CreateMyAccountPersonalAccessTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateMyAccountPersonalAccessToken Create a personal access token
+	//
+	// Create a personal access token for the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required. The token secret value is returned only in this response. The expiration time is required, must be in the future, and must be at most 365 days from now. A user can have at most 20 unexpired personal access tokens.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/my-account/personal-access-tokens (the `CreateMyAccountPersonalAccessToken` operationId).
+	CreateMyAccountPersonalAccessToken(ctx context.Context, body CreateMyAccountPersonalAccessTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteMyAccountPersonalAccessTokenWithBody Delete a personal access token
+	//
+	// Delete a personal access token of the signed-in user by name. A logto-verification-id in header and the personal-access-tokens scope are required.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/my-account/personal-access-tokens/delete (the `DeleteMyAccountPersonalAccessToken` operationId).
+	DeleteMyAccountPersonalAccessTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteMyAccountPersonalAccessToken Delete a personal access token
+	//
+	// Delete a personal access token of the signed-in user by name. A logto-verification-id in header and the personal-access-tokens scope are required.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/my-account/personal-access-tokens/delete (the `DeleteMyAccountPersonalAccessToken` operationId).
+	DeleteMyAccountPersonalAccessToken(ctx context.Context, body DeleteMyAccountPersonalAccessTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeletePrimaryEmail Delete primary email
 	//
@@ -3628,7 +3714,7 @@ type ClientInterface interface {
 
 	// DeleteSentinelActivitiesWithBody Bulk delete sentinel activities
 	//
-	// Remove sentinel activity reports based on the provided target value(identifier).Use this endpoint to unblock users who may be locked out due to too many failed authentication attempts.
+	// Remove sentinel activity reports based on the provided target value (identifier or user ID). Use this endpoint to unblock users who may be locked out due to too many failed authentication or security verification attempts. Password and email/phone code lockouts are keyed by the identifier (email address, phone number, or username); TOTP, WebAuthn, and backup code lockouts are keyed by user ID.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -3637,7 +3723,7 @@ type ClientInterface interface {
 
 	// DeleteSentinelActivities Bulk delete sentinel activities
 	//
-	// Remove sentinel activity reports based on the provided target value(identifier).Use this endpoint to unblock users who may be locked out due to too many failed authentication attempts.
+	// Remove sentinel activity reports based on the provided target value (identifier or user ID). Use this endpoint to unblock users who may be locked out due to too many failed authentication or security verification attempts. Password and email/phone code lockouts are keyed by the identifier (email address, phone number, or username); TOTP, WebAuthn, and backup code lockouts are keyed by user ID.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -3857,6 +3943,31 @@ type ClientInterface interface {
 	// Corresponds with GET /api/systems/application (the `GetSystemApplicationConfig` operationId).
 	GetSystemApplicationConfig(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetSystemLicense Get the installed license.
+	//
+	// Get the license installed on this self-hosted deployment, i.e. the plan it grants, the entitlements it unlocks, its expiration, and its refresh/grace status. The license key itself is never returned. Returns 404 when no license is installed, and 501 on Logto Cloud.
+	//
+	// Corresponds with GET /api/systems/license (the `GetSystemLicense` operationId).
+	GetSystemLicense(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// InstallSystemLicenseWithBody Install a license.
+	//
+	// Install a license key on this self-hosted deployment, replacing the installed license if there is one. The key's signature is verified against the public key built into Logto before it is saved, and a key past its expiration is rejected as a stale copy. Returns 501 on Logto Cloud.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/systems/license (the `InstallSystemLicense` operationId).
+	InstallSystemLicenseWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// InstallSystemLicense Install a license.
+	//
+	// Install a license key on this self-hosted deployment, replacing the installed license if there is one. The key's signature is verified against the public key built into Logto before it is saved, and a key past its expiration is rejected as a stale copy. Returns 501 on Logto Cloud.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/systems/license (the `InstallSystemLicense` operationId).
+	InstallSystemLicense(ctx context.Context, body InstallSystemLicenseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CreateUserAssetWithBody Upload asset
 	//
 	// Upload a user asset.
@@ -4063,14 +4174,14 @@ type ClientInterface interface {
 
 	// ListUserLogtoConfigs Get user logto config
 	//
-	// Retrieve the exposed portion of a user's logto config. Includes MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped).
+	// Retrieve the exposed portion of a user's logto config. Includes MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped).
 	//
 	// Corresponds with GET /api/users/{userId}/logto-configs (the `ListUserLogtoConfigs` operationId).
 	ListUserLogtoConfigs(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateUserLogtoConfigsWithBody Update user logto config
 	//
-	// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
+	// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -4079,7 +4190,7 @@ type ClientInterface interface {
 
 	// UpdateUserLogtoConfigs Update user logto config
 	//
-	// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
+	// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7286,7 +7397,7 @@ func (c *Client) UpdateEmailTemplateDetails(ctx context.Context, id EmailTemplat
 
 // InitInteractionWithBody Init new interaction
 //
-// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject; if the pinned user has no method that can reach the selected authentication context class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
+// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject. If the session already satisfies the class the step-up pursues and the request forces no fresh authentication, the interaction is finished with the session's context untouched and a redirect URL is returned. If the pinned user has no method that can reach that class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7305,13 +7416,51 @@ func (c *Client) InitInteractionWithBody(ctx context.Context, contentType string
 
 // InitInteraction Init new interaction
 //
-// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject; if the pinned user has no method that can reach the selected authentication context class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
+// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject. If the session already satisfies the class the step-up pursues and the request forces no fresh authentication, the interaction is finished with the session's context untouched and a redirect URL is returned. If the pinned user has no method that can reach that class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
 //
 // Takes a body of the `application/json` content type.
 //
 // Corresponds with PUT /api/experience (the `InitInteraction` operationId).
 func (c *Client) InitInteraction(ctx context.Context, body InitInteractionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewInitInteractionRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AbortInteractionWithBody Abort interaction
+//
+// Finish the current interaction with an `access_denied` OAuth error and return the URL that resumes the OIDC flow. Following it redirects the user agent back to the client's redirect URI with the error, preserving the authorization request's `state` and `iss`. The endpoint works at any interaction step, including consent, and is intended for flows where the client application owns the user-facing UI, so an abort surfaces there instead of on the hosted experience.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/experience/abort (the `AbortInteraction` operationId).
+func (c *Client) AbortInteractionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAbortInteractionRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AbortInteraction Abort interaction
+//
+// Finish the current interaction with an `access_denied` OAuth error and return the URL that resumes the OIDC flow. Following it redirects the user agent back to the client's redirect URI with the error, preserving the authorization request's `state` and `iss`. The endpoint works at any interaction step, including consent, and is intended for flows where the client application owns the user-facing UI, so an abort surfaces there instead of on the hosted experience.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/experience/abort (the `AbortInteraction` operationId).
+func (c *Client) AbortInteraction(ctx context.Context, body AbortInteractionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAbortInteractionRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -7379,7 +7528,7 @@ func (c *Client) GetInteraction(ctx context.Context, reqEditors ...RequestEditor
 
 // UpdateInteractionEventWithBody Update interaction event
 //
-// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`, while keeping all the verification records data.
+// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`. The verification records are kept, but any user already identified in this interaction is discarded, along with everything staged against that identification: the pending profile data, any MFA factor bound in this interaction, and the trusted-device opt-in. Identify the user again before submitting. A verification record answers only for the account it was made against, so it cannot identify a different user after the switch.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7398,13 +7547,30 @@ func (c *Client) UpdateInteractionEventWithBody(ctx context.Context, contentType
 
 // UpdateInteractionEvent Update interaction event
 //
-// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`, while keeping all the verification records data.
+// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`. The verification records are kept, but any user already identified in this interaction is discarded, along with everything staged against that identification: the pending profile data, any MFA factor bound in this interaction, and the trusted-device opt-in. Identify the user again before submitting. A verification record answers only for the account it was made against, so it cannot identify a different user after the switch.
 //
 // Takes a body of the `application/json` content type.
 //
 // Corresponds with PUT /api/experience/interaction-event (the `UpdateInteractionEvent` operationId).
 func (c *Client) UpdateInteractionEvent(ctx context.Context, body UpdateInteractionEventJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateInteractionEventRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetDirectSignIn Get the direct sign-in target of the current interaction
+//
+// Return the `direct_sign_in` value carried by the current interaction's authorization request, or an empty object when the interaction did not start from direct sign-in. The value is read from the interaction's OIDC parameters, so it is scoped to this interaction and remains available even before the experience interaction is initialized. Used by the hosted experience to return a failed direct sign-in to the client application instead of falling back to the hosted sign-in page.
+//
+// Corresponds with GET /api/experience/interaction/direct-sign-in (the `GetDirectSignIn` operationId).
+func (c *Client) GetDirectSignIn(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDirectSignInRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -7709,7 +7875,7 @@ func (c *Client) GetEnabledSsoConnectors(ctx context.Context, params *GetEnabled
 
 // SubmitInteraction Submit interaction
 //
-// Submit the current interaction. <br/>- Submit the verified user identity to the OIDC provider for further authentication (SignIn and Register). <br/>- Update the user's profile data if any (SignIn and Register). <br/>- Reset the password and clear all the interaction records (ForgotPassword).
+// Submit the current interaction. <br/>- Submit the verified user identity to the OIDC provider for further authentication (SignIn and Register). <br/>- Update the user's profile data if any (SignIn and Register). <br/>- Reset the password and clear all the interaction records (ForgotPassword). <br/>- Complete a step-up interaction: the interaction must have reached the authentication context class the authorization request selected, and only the methods it established are written to the account, with no sign-in side effect.
 //
 // Corresponds with POST /api/experience/submit (the `SubmitInteraction` operationId).
 func (c *Client) SubmitInteraction(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -7952,7 +8118,7 @@ func (c *Client) VerifyOneTimeTokenVerification(ctx context.Context, body Verify
 
 // CreatePasswordVerificationWithBody Create password verification record
 //
-// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
+// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), `identifier` may be omitted: the password is then verified against that user's credential, the subject is read from the interaction storage, and the request never carries a raw identifier. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7971,7 +8137,7 @@ func (c *Client) CreatePasswordVerificationWithBody(ctx context.Context, content
 
 // CreatePasswordVerification Create password verification record
 //
-// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
+// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), `identifier` may be omitted: the password is then verified against that user's credential, the subject is read from the interaction storage, and the request never carries a raw identifier. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8273,7 +8439,7 @@ func (c *Client) VerifyTotpVerification(ctx context.Context, body VerifyTotpVeri
 
 // CreateAndSendVerificationCodeWithBody Create and send verification code
 //
-// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier.
+// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), the identifier may carry only its `type`: the code is then sent to that user's primary email or phone with the `SignIn` template, the subject is read from the interaction storage, and the request never carries a raw identifier. This variant is only accepted with the `SignIn` interaction event.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8292,7 +8458,7 @@ func (c *Client) CreateAndSendVerificationCodeWithBody(ctx context.Context, cont
 
 // CreateAndSendVerificationCode Create and send verification code
 //
-// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier.
+// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), the identifier may carry only its `type`: the code is then sent to that user's primary email or phone with the `SignIn` template, the subject is read from the interaction storage, and the request never carries a raw identifier. This variant is only accepted with the `SignIn` interaction event.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8311,7 +8477,7 @@ func (c *Client) CreateAndSendVerificationCode(ctx context.Context, body CreateA
 
 // VerifyVerificationCodeVerificationWithBody Verify verification code
 //
-// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified.
+// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified. For a code sent to the subject the interaction carries (an identifier with only its `type`), the identifier likewise carries only its `type`: the code is verified against the identifier the record was sent to, and the request never carries a raw identifier.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8330,7 +8496,7 @@ func (c *Client) VerifyVerificationCodeVerificationWithBody(ctx context.Context,
 
 // VerifyVerificationCodeVerification Verify verification code
 //
-// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified.
+// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified. For a code sent to the subject the interaction carries (an identifier with only its `type`), the identifier likewise carries only its `type`: the code is verified against the identifier the record was sent to, and the request never carries a raw identifier.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8993,7 +9159,7 @@ func (c *Client) UpdateLogtoConfig(ctx context.Context, body UpdateLogtoConfigJS
 
 // GetMfaSettings Get MFA settings
 //
-// Get MFA settings for the user. This endpoint requires the Identities scope. Returns current MFA configuration preferences.
+// Get MFA settings for the user. This endpoint requires the Identities scope. Returns whether the user has enabled MFA and whether MFA verification is skipped at sign-in. `enabled` is omitted for users who predate the flag, which is treated as enabled when the user has usable factors.
 //
 // Corresponds with GET /api/my-account/mfa-settings (the `GetMfaSettings` operationId).
 func (c *Client) GetMfaSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -9010,7 +9176,7 @@ func (c *Client) GetMfaSettings(ctx context.Context, reqEditors ...RequestEditor
 
 // UpdateMfaSettingsWithBody Update MFA settings
 //
-// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured.
+// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured. Set `enabled` to `true` when turning verification on so an explicit MFA disablement no longer overrides the preference; omit it to keep the stored value.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9029,7 +9195,7 @@ func (c *Client) UpdateMfaSettingsWithBody(ctx context.Context, contentType stri
 
 // UpdateMfaSettings Update MFA settings
 //
-// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured.
+// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured. Set `enabled` to `true` when turning verification on so an explicit MFA disablement no longer overrides the preference; omit it to keep the stored value.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9065,7 +9231,7 @@ func (c *Client) GetMfaVerifications(ctx context.Context, reqEditors ...RequestE
 
 // AddMfaVerificationWithBody Add a MFA verification
 //
-// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions.
+// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions. Adding a backup code factor replaces any exhausted backup code record.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9084,7 +9250,7 @@ func (c *Client) AddMfaVerificationWithBody(ctx context.Context, contentType str
 
 // AddMfaVerification Add a MFA verification
 //
-// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions.
+// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions. Adding a backup code factor replaces any exhausted backup code record.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9273,6 +9439,137 @@ func (c *Client) UpdatePasswordWithBody(ctx context.Context, contentType string,
 // Corresponds with POST /api/my-account/password (the `UpdatePassword` operationId).
 func (c *Client) UpdatePassword(ctx context.Context, body UpdatePasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdatePasswordRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListMyAccountPersonalAccessTokens List personal access tokens
+//
+// List all personal access tokens of the signed-in user, including expired ones, sorted by creation time in descending order. The token secret values are never returned. The personal-access-tokens scope is required.
+//
+// Corresponds with GET /api/my-account/personal-access-tokens (the `ListMyAccountPersonalAccessTokens` operationId).
+func (c *Client) ListMyAccountPersonalAccessTokens(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListMyAccountPersonalAccessTokensRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateMyAccountPersonalAccessTokenNameWithBody Rename a personal access token
+//
+// Rename a personal access token of the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PATCH /api/my-account/personal-access-tokens (the `UpdateMyAccountPersonalAccessTokenName` operationId).
+func (c *Client) UpdateMyAccountPersonalAccessTokenNameWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateMyAccountPersonalAccessTokenNameRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateMyAccountPersonalAccessTokenName Rename a personal access token
+//
+// Rename a personal access token of the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PATCH /api/my-account/personal-access-tokens (the `UpdateMyAccountPersonalAccessTokenName` operationId).
+func (c *Client) UpdateMyAccountPersonalAccessTokenName(ctx context.Context, body UpdateMyAccountPersonalAccessTokenNameJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateMyAccountPersonalAccessTokenNameRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateMyAccountPersonalAccessTokenWithBody Create a personal access token
+//
+// Create a personal access token for the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required. The token secret value is returned only in this response. The expiration time is required, must be in the future, and must be at most 365 days from now. A user can have at most 20 unexpired personal access tokens.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/my-account/personal-access-tokens (the `CreateMyAccountPersonalAccessToken` operationId).
+func (c *Client) CreateMyAccountPersonalAccessTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateMyAccountPersonalAccessTokenRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateMyAccountPersonalAccessToken Create a personal access token
+//
+// Create a personal access token for the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required. The token secret value is returned only in this response. The expiration time is required, must be in the future, and must be at most 365 days from now. A user can have at most 20 unexpired personal access tokens.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/my-account/personal-access-tokens (the `CreateMyAccountPersonalAccessToken` operationId).
+func (c *Client) CreateMyAccountPersonalAccessToken(ctx context.Context, body CreateMyAccountPersonalAccessTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateMyAccountPersonalAccessTokenRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteMyAccountPersonalAccessTokenWithBody Delete a personal access token
+//
+// Delete a personal access token of the signed-in user by name. A logto-verification-id in header and the personal-access-tokens scope are required.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/my-account/personal-access-tokens/delete (the `DeleteMyAccountPersonalAccessToken` operationId).
+func (c *Client) DeleteMyAccountPersonalAccessTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteMyAccountPersonalAccessTokenRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteMyAccountPersonalAccessToken Delete a personal access token
+//
+// Delete a personal access token of the signed-in user by name. A logto-verification-id in header and the personal-access-tokens scope are required.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/my-account/personal-access-tokens/delete (the `DeleteMyAccountPersonalAccessToken` operationId).
+func (c *Client) DeleteMyAccountPersonalAccessToken(ctx context.Context, body DeleteMyAccountPersonalAccessTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteMyAccountPersonalAccessTokenRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -12301,7 +12598,7 @@ func (c *Client) DeleteSecret(ctx context.Context, id SecretIdRoot, reqEditors .
 
 // DeleteSentinelActivitiesWithBody Bulk delete sentinel activities
 //
-// Remove sentinel activity reports based on the provided target value(identifier).Use this endpoint to unblock users who may be locked out due to too many failed authentication attempts.
+// Remove sentinel activity reports based on the provided target value (identifier or user ID). Use this endpoint to unblock users who may be locked out due to too many failed authentication or security verification attempts. Password and email/phone code lockouts are keyed by the identifier (email address, phone number, or username); TOTP, WebAuthn, and backup code lockouts are keyed by user ID.
 //
 // Takes any type of body and a specified content type.
 //
@@ -12320,7 +12617,7 @@ func (c *Client) DeleteSentinelActivitiesWithBody(ctx context.Context, contentTy
 
 // DeleteSentinelActivities Bulk delete sentinel activities
 //
-// Remove sentinel activity reports based on the provided target value(identifier).Use this endpoint to unblock users who may be locked out due to too many failed authentication attempts.
+// Remove sentinel activity reports based on the provided target value (identifier or user ID). Use this endpoint to unblock users who may be locked out due to too many failed authentication or security verification attempts. Password and email/phone code lockouts are keyed by the identifier (email address, phone number, or username); TOTP, WebAuthn, and backup code lockouts are keyed by user ID.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -12810,6 +13107,61 @@ func (c *Client) GetSystemApplicationConfig(ctx context.Context, reqEditors ...R
 	return c.Client.Do(req)
 }
 
+// GetSystemLicense Get the installed license.
+//
+// Get the license installed on this self-hosted deployment, i.e. the plan it grants, the entitlements it unlocks, its expiration, and its refresh/grace status. The license key itself is never returned. Returns 404 when no license is installed, and 501 on Logto Cloud.
+//
+// Corresponds with GET /api/systems/license (the `GetSystemLicense` operationId).
+func (c *Client) GetSystemLicense(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSystemLicenseRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// InstallSystemLicenseWithBody Install a license.
+//
+// Install a license key on this self-hosted deployment, replacing the installed license if there is one. The key's signature is verified against the public key built into Logto before it is saved, and a key past its expiration is rejected as a stale copy. Returns 501 on Logto Cloud.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/systems/license (the `InstallSystemLicense` operationId).
+func (c *Client) InstallSystemLicenseWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewInstallSystemLicenseRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// InstallSystemLicense Install a license.
+//
+// Install a license key on this self-hosted deployment, replacing the installed license if there is one. The key's signature is verified against the public key built into Logto before it is saved, and a key past its expiration is rejected as a stale copy. Returns 501 on Logto Cloud.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/systems/license (the `InstallSystemLicense` operationId).
+func (c *Client) InstallSystemLicense(ctx context.Context, body InstallSystemLicenseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewInstallSystemLicenseRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // CreateUserAssetWithBody Upload asset
 //
 // Upload a user asset.
@@ -13256,7 +13608,7 @@ func (c *Client) UpdateUserIsSuspended(ctx context.Context, userId UserId, body 
 
 // ListUserLogtoConfigs Get user logto config
 //
-// Retrieve the exposed portion of a user's logto config. Includes MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped).
+// Retrieve the exposed portion of a user's logto config. Includes MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped).
 //
 // Corresponds with GET /api/users/{userId}/logto-configs (the `ListUserLogtoConfigs` operationId).
 func (c *Client) ListUserLogtoConfigs(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -13273,7 +13625,7 @@ func (c *Client) ListUserLogtoConfigs(ctx context.Context, userId UserId, reqEdi
 
 // UpdateUserLogtoConfigsWithBody Update user logto config
 //
-// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
+// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
 //
 // Takes any type of body and a specified content type.
 //
@@ -13292,7 +13644,7 @@ func (c *Client) UpdateUserLogtoConfigsWithBody(ctx context.Context, userId User
 
 // UpdateUserLogtoConfigs Update user logto config
 //
-// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
+// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -18783,6 +19135,46 @@ func NewInitInteractionRequestWithBody(server string, contentType string, body i
 	return req, nil
 }
 
+// NewAbortInteractionRequest calls the generic AbortInteraction builder with application/json body
+func NewAbortInteractionRequest(server string, body AbortInteractionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAbortInteractionRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewAbortInteractionRequestWithBody constructs an http.Request for the AbortInteraction method, with any body, and a specified content type
+func NewAbortInteractionRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/experience/abort")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewIdentifyUserRequest calls the generic IdentifyUser builder with application/json body
 func NewIdentifyUserRequest(server string, body IdentifyUserJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -18886,6 +19278,33 @@ func NewUpdateInteractionEventRequestWithBody(server string, contentType string,
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetDirectSignInRequest constructs an http.Request for the GetDirectSignIn method
+func NewGetDirectSignInRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/experience/interaction/direct-sign-in")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -21574,6 +21993,153 @@ func NewUpdatePasswordRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
+// NewListMyAccountPersonalAccessTokensRequest constructs an http.Request for the ListMyAccountPersonalAccessTokens method
+func NewListMyAccountPersonalAccessTokensRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/my-account/personal-access-tokens")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateMyAccountPersonalAccessTokenNameRequest calls the generic UpdateMyAccountPersonalAccessTokenName builder with application/json body
+func NewUpdateMyAccountPersonalAccessTokenNameRequest(server string, body UpdateMyAccountPersonalAccessTokenNameJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateMyAccountPersonalAccessTokenNameRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewUpdateMyAccountPersonalAccessTokenNameRequestWithBody constructs an http.Request for the UpdateMyAccountPersonalAccessTokenName method, with any body, and a specified content type
+func NewUpdateMyAccountPersonalAccessTokenNameRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/my-account/personal-access-tokens")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCreateMyAccountPersonalAccessTokenRequest calls the generic CreateMyAccountPersonalAccessToken builder with application/json body
+func NewCreateMyAccountPersonalAccessTokenRequest(server string, body CreateMyAccountPersonalAccessTokenJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateMyAccountPersonalAccessTokenRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateMyAccountPersonalAccessTokenRequestWithBody constructs an http.Request for the CreateMyAccountPersonalAccessToken method, with any body, and a specified content type
+func NewCreateMyAccountPersonalAccessTokenRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/my-account/personal-access-tokens")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteMyAccountPersonalAccessTokenRequest calls the generic DeleteMyAccountPersonalAccessToken builder with application/json body
+func NewDeleteMyAccountPersonalAccessTokenRequest(server string, body DeleteMyAccountPersonalAccessTokenJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewDeleteMyAccountPersonalAccessTokenRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewDeleteMyAccountPersonalAccessTokenRequestWithBody constructs an http.Request for the DeleteMyAccountPersonalAccessToken method, with any body, and a specified content type
+func NewDeleteMyAccountPersonalAccessTokenRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/my-account/personal-access-tokens/delete")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewDeletePrimaryEmailRequest constructs an http.Request for the DeletePrimaryEmail method
 func NewDeletePrimaryEmailRequest(server string) (*http.Request, error) {
 	var err error
@@ -23450,6 +24016,18 @@ func NewListOrganizationsRequest(server string, params *ListOrganizationsParams)
 		if params.ShowFeatured != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "showFeatured", *params.ShowFeatured, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.JitEmailDomain != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "jitEmailDomain", *params.JitEmailDomain, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -25366,6 +25944,18 @@ func NewListResourcesRequest(server string, params *ListResourcesParams) (*http.
 		if params.IncludeScopes != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "includeScopes", *params.IncludeScopes, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.ExcludeManagementApis != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "excludeManagementApis", *params.ExcludeManagementApis, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -28087,6 +28677,73 @@ func NewGetSystemApplicationConfigRequest(server string) (*http.Request, error) 
 	return req, nil
 }
 
+// NewGetSystemLicenseRequest constructs an http.Request for the GetSystemLicense method
+func NewGetSystemLicenseRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/systems/license")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewInstallSystemLicenseRequest calls the generic InstallSystemLicense builder with application/json body
+func NewInstallSystemLicenseRequest(server string, body InstallSystemLicenseJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewInstallSystemLicenseRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewInstallSystemLicenseRequestWithBody constructs an http.Request for the InstallSystemLicense method, with any body, and a specified content type
+func NewInstallSystemLicenseRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/systems/license")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewCreateUserAssetRequestWithBody constructs an http.Request for the CreateUserAsset method, with any body, and a specified content type
 func NewCreateUserAssetRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -28234,6 +28891,18 @@ func NewListUsersRequest(server string, params *ListUsersParams) (*http.Request,
 		if params.IdentityId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "identityId", *params.IdentityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CustomData != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "customData", *params.CustomData, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -31957,7 +32626,7 @@ type ClientWithResponsesInterface interface {
 
 	// InitInteractionWithBodyWithResponse Init new interaction
 	//
-	// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject; if the pinned user has no method that can reach the selected authentication context class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
+	// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject. If the session already satisfies the class the step-up pursues and the request forces no fresh authentication, the interaction is finished with the session's context untouched and a redirect URL is returned. If the pinned user has no method that can reach that class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -31966,12 +32635,30 @@ type ClientWithResponsesInterface interface {
 
 	// InitInteractionWithResponse Init new interaction
 	//
-	// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject; if the pinned user has no method that can reach the selected authentication context class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
+	// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject. If the session already satisfies the class the step-up pursues and the request forces no fresh authentication, the interaction is finished with the session's context untouched and a redirect URL is returned. If the pinned user has no method that can reach that class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with PUT /api/experience (the `InitInteraction` operationId).
 	InitInteractionWithResponse(ctx context.Context, body InitInteractionJSONRequestBody, reqEditors ...RequestEditorFn) (*InitInteractionResponse, error)
+
+	// AbortInteractionWithBodyWithResponse Abort interaction
+	//
+	// Finish the current interaction with an `access_denied` OAuth error and return the URL that resumes the OIDC flow. Following it redirects the user agent back to the client's redirect URI with the error, preserving the authorization request's `state` and `iss`. The endpoint works at any interaction step, including consent, and is intended for flows where the client application owns the user-facing UI, so an abort surfaces there instead of on the hosted experience.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/experience/abort (the `AbortInteraction` operationId).
+	AbortInteractionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AbortInteractionResponse, error)
+
+	// AbortInteractionWithResponse Abort interaction
+	//
+	// Finish the current interaction with an `access_denied` OAuth error and return the URL that resumes the OIDC flow. Following it redirects the user agent back to the client's redirect URI with the error, preserving the authorization request's `state` and `iss`. The endpoint works at any interaction step, including consent, and is intended for flows where the client application owns the user-facing UI, so an abort surfaces there instead of on the hosted experience.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/experience/abort (the `AbortInteraction` operationId).
+	AbortInteractionWithResponse(ctx context.Context, body AbortInteractionJSONRequestBody, reqEditors ...RequestEditorFn) (*AbortInteractionResponse, error)
 
 	// IdentifyUserWithBodyWithResponse Identify user for the current interaction
 	//
@@ -32002,7 +32689,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateInteractionEventWithBodyWithResponse Update interaction event
 	//
-	// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`, while keeping all the verification records data.
+	// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`. The verification records are kept, but any user already identified in this interaction is discarded, along with everything staged against that identification: the pending profile data, any MFA factor bound in this interaction, and the trusted-device opt-in. Identify the user again before submitting. A verification record answers only for the account it was made against, so it cannot identify a different user after the switch.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32011,12 +32698,21 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateInteractionEventWithResponse Update interaction event
 	//
-	// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`, while keeping all the verification records data.
+	// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`. The verification records are kept, but any user already identified in this interaction is discarded, along with everything staged against that identification: the pending profile data, any MFA factor bound in this interaction, and the trusted-device opt-in. Identify the user again before submitting. A verification record answers only for the account it was made against, so it cannot identify a different user after the switch.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with PUT /api/experience/interaction-event (the `UpdateInteractionEvent` operationId).
 	UpdateInteractionEventWithResponse(ctx context.Context, body UpdateInteractionEventJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInteractionEventResponse, error)
+
+	// GetDirectSignInWithResponse Get the direct sign-in target of the current interaction
+	//
+	// Return the `direct_sign_in` value carried by the current interaction's authorization request, or an empty object when the interaction did not start from direct sign-in. The value is read from the interaction's OIDC parameters, so it is scoped to this interaction and remains available even before the experience interaction is initialized. Used by the hosted experience to return a failed direct sign-in to the client application instead of falling back to the hosted sign-in page.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/experience/interaction/direct-sign-in (the `GetDirectSignIn` operationId).
+	GetDirectSignInWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDirectSignInResponse, error)
 
 	// CreateSignInPasskeyAuthenticationWithResponse Create passkey sign-in WebAuthn authentication
 	//
@@ -32164,7 +32860,7 @@ type ClientWithResponsesInterface interface {
 
 	// SubmitInteractionWithResponse Submit interaction
 	//
-	// Submit the current interaction. <br/>- Submit the verified user identity to the OIDC provider for further authentication (SignIn and Register). <br/>- Update the user's profile data if any (SignIn and Register). <br/>- Reset the password and clear all the interaction records (ForgotPassword).
+	// Submit the current interaction. <br/>- Submit the verified user identity to the OIDC provider for further authentication (SignIn and Register). <br/>- Update the user's profile data if any (SignIn and Register). <br/>- Reset the password and clear all the interaction records (ForgotPassword). <br/>- Complete a step-up interaction: the interaction must have reached the authentication context class the authorization request selected, and only the methods it established are written to the account, with no sign-in side effect.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -32281,7 +32977,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreatePasswordVerificationWithBodyWithResponse Create password verification record
 	//
-	// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
+	// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), `identifier` may be omitted: the password is then verified against that user's credential, the subject is read from the interaction storage, and the request never carries a raw identifier. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32290,7 +32986,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreatePasswordVerificationWithResponse Create password verification record
 	//
-	// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
+	// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), `identifier` may be omitted: the password is then verified against that user's credential, the subject is read from the interaction storage, and the request never carries a raw identifier. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32434,7 +33130,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateAndSendVerificationCodeWithBodyWithResponse Create and send verification code
 	//
-	// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier.
+	// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), the identifier may carry only its `type`: the code is then sent to that user's primary email or phone with the `SignIn` template, the subject is read from the interaction storage, and the request never carries a raw identifier. This variant is only accepted with the `SignIn` interaction event.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32443,7 +33139,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateAndSendVerificationCodeWithResponse Create and send verification code
 	//
-	// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier.
+	// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), the identifier may carry only its `type`: the code is then sent to that user's primary email or phone with the `SignIn` template, the subject is read from the interaction storage, and the request never carries a raw identifier. This variant is only accepted with the `SignIn` interaction event.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32452,7 +33148,7 @@ type ClientWithResponsesInterface interface {
 
 	// VerifyVerificationCodeVerificationWithBodyWithResponse Verify verification code
 	//
-	// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified.
+	// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified. For a code sent to the subject the interaction carries (an identifier with only its `type`), the identifier likewise carries only its `type`: the code is verified against the identifier the record was sent to, and the request never carries a raw identifier.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32461,7 +33157,7 @@ type ClientWithResponsesInterface interface {
 
 	// VerifyVerificationCodeVerificationWithResponse Verify verification code
 	//
-	// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified.
+	// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified. For a code sent to the subject the interaction carries (an identifier with only its `type`), the identifier likewise carries only its `type`: the code is verified against the identifier the record was sent to, and the request never carries a raw identifier.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32794,7 +33490,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetMfaSettingsWithResponse Get MFA settings
 	//
-	// Get MFA settings for the user. This endpoint requires the Identities scope. Returns current MFA configuration preferences.
+	// Get MFA settings for the user. This endpoint requires the Identities scope. Returns whether the user has enabled MFA and whether MFA verification is skipped at sign-in. `enabled` is omitted for users who predate the flag, which is treated as enabled when the user has usable factors.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -32803,7 +33499,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateMfaSettingsWithBodyWithResponse Update MFA settings
 	//
-	// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured.
+	// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured. Set `enabled` to `true` when turning verification on so an explicit MFA disablement no longer overrides the preference; omit it to keep the stored value.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32812,7 +33508,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateMfaSettingsWithResponse Update MFA settings
 	//
-	// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured.
+	// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured. Set `enabled` to `true` when turning verification on so an explicit MFA disablement no longer overrides the preference; omit it to keep the stored value.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32830,7 +33526,7 @@ type ClientWithResponsesInterface interface {
 
 	// AddMfaVerificationWithBodyWithResponse Add a MFA verification
 	//
-	// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions.
+	// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions. Adding a backup code factor replaces any exhausted backup code record.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32839,7 +33535,7 @@ type ClientWithResponsesInterface interface {
 
 	// AddMfaVerificationWithResponse Add a MFA verification
 	//
-	// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions.
+	// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions. Adding a backup code factor replaces any exhausted backup code record.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -32935,6 +33631,69 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/my-account/password (the `UpdatePassword` operationId).
 	UpdatePasswordWithResponse(ctx context.Context, body UpdatePasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePasswordResponse, error)
+
+	// ListMyAccountPersonalAccessTokensWithResponse List personal access tokens
+	//
+	// List all personal access tokens of the signed-in user, including expired ones, sorted by creation time in descending order. The token secret values are never returned. The personal-access-tokens scope is required.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/my-account/personal-access-tokens (the `ListMyAccountPersonalAccessTokens` operationId).
+	ListMyAccountPersonalAccessTokensWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListMyAccountPersonalAccessTokensResponse, error)
+
+	// UpdateMyAccountPersonalAccessTokenNameWithBodyWithResponse Rename a personal access token
+	//
+	// Rename a personal access token of the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/my-account/personal-access-tokens (the `UpdateMyAccountPersonalAccessTokenName` operationId).
+	UpdateMyAccountPersonalAccessTokenNameWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateMyAccountPersonalAccessTokenNameResponse, error)
+
+	// UpdateMyAccountPersonalAccessTokenNameWithResponse Rename a personal access token
+	//
+	// Rename a personal access token of the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/my-account/personal-access-tokens (the `UpdateMyAccountPersonalAccessTokenName` operationId).
+	UpdateMyAccountPersonalAccessTokenNameWithResponse(ctx context.Context, body UpdateMyAccountPersonalAccessTokenNameJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMyAccountPersonalAccessTokenNameResponse, error)
+
+	// CreateMyAccountPersonalAccessTokenWithBodyWithResponse Create a personal access token
+	//
+	// Create a personal access token for the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required. The token secret value is returned only in this response. The expiration time is required, must be in the future, and must be at most 365 days from now. A user can have at most 20 unexpired personal access tokens.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/my-account/personal-access-tokens (the `CreateMyAccountPersonalAccessToken` operationId).
+	CreateMyAccountPersonalAccessTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateMyAccountPersonalAccessTokenResponse, error)
+
+	// CreateMyAccountPersonalAccessTokenWithResponse Create a personal access token
+	//
+	// Create a personal access token for the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required. The token secret value is returned only in this response. The expiration time is required, must be in the future, and must be at most 365 days from now. A user can have at most 20 unexpired personal access tokens.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/my-account/personal-access-tokens (the `CreateMyAccountPersonalAccessToken` operationId).
+	CreateMyAccountPersonalAccessTokenWithResponse(ctx context.Context, body CreateMyAccountPersonalAccessTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateMyAccountPersonalAccessTokenResponse, error)
+
+	// DeleteMyAccountPersonalAccessTokenWithBodyWithResponse Delete a personal access token
+	//
+	// Delete a personal access token of the signed-in user by name. A logto-verification-id in header and the personal-access-tokens scope are required.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/my-account/personal-access-tokens/delete (the `DeleteMyAccountPersonalAccessToken` operationId).
+	DeleteMyAccountPersonalAccessTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteMyAccountPersonalAccessTokenResponse, error)
+
+	// DeleteMyAccountPersonalAccessTokenWithResponse Delete a personal access token
+	//
+	// Delete a personal access token of the signed-in user by name. A logto-verification-id in header and the personal-access-tokens scope are required.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/my-account/personal-access-tokens/delete (the `DeleteMyAccountPersonalAccessToken` operationId).
+	DeleteMyAccountPersonalAccessTokenWithResponse(ctx context.Context, body DeleteMyAccountPersonalAccessTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteMyAccountPersonalAccessTokenResponse, error)
 
 	// DeletePrimaryEmailWithResponse Delete primary email
 	//
@@ -34430,7 +35189,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteSentinelActivitiesWithBodyWithResponse Bulk delete sentinel activities
 	//
-	// Remove sentinel activity reports based on the provided target value(identifier).Use this endpoint to unblock users who may be locked out due to too many failed authentication attempts.
+	// Remove sentinel activity reports based on the provided target value (identifier or user ID). Use this endpoint to unblock users who may be locked out due to too many failed authentication or security verification attempts. Password and email/phone code lockouts are keyed by the identifier (email address, phone number, or username); TOTP, WebAuthn, and backup code lockouts are keyed by user ID.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -34439,7 +35198,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteSentinelActivitiesWithResponse Bulk delete sentinel activities
 	//
-	// Remove sentinel activity reports based on the provided target value(identifier).Use this endpoint to unblock users who may be locked out due to too many failed authentication attempts.
+	// Remove sentinel activity reports based on the provided target value (identifier or user ID). Use this endpoint to unblock users who may be locked out due to too many failed authentication or security verification attempts. Password and email/phone code lockouts are keyed by the identifier (email address, phone number, or username); TOTP, WebAuthn, and backup code lockouts are keyed by user ID.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -34681,6 +35440,33 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/systems/application (the `GetSystemApplicationConfig` operationId).
 	GetSystemApplicationConfigWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSystemApplicationConfigResponse, error)
 
+	// GetSystemLicenseWithResponse Get the installed license.
+	//
+	// Get the license installed on this self-hosted deployment, i.e. the plan it grants, the entitlements it unlocks, its expiration, and its refresh/grace status. The license key itself is never returned. Returns 404 when no license is installed, and 501 on Logto Cloud.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/systems/license (the `GetSystemLicense` operationId).
+	GetSystemLicenseWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSystemLicenseResponse, error)
+
+	// InstallSystemLicenseWithBodyWithResponse Install a license.
+	//
+	// Install a license key on this self-hosted deployment, replacing the installed license if there is one. The key's signature is verified against the public key built into Logto before it is saved, and a key past its expiration is rejected as a stale copy. Returns 501 on Logto Cloud.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/systems/license (the `InstallSystemLicense` operationId).
+	InstallSystemLicenseWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*InstallSystemLicenseResponse, error)
+
+	// InstallSystemLicenseWithResponse Install a license.
+	//
+	// Install a license key on this self-hosted deployment, replacing the installed license if there is one. The key's signature is verified against the public key built into Logto before it is saved, and a key past its expiration is rejected as a stale copy. Returns 501 on Logto Cloud.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/systems/license (the `InstallSystemLicense` operationId).
+	InstallSystemLicenseWithResponse(ctx context.Context, body InstallSystemLicenseJSONRequestBody, reqEditors ...RequestEditorFn) (*InstallSystemLicenseResponse, error)
+
 	// CreateUserAssetWithBodyWithResponse Upload asset
 	//
 	// Upload a user asset.
@@ -34909,7 +35695,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListUserLogtoConfigsWithResponse Get user logto config
 	//
-	// Retrieve the exposed portion of a user's logto config. Includes MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped).
+	// Retrieve the exposed portion of a user's logto config. Includes MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped).
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -34918,7 +35704,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateUserLogtoConfigsWithBodyWithResponse Update user logto config
 	//
-	// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
+	// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -34927,7 +35713,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateUserLogtoConfigsWithResponse Update user logto config
 	//
-	// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
+	// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -35420,22 +36206,24 @@ type GetWellKnownAccountCenterResponse struct {
 		DeleteAccountUrl *string `json:"deleteAccountUrl"`
 		Enabled          bool    `json:"enabled"`
 		Fields           struct {
-			Avatar        *GetWellKnownAccountCenter200JSONResponseBodyFieldsAvatar        `json:"avatar,omitempty"`
-			CustomData    *GetWellKnownAccountCenter200JSONResponseBodyFieldsCustomData    `json:"customData,omitempty"`
-			Email         *GetWellKnownAccountCenter200JSONResponseBodyFieldsEmail         `json:"email,omitempty"`
-			Mfa           *GetWellKnownAccountCenter200JSONResponseBodyFieldsMfa           `json:"mfa,omitempty"`
-			Name          *GetWellKnownAccountCenter200JSONResponseBodyFieldsName          `json:"name,omitempty"`
-			Passkey       *GetWellKnownAccountCenter200JSONResponseBodyFieldsPasskey       `json:"passkey,omitempty"`
-			Password      *GetWellKnownAccountCenter200JSONResponseBodyFieldsPassword      `json:"password,omitempty"`
-			Phone         *GetWellKnownAccountCenter200JSONResponseBodyFieldsPhone         `json:"phone,omitempty"`
-			Profile       *GetWellKnownAccountCenter200JSONResponseBodyFieldsProfile       `json:"profile,omitempty"`
-			Session       *GetWellKnownAccountCenter200JSONResponseBodyFieldsSession       `json:"session,omitempty"`
-			Social        *GetWellKnownAccountCenter200JSONResponseBodyFieldsSocial        `json:"social,omitempty"`
-			TrustedDevice *GetWellKnownAccountCenter200JSONResponseBodyFieldsTrustedDevice `json:"trustedDevice,omitempty"`
-			Username      *GetWellKnownAccountCenter200JSONResponseBodyFieldsUsername      `json:"username,omitempty"`
+			Avatar              *GetWellKnownAccountCenter200JSONResponseBodyFieldsAvatar              `json:"avatar,omitempty"`
+			CustomData          *GetWellKnownAccountCenter200JSONResponseBodyFieldsCustomData          `json:"customData,omitempty"`
+			Email               *GetWellKnownAccountCenter200JSONResponseBodyFieldsEmail               `json:"email,omitempty"`
+			Mfa                 *GetWellKnownAccountCenter200JSONResponseBodyFieldsMfa                 `json:"mfa,omitempty"`
+			Name                *GetWellKnownAccountCenter200JSONResponseBodyFieldsName                `json:"name,omitempty"`
+			Passkey             *GetWellKnownAccountCenter200JSONResponseBodyFieldsPasskey             `json:"passkey,omitempty"`
+			Password            *GetWellKnownAccountCenter200JSONResponseBodyFieldsPassword            `json:"password,omitempty"`
+			PersonalAccessToken *GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken `json:"personalAccessToken,omitempty"`
+			Phone               *GetWellKnownAccountCenter200JSONResponseBodyFieldsPhone               `json:"phone,omitempty"`
+			Profile             *GetWellKnownAccountCenter200JSONResponseBodyFieldsProfile             `json:"profile,omitempty"`
+			Session             *GetWellKnownAccountCenter200JSONResponseBodyFieldsSession             `json:"session,omitempty"`
+			Social              *GetWellKnownAccountCenter200JSONResponseBodyFieldsSocial              `json:"social,omitempty"`
+			TrustedDevice       *GetWellKnownAccountCenter200JSONResponseBodyFieldsTrustedDevice       `json:"trustedDevice,omitempty"`
+			Username            *GetWellKnownAccountCenter200JSONResponseBodyFieldsUsername            `json:"username,omitempty"`
 		} `json:"fields"`
-		Id            string `json:"id"`
-		ProfileFields *[]struct {
+		Id                                string  `json:"id"`
+		MaximumAuthenticationAgeInSeconds float32 `json:"maximumAuthenticationAgeInSeconds"`
+		ProfileFields                     *[]struct {
 			Name string `json:"name"`
 		} `json:"profileFields"`
 		TenantId               string   `json:"tenantId"`
@@ -35449,22 +36237,24 @@ func (r GetWellKnownAccountCenterResponse) GetJSON200() *struct {
 	DeleteAccountUrl *string `json:"deleteAccountUrl"`
 	Enabled          bool    `json:"enabled"`
 	Fields           struct {
-		Avatar        *GetWellKnownAccountCenter200JSONResponseBodyFieldsAvatar        `json:"avatar,omitempty"`
-		CustomData    *GetWellKnownAccountCenter200JSONResponseBodyFieldsCustomData    `json:"customData,omitempty"`
-		Email         *GetWellKnownAccountCenter200JSONResponseBodyFieldsEmail         `json:"email,omitempty"`
-		Mfa           *GetWellKnownAccountCenter200JSONResponseBodyFieldsMfa           `json:"mfa,omitempty"`
-		Name          *GetWellKnownAccountCenter200JSONResponseBodyFieldsName          `json:"name,omitempty"`
-		Passkey       *GetWellKnownAccountCenter200JSONResponseBodyFieldsPasskey       `json:"passkey,omitempty"`
-		Password      *GetWellKnownAccountCenter200JSONResponseBodyFieldsPassword      `json:"password,omitempty"`
-		Phone         *GetWellKnownAccountCenter200JSONResponseBodyFieldsPhone         `json:"phone,omitempty"`
-		Profile       *GetWellKnownAccountCenter200JSONResponseBodyFieldsProfile       `json:"profile,omitempty"`
-		Session       *GetWellKnownAccountCenter200JSONResponseBodyFieldsSession       `json:"session,omitempty"`
-		Social        *GetWellKnownAccountCenter200JSONResponseBodyFieldsSocial        `json:"social,omitempty"`
-		TrustedDevice *GetWellKnownAccountCenter200JSONResponseBodyFieldsTrustedDevice `json:"trustedDevice,omitempty"`
-		Username      *GetWellKnownAccountCenter200JSONResponseBodyFieldsUsername      `json:"username,omitempty"`
+		Avatar              *GetWellKnownAccountCenter200JSONResponseBodyFieldsAvatar              `json:"avatar,omitempty"`
+		CustomData          *GetWellKnownAccountCenter200JSONResponseBodyFieldsCustomData          `json:"customData,omitempty"`
+		Email               *GetWellKnownAccountCenter200JSONResponseBodyFieldsEmail               `json:"email,omitempty"`
+		Mfa                 *GetWellKnownAccountCenter200JSONResponseBodyFieldsMfa                 `json:"mfa,omitempty"`
+		Name                *GetWellKnownAccountCenter200JSONResponseBodyFieldsName                `json:"name,omitempty"`
+		Passkey             *GetWellKnownAccountCenter200JSONResponseBodyFieldsPasskey             `json:"passkey,omitempty"`
+		Password            *GetWellKnownAccountCenter200JSONResponseBodyFieldsPassword            `json:"password,omitempty"`
+		PersonalAccessToken *GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken `json:"personalAccessToken,omitempty"`
+		Phone               *GetWellKnownAccountCenter200JSONResponseBodyFieldsPhone               `json:"phone,omitempty"`
+		Profile             *GetWellKnownAccountCenter200JSONResponseBodyFieldsProfile             `json:"profile,omitempty"`
+		Session             *GetWellKnownAccountCenter200JSONResponseBodyFieldsSession             `json:"session,omitempty"`
+		Social              *GetWellKnownAccountCenter200JSONResponseBodyFieldsSocial              `json:"social,omitempty"`
+		TrustedDevice       *GetWellKnownAccountCenter200JSONResponseBodyFieldsTrustedDevice       `json:"trustedDevice,omitempty"`
+		Username            *GetWellKnownAccountCenter200JSONResponseBodyFieldsUsername            `json:"username,omitempty"`
 	} `json:"fields"`
-	Id            string `json:"id"`
-	ProfileFields *[]struct {
+	Id                                string  `json:"id"`
+	MaximumAuthenticationAgeInSeconds float32 `json:"maximumAuthenticationAgeInSeconds"`
+	ProfileFields                     *[]struct {
 		Name string `json:"name"`
 	} `json:"profileFields"`
 	TenantId               string   `json:"tenantId"`
@@ -36704,22 +37494,24 @@ type GetAccountCenterSettingsResponse struct {
 		DeleteAccountUrl *string `json:"deleteAccountUrl"`
 		Enabled          bool    `json:"enabled"`
 		Fields           struct {
-			Avatar        *GetAccountCenterSettings200JSONResponseBodyFieldsAvatar        `json:"avatar,omitempty"`
-			CustomData    *GetAccountCenterSettings200JSONResponseBodyFieldsCustomData    `json:"customData,omitempty"`
-			Email         *GetAccountCenterSettings200JSONResponseBodyFieldsEmail         `json:"email,omitempty"`
-			Mfa           *GetAccountCenterSettings200JSONResponseBodyFieldsMfa           `json:"mfa,omitempty"`
-			Name          *GetAccountCenterSettings200JSONResponseBodyFieldsName          `json:"name,omitempty"`
-			Passkey       *GetAccountCenterSettings200JSONResponseBodyFieldsPasskey       `json:"passkey,omitempty"`
-			Password      *GetAccountCenterSettings200JSONResponseBodyFieldsPassword      `json:"password,omitempty"`
-			Phone         *GetAccountCenterSettings200JSONResponseBodyFieldsPhone         `json:"phone,omitempty"`
-			Profile       *GetAccountCenterSettings200JSONResponseBodyFieldsProfile       `json:"profile,omitempty"`
-			Session       *GetAccountCenterSettings200JSONResponseBodyFieldsSession       `json:"session,omitempty"`
-			Social        *GetAccountCenterSettings200JSONResponseBodyFieldsSocial        `json:"social,omitempty"`
-			TrustedDevice *GetAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice `json:"trustedDevice,omitempty"`
-			Username      *GetAccountCenterSettings200JSONResponseBodyFieldsUsername      `json:"username,omitempty"`
+			Avatar              *GetAccountCenterSettings200JSONResponseBodyFieldsAvatar              `json:"avatar,omitempty"`
+			CustomData          *GetAccountCenterSettings200JSONResponseBodyFieldsCustomData          `json:"customData,omitempty"`
+			Email               *GetAccountCenterSettings200JSONResponseBodyFieldsEmail               `json:"email,omitempty"`
+			Mfa                 *GetAccountCenterSettings200JSONResponseBodyFieldsMfa                 `json:"mfa,omitempty"`
+			Name                *GetAccountCenterSettings200JSONResponseBodyFieldsName                `json:"name,omitempty"`
+			Passkey             *GetAccountCenterSettings200JSONResponseBodyFieldsPasskey             `json:"passkey,omitempty"`
+			Password            *GetAccountCenterSettings200JSONResponseBodyFieldsPassword            `json:"password,omitempty"`
+			PersonalAccessToken *GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken `json:"personalAccessToken,omitempty"`
+			Phone               *GetAccountCenterSettings200JSONResponseBodyFieldsPhone               `json:"phone,omitempty"`
+			Profile             *GetAccountCenterSettings200JSONResponseBodyFieldsProfile             `json:"profile,omitempty"`
+			Session             *GetAccountCenterSettings200JSONResponseBodyFieldsSession             `json:"session,omitempty"`
+			Social              *GetAccountCenterSettings200JSONResponseBodyFieldsSocial              `json:"social,omitempty"`
+			TrustedDevice       *GetAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice       `json:"trustedDevice,omitempty"`
+			Username            *GetAccountCenterSettings200JSONResponseBodyFieldsUsername            `json:"username,omitempty"`
 		} `json:"fields"`
-		Id            string `json:"id"`
-		ProfileFields *[]struct {
+		Id                                string  `json:"id"`
+		MaximumAuthenticationAgeInSeconds float32 `json:"maximumAuthenticationAgeInSeconds"`
+		ProfileFields                     *[]struct {
 			Name string `json:"name"`
 		} `json:"profileFields"`
 		TenantId               string   `json:"tenantId"`
@@ -36733,22 +37525,24 @@ func (r GetAccountCenterSettingsResponse) GetJSON200() *struct {
 	DeleteAccountUrl *string `json:"deleteAccountUrl"`
 	Enabled          bool    `json:"enabled"`
 	Fields           struct {
-		Avatar        *GetAccountCenterSettings200JSONResponseBodyFieldsAvatar        `json:"avatar,omitempty"`
-		CustomData    *GetAccountCenterSettings200JSONResponseBodyFieldsCustomData    `json:"customData,omitempty"`
-		Email         *GetAccountCenterSettings200JSONResponseBodyFieldsEmail         `json:"email,omitempty"`
-		Mfa           *GetAccountCenterSettings200JSONResponseBodyFieldsMfa           `json:"mfa,omitempty"`
-		Name          *GetAccountCenterSettings200JSONResponseBodyFieldsName          `json:"name,omitempty"`
-		Passkey       *GetAccountCenterSettings200JSONResponseBodyFieldsPasskey       `json:"passkey,omitempty"`
-		Password      *GetAccountCenterSettings200JSONResponseBodyFieldsPassword      `json:"password,omitempty"`
-		Phone         *GetAccountCenterSettings200JSONResponseBodyFieldsPhone         `json:"phone,omitempty"`
-		Profile       *GetAccountCenterSettings200JSONResponseBodyFieldsProfile       `json:"profile,omitempty"`
-		Session       *GetAccountCenterSettings200JSONResponseBodyFieldsSession       `json:"session,omitempty"`
-		Social        *GetAccountCenterSettings200JSONResponseBodyFieldsSocial        `json:"social,omitempty"`
-		TrustedDevice *GetAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice `json:"trustedDevice,omitempty"`
-		Username      *GetAccountCenterSettings200JSONResponseBodyFieldsUsername      `json:"username,omitempty"`
+		Avatar              *GetAccountCenterSettings200JSONResponseBodyFieldsAvatar              `json:"avatar,omitempty"`
+		CustomData          *GetAccountCenterSettings200JSONResponseBodyFieldsCustomData          `json:"customData,omitempty"`
+		Email               *GetAccountCenterSettings200JSONResponseBodyFieldsEmail               `json:"email,omitempty"`
+		Mfa                 *GetAccountCenterSettings200JSONResponseBodyFieldsMfa                 `json:"mfa,omitempty"`
+		Name                *GetAccountCenterSettings200JSONResponseBodyFieldsName                `json:"name,omitempty"`
+		Passkey             *GetAccountCenterSettings200JSONResponseBodyFieldsPasskey             `json:"passkey,omitempty"`
+		Password            *GetAccountCenterSettings200JSONResponseBodyFieldsPassword            `json:"password,omitempty"`
+		PersonalAccessToken *GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken `json:"personalAccessToken,omitempty"`
+		Phone               *GetAccountCenterSettings200JSONResponseBodyFieldsPhone               `json:"phone,omitempty"`
+		Profile             *GetAccountCenterSettings200JSONResponseBodyFieldsProfile             `json:"profile,omitempty"`
+		Session             *GetAccountCenterSettings200JSONResponseBodyFieldsSession             `json:"session,omitempty"`
+		Social              *GetAccountCenterSettings200JSONResponseBodyFieldsSocial              `json:"social,omitempty"`
+		TrustedDevice       *GetAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice       `json:"trustedDevice,omitempty"`
+		Username            *GetAccountCenterSettings200JSONResponseBodyFieldsUsername            `json:"username,omitempty"`
 	} `json:"fields"`
-	Id            string `json:"id"`
-	ProfileFields *[]struct {
+	Id                                string  `json:"id"`
+	MaximumAuthenticationAgeInSeconds float32 `json:"maximumAuthenticationAgeInSeconds"`
+	ProfileFields                     *[]struct {
 		Name string `json:"name"`
 	} `json:"profileFields"`
 	TenantId               string   `json:"tenantId"`
@@ -36795,22 +37589,24 @@ type UpdateAccountCenterSettingsResponse struct {
 		DeleteAccountUrl *string `json:"deleteAccountUrl"`
 		Enabled          bool    `json:"enabled"`
 		Fields           struct {
-			Avatar        *UpdateAccountCenterSettings200JSONResponseBodyFieldsAvatar        `json:"avatar,omitempty"`
-			CustomData    *UpdateAccountCenterSettings200JSONResponseBodyFieldsCustomData    `json:"customData,omitempty"`
-			Email         *UpdateAccountCenterSettings200JSONResponseBodyFieldsEmail         `json:"email,omitempty"`
-			Mfa           *UpdateAccountCenterSettings200JSONResponseBodyFieldsMfa           `json:"mfa,omitempty"`
-			Name          *UpdateAccountCenterSettings200JSONResponseBodyFieldsName          `json:"name,omitempty"`
-			Passkey       *UpdateAccountCenterSettings200JSONResponseBodyFieldsPasskey       `json:"passkey,omitempty"`
-			Password      *UpdateAccountCenterSettings200JSONResponseBodyFieldsPassword      `json:"password,omitempty"`
-			Phone         *UpdateAccountCenterSettings200JSONResponseBodyFieldsPhone         `json:"phone,omitempty"`
-			Profile       *UpdateAccountCenterSettings200JSONResponseBodyFieldsProfile       `json:"profile,omitempty"`
-			Session       *UpdateAccountCenterSettings200JSONResponseBodyFieldsSession       `json:"session,omitempty"`
-			Social        *UpdateAccountCenterSettings200JSONResponseBodyFieldsSocial        `json:"social,omitempty"`
-			TrustedDevice *UpdateAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice `json:"trustedDevice,omitempty"`
-			Username      *UpdateAccountCenterSettings200JSONResponseBodyFieldsUsername      `json:"username,omitempty"`
+			Avatar              *UpdateAccountCenterSettings200JSONResponseBodyFieldsAvatar              `json:"avatar,omitempty"`
+			CustomData          *UpdateAccountCenterSettings200JSONResponseBodyFieldsCustomData          `json:"customData,omitempty"`
+			Email               *UpdateAccountCenterSettings200JSONResponseBodyFieldsEmail               `json:"email,omitempty"`
+			Mfa                 *UpdateAccountCenterSettings200JSONResponseBodyFieldsMfa                 `json:"mfa,omitempty"`
+			Name                *UpdateAccountCenterSettings200JSONResponseBodyFieldsName                `json:"name,omitempty"`
+			Passkey             *UpdateAccountCenterSettings200JSONResponseBodyFieldsPasskey             `json:"passkey,omitempty"`
+			Password            *UpdateAccountCenterSettings200JSONResponseBodyFieldsPassword            `json:"password,omitempty"`
+			PersonalAccessToken *UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken `json:"personalAccessToken,omitempty"`
+			Phone               *UpdateAccountCenterSettings200JSONResponseBodyFieldsPhone               `json:"phone,omitempty"`
+			Profile             *UpdateAccountCenterSettings200JSONResponseBodyFieldsProfile             `json:"profile,omitempty"`
+			Session             *UpdateAccountCenterSettings200JSONResponseBodyFieldsSession             `json:"session,omitempty"`
+			Social              *UpdateAccountCenterSettings200JSONResponseBodyFieldsSocial              `json:"social,omitempty"`
+			TrustedDevice       *UpdateAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice       `json:"trustedDevice,omitempty"`
+			Username            *UpdateAccountCenterSettings200JSONResponseBodyFieldsUsername            `json:"username,omitempty"`
 		} `json:"fields"`
-		Id            string `json:"id"`
-		ProfileFields *[]struct {
+		Id                                string  `json:"id"`
+		MaximumAuthenticationAgeInSeconds float32 `json:"maximumAuthenticationAgeInSeconds"`
+		ProfileFields                     *[]struct {
 			Name string `json:"name"`
 		} `json:"profileFields"`
 		TenantId               string   `json:"tenantId"`
@@ -36824,22 +37620,24 @@ func (r UpdateAccountCenterSettingsResponse) GetJSON200() *struct {
 	DeleteAccountUrl *string `json:"deleteAccountUrl"`
 	Enabled          bool    `json:"enabled"`
 	Fields           struct {
-		Avatar        *UpdateAccountCenterSettings200JSONResponseBodyFieldsAvatar        `json:"avatar,omitempty"`
-		CustomData    *UpdateAccountCenterSettings200JSONResponseBodyFieldsCustomData    `json:"customData,omitempty"`
-		Email         *UpdateAccountCenterSettings200JSONResponseBodyFieldsEmail         `json:"email,omitempty"`
-		Mfa           *UpdateAccountCenterSettings200JSONResponseBodyFieldsMfa           `json:"mfa,omitempty"`
-		Name          *UpdateAccountCenterSettings200JSONResponseBodyFieldsName          `json:"name,omitempty"`
-		Passkey       *UpdateAccountCenterSettings200JSONResponseBodyFieldsPasskey       `json:"passkey,omitempty"`
-		Password      *UpdateAccountCenterSettings200JSONResponseBodyFieldsPassword      `json:"password,omitempty"`
-		Phone         *UpdateAccountCenterSettings200JSONResponseBodyFieldsPhone         `json:"phone,omitempty"`
-		Profile       *UpdateAccountCenterSettings200JSONResponseBodyFieldsProfile       `json:"profile,omitempty"`
-		Session       *UpdateAccountCenterSettings200JSONResponseBodyFieldsSession       `json:"session,omitempty"`
-		Social        *UpdateAccountCenterSettings200JSONResponseBodyFieldsSocial        `json:"social,omitempty"`
-		TrustedDevice *UpdateAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice `json:"trustedDevice,omitempty"`
-		Username      *UpdateAccountCenterSettings200JSONResponseBodyFieldsUsername      `json:"username,omitempty"`
+		Avatar              *UpdateAccountCenterSettings200JSONResponseBodyFieldsAvatar              `json:"avatar,omitempty"`
+		CustomData          *UpdateAccountCenterSettings200JSONResponseBodyFieldsCustomData          `json:"customData,omitempty"`
+		Email               *UpdateAccountCenterSettings200JSONResponseBodyFieldsEmail               `json:"email,omitempty"`
+		Mfa                 *UpdateAccountCenterSettings200JSONResponseBodyFieldsMfa                 `json:"mfa,omitempty"`
+		Name                *UpdateAccountCenterSettings200JSONResponseBodyFieldsName                `json:"name,omitempty"`
+		Passkey             *UpdateAccountCenterSettings200JSONResponseBodyFieldsPasskey             `json:"passkey,omitempty"`
+		Password            *UpdateAccountCenterSettings200JSONResponseBodyFieldsPassword            `json:"password,omitempty"`
+		PersonalAccessToken *UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken `json:"personalAccessToken,omitempty"`
+		Phone               *UpdateAccountCenterSettings200JSONResponseBodyFieldsPhone               `json:"phone,omitempty"`
+		Profile             *UpdateAccountCenterSettings200JSONResponseBodyFieldsProfile             `json:"profile,omitempty"`
+		Session             *UpdateAccountCenterSettings200JSONResponseBodyFieldsSession             `json:"session,omitempty"`
+		Social              *UpdateAccountCenterSettings200JSONResponseBodyFieldsSocial              `json:"social,omitempty"`
+		TrustedDevice       *UpdateAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice       `json:"trustedDevice,omitempty"`
+		Username            *UpdateAccountCenterSettings200JSONResponseBodyFieldsUsername            `json:"username,omitempty"`
 	} `json:"fields"`
-	Id            string `json:"id"`
-	ProfileFields *[]struct {
+	Id                                string  `json:"id"`
+	MaximumAuthenticationAgeInSeconds float32 `json:"maximumAuthenticationAgeInSeconds"`
+	ProfileFields                     *[]struct {
 		Name string `json:"name"`
 	} `json:"profileFields"`
 	TenantId               string   `json:"tenantId"`
@@ -43350,6 +44148,51 @@ func (r InitInteractionResponse) ContentType() string {
 	return ""
 }
 
+type AbortInteractionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *struct {
+		RedirectTo string `json:"redirectTo"`
+	}
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r AbortInteractionResponse) GetJSON200() *struct {
+	RedirectTo string `json:"redirectTo"`
+} {
+	return r.JSON200
+}
+
+// GetBody returns the raw response body bytes
+func (r AbortInteractionResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AbortInteractionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AbortInteractionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AbortInteractionResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type IdentifyUserResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -43397,10 +44240,11 @@ type GetInteractionResponse struct {
 				Email *string `json:"email,omitempty"`
 				Phone *string `json:"phone,omitempty"`
 			} `json:"maskedIdentifiers"`
-			Mode                   *GetInteraction200JSONResponseBodyAuthenticationContextMode                `json:"mode,omitempty"`
-			RequestedAcrValues     []GetInteraction200JSONResponseBodyAuthenticationContextRequestedAcrValues `json:"requestedAcrValues"`
-			SelectedAcr            *GetInteraction200JSONResponseBodyAuthenticationContextSelectedAcr         `json:"selectedAcr,omitempty"`
-			SubjectProofConnectors []struct {
+			Mode                     *GetInteraction200JSONResponseBodyAuthenticationContextMode                `json:"mode,omitempty"`
+			ReauthenticationRequired *bool                                                                      `json:"reauthenticationRequired,omitempty"`
+			RequestedAcrValues       []GetInteraction200JSONResponseBodyAuthenticationContextRequestedAcrValues `json:"requestedAcrValues"`
+			SelectedAcr              *GetInteraction200JSONResponseBodyAuthenticationContextSelectedAcr         `json:"selectedAcr,omitempty"`
+			SubjectProofConnectors   []struct {
 				ConnectorId string                                                                           `json:"connectorId"`
 				Type        GetInteraction200JSONResponseBodyAuthenticationContextSubjectProofConnectorsType `json:"type"`
 			} `json:"subjectProofConnectors"`
@@ -43504,10 +44348,11 @@ func (r GetInteractionResponse) GetJSON200() *struct {
 			Email *string `json:"email,omitempty"`
 			Phone *string `json:"phone,omitempty"`
 		} `json:"maskedIdentifiers"`
-		Mode                   *GetInteraction200JSONResponseBodyAuthenticationContextMode                `json:"mode,omitempty"`
-		RequestedAcrValues     []GetInteraction200JSONResponseBodyAuthenticationContextRequestedAcrValues `json:"requestedAcrValues"`
-		SelectedAcr            *GetInteraction200JSONResponseBodyAuthenticationContextSelectedAcr         `json:"selectedAcr,omitempty"`
-		SubjectProofConnectors []struct {
+		Mode                     *GetInteraction200JSONResponseBodyAuthenticationContextMode                `json:"mode,omitempty"`
+		ReauthenticationRequired *bool                                                                      `json:"reauthenticationRequired,omitempty"`
+		RequestedAcrValues       []GetInteraction200JSONResponseBodyAuthenticationContextRequestedAcrValues `json:"requestedAcrValues"`
+		SelectedAcr              *GetInteraction200JSONResponseBodyAuthenticationContextSelectedAcr         `json:"selectedAcr,omitempty"`
+		SubjectProofConnectors   []struct {
 			ConnectorId string                                                                           `json:"connectorId"`
 			Type        GetInteraction200JSONResponseBodyAuthenticationContextSubjectProofConnectorsType `json:"type"`
 		} `json:"subjectProofConnectors"`
@@ -43659,6 +44504,51 @@ func (r UpdateInteractionEventResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r UpdateInteractionEventResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetDirectSignInResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *struct {
+		DirectSignIn *string `json:"directSignIn,omitempty"`
+	}
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetDirectSignInResponse) GetJSON200() *struct {
+	DirectSignIn *string `json:"directSignIn,omitempty"`
+} {
+	return r.JSON200
+}
+
+// GetBody returns the raw response body bytes
+func (r GetDirectSignInResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetDirectSignInResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetDirectSignInResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetDirectSignInResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -44055,6 +44945,21 @@ type GetEnabledSsoConnectorsResponse struct {
 	JSON200 *struct {
 		// ConnectorIds The list of enabled SSO connectorIds. Returns an empty array if no enabled SSO connectors are found.
 		ConnectorIds []string `json:"connectorIds"`
+
+		// Connectors The enabled SSO connectors that match the email domain, including their display branding. Returns an empty array if no enabled SSO connectors are found.
+		Connectors []struct {
+			// ConnectorName The display name of the SSO connector.
+			ConnectorName string `json:"connectorName"`
+
+			// DarkLogo The dark mode logo of the SSO connector.
+			DarkLogo *string `json:"darkLogo,omitempty"`
+
+			// Id The unique identifier of the SSO connector.
+			Id string `json:"id"`
+
+			// Logo The light mode logo of the SSO connector.
+			Logo string `json:"logo"`
+		} `json:"connectors"`
 	}
 }
 
@@ -44062,6 +44967,21 @@ type GetEnabledSsoConnectorsResponse struct {
 func (r GetEnabledSsoConnectorsResponse) GetJSON200() *struct {
 	// ConnectorIds The list of enabled SSO connectorIds. Returns an empty array if no enabled SSO connectors are found.
 	ConnectorIds []string `json:"connectorIds"`
+
+	// Connectors The enabled SSO connectors that match the email domain, including their display branding. Returns an empty array if no enabled SSO connectors are found.
+	Connectors []struct {
+		// ConnectorName The display name of the SSO connector.
+		ConnectorName string `json:"connectorName"`
+
+		// DarkLogo The dark mode logo of the SSO connector.
+		DarkLogo *string `json:"darkLogo,omitempty"`
+
+		// Id The unique identifier of the SSO connector.
+		Id string `json:"id"`
+
+		// Logo The light mode logo of the SSO connector.
+		Logo string `json:"logo"`
+	} `json:"connectors"`
 } {
 	return r.JSON200
 }
@@ -46179,10 +47099,16 @@ type GetProfileResponse struct {
 		CreatedAt    *float32 `json:"createdAt,omitempty"`
 
 		// CustomData arbitrary
-		CustomData                    *map[string]interface{} `json:"customData,omitempty"`
-		HasPassword                   *bool                   `json:"hasPassword,omitempty"`
-		HasSecurityVerificationMethod *bool                   `json:"hasSecurityVerificationMethod,omitempty"`
-		Id                            *string                 `json:"id,omitempty"`
+		CustomData  *map[string]interface{} `json:"customData,omitempty"`
+		HasPassword *bool                   `json:"hasPassword,omitempty"`
+
+		// HasPrimaryEmail Whether the user has a primary email. Requires the `email` scope. Returned even when the Account Center email field is not readable; the email address itself remains filtered.
+		HasPrimaryEmail *bool `json:"hasPrimaryEmail,omitempty"`
+
+		// HasPrimaryPhone Whether the user has a primary phone. Requires the `phone` scope. Returned even when the Account Center phone field is not readable; the phone number itself remains filtered.
+		HasPrimaryPhone               *bool   `json:"hasPrimaryPhone,omitempty"`
+		HasSecurityVerificationMethod *bool   `json:"hasSecurityVerificationMethod,omitempty"`
+		Id                            *string `json:"id,omitempty"`
 		Identities                    *map[string]struct {
 			// Details arbitrary
 			Details *map[string]interface{} `json:"details,omitempty"`
@@ -46242,10 +47168,16 @@ func (r GetProfileResponse) GetJSON200() *struct {
 	CreatedAt    *float32 `json:"createdAt,omitempty"`
 
 	// CustomData arbitrary
-	CustomData                    *map[string]interface{} `json:"customData,omitempty"`
-	HasPassword                   *bool                   `json:"hasPassword,omitempty"`
-	HasSecurityVerificationMethod *bool                   `json:"hasSecurityVerificationMethod,omitempty"`
-	Id                            *string                 `json:"id,omitempty"`
+	CustomData  *map[string]interface{} `json:"customData,omitempty"`
+	HasPassword *bool                   `json:"hasPassword,omitempty"`
+
+	// HasPrimaryEmail Whether the user has a primary email. Requires the `email` scope. Returned even when the Account Center email field is not readable; the email address itself remains filtered.
+	HasPrimaryEmail *bool `json:"hasPrimaryEmail,omitempty"`
+
+	// HasPrimaryPhone Whether the user has a primary phone. Requires the `phone` scope. Returned even when the Account Center phone field is not readable; the phone number itself remains filtered.
+	HasPrimaryPhone               *bool   `json:"hasPrimaryPhone,omitempty"`
+	HasSecurityVerificationMethod *bool   `json:"hasSecurityVerificationMethod,omitempty"`
+	Id                            *string `json:"id,omitempty"`
 	Identities                    *map[string]struct {
 		// Details arbitrary
 		Details *map[string]interface{} `json:"details,omitempty"`
@@ -46338,10 +47270,16 @@ type UpdateProfileResponse struct {
 		CreatedAt    *float32 `json:"createdAt,omitempty"`
 
 		// CustomData arbitrary
-		CustomData                    *map[string]interface{} `json:"customData,omitempty"`
-		HasPassword                   *bool                   `json:"hasPassword,omitempty"`
-		HasSecurityVerificationMethod *bool                   `json:"hasSecurityVerificationMethod,omitempty"`
-		Id                            *string                 `json:"id,omitempty"`
+		CustomData  *map[string]interface{} `json:"customData,omitempty"`
+		HasPassword *bool                   `json:"hasPassword,omitempty"`
+
+		// HasPrimaryEmail Whether the user has a primary email. Requires the `email` scope. Returned even when the Account Center email field is not readable; the email address itself remains filtered.
+		HasPrimaryEmail *bool `json:"hasPrimaryEmail,omitempty"`
+
+		// HasPrimaryPhone Whether the user has a primary phone. Requires the `phone` scope. Returned even when the Account Center phone field is not readable; the phone number itself remains filtered.
+		HasPrimaryPhone               *bool   `json:"hasPrimaryPhone,omitempty"`
+		HasSecurityVerificationMethod *bool   `json:"hasSecurityVerificationMethod,omitempty"`
+		Id                            *string `json:"id,omitempty"`
 		Identities                    *map[string]struct {
 			// Details arbitrary
 			Details *map[string]interface{} `json:"details,omitempty"`
@@ -46401,10 +47339,16 @@ func (r UpdateProfileResponse) GetJSON200() *struct {
 	CreatedAt    *float32 `json:"createdAt,omitempty"`
 
 	// CustomData arbitrary
-	CustomData                    *map[string]interface{} `json:"customData,omitempty"`
-	HasPassword                   *bool                   `json:"hasPassword,omitempty"`
-	HasSecurityVerificationMethod *bool                   `json:"hasSecurityVerificationMethod,omitempty"`
-	Id                            *string                 `json:"id,omitempty"`
+	CustomData  *map[string]interface{} `json:"customData,omitempty"`
+	HasPassword *bool                   `json:"hasPassword,omitempty"`
+
+	// HasPrimaryEmail Whether the user has a primary email. Requires the `email` scope. Returned even when the Account Center email field is not readable; the email address itself remains filtered.
+	HasPrimaryEmail *bool `json:"hasPrimaryEmail,omitempty"`
+
+	// HasPrimaryPhone Whether the user has a primary phone. Requires the `phone` scope. Returned even when the Account Center phone field is not readable; the phone number itself remains filtered.
+	HasPrimaryPhone               *bool   `json:"hasPrimaryPhone,omitempty"`
+	HasSecurityVerificationMethod *bool   `json:"hasSecurityVerificationMethod,omitempty"`
+	Id                            *string `json:"id,omitempty"`
 	Identities                    *map[string]struct {
 		// Details arbitrary
 		Details *map[string]interface{} `json:"details,omitempty"`
@@ -46702,7 +47646,7 @@ type GetSocialIdentityAccessTokenResponse struct {
 	JSON200 *struct {
 		AccessToken string                                                     `json:"access_token"`
 		ExpiresIn   *GetSocialIdentityAccessToken200JSONResponseBody_ExpiresIn `json:"expires_in,omitempty"`
-		Scope       *string                                                    `json:"scope,omitempty"`
+		Scope       *GetSocialIdentityAccessToken200JSONResponseBody_Scope     `json:"scope,omitempty"`
 		TokenType   *string                                                    `json:"token_type,omitempty"`
 	}
 }
@@ -46711,7 +47655,7 @@ type GetSocialIdentityAccessTokenResponse struct {
 func (r GetSocialIdentityAccessTokenResponse) GetJSON200() *struct {
 	AccessToken string                                                     `json:"access_token"`
 	ExpiresIn   *GetSocialIdentityAccessToken200JSONResponseBody_ExpiresIn `json:"expires_in,omitempty"`
-	Scope       *string                                                    `json:"scope,omitempty"`
+	Scope       *GetSocialIdentityAccessToken200JSONResponseBody_Scope     `json:"scope,omitempty"`
 	TokenType   *string                                                    `json:"token_type,omitempty"`
 } {
 	return r.JSON200
@@ -46753,7 +47697,7 @@ type UpdateSocialIdentityAccessTokenByVerificationIdResponse struct {
 	JSON200 *struct {
 		AccessToken string                                                                        `json:"access_token"`
 		ExpiresIn   *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_ExpiresIn `json:"expires_in,omitempty"`
-		Scope       *string                                                                       `json:"scope,omitempty"`
+		Scope       *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope     `json:"scope,omitempty"`
 		TokenType   *string                                                                       `json:"token_type,omitempty"`
 	}
 }
@@ -46762,7 +47706,7 @@ type UpdateSocialIdentityAccessTokenByVerificationIdResponse struct {
 func (r UpdateSocialIdentityAccessTokenByVerificationIdResponse) GetJSON200() *struct {
 	AccessToken string                                                                        `json:"access_token"`
 	ExpiresIn   *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_ExpiresIn `json:"expires_in,omitempty"`
-	Scope       *string                                                                       `json:"scope,omitempty"`
+	Scope       *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope     `json:"scope,omitempty"`
 	TokenType   *string                                                                       `json:"token_type,omitempty"`
 } {
 	return r.JSON200
@@ -46920,13 +47864,15 @@ type GetMfaSettingsResponse struct {
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *struct {
-		SkipMfaOnSignIn bool `json:"skipMfaOnSignIn"`
+		Enabled         *bool `json:"enabled,omitempty"`
+		SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 	}
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
 func (r GetMfaSettingsResponse) GetJSON200() *struct {
-	SkipMfaOnSignIn bool `json:"skipMfaOnSignIn"`
+	Enabled         *bool `json:"enabled,omitempty"`
+	SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 } {
 	return r.JSON200
 }
@@ -46965,13 +47911,15 @@ type UpdateMfaSettingsResponse struct {
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *struct {
-		SkipMfaOnSignIn bool `json:"skipMfaOnSignIn"`
+		Enabled         *bool `json:"enabled,omitempty"`
+		SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 	}
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
 func (r UpdateMfaSettingsResponse) GetJSON200() *struct {
-	SkipMfaOnSignIn bool `json:"skipMfaOnSignIn"`
+	Enabled         *bool `json:"enabled,omitempty"`
+	SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 } {
 	return r.JSON200
 }
@@ -47334,6 +48282,189 @@ func (r UpdatePasswordResponse) ContentType() string {
 	return ""
 }
 
+type ListMyAccountPersonalAccessTokensResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]struct {
+		CreatedAt float32  `json:"createdAt"`
+		ExpiresAt *float32 `json:"expiresAt"`
+		Name      string   `json:"name"`
+	}
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListMyAccountPersonalAccessTokensResponse) GetJSON200() *[]struct {
+	CreatedAt float32  `json:"createdAt"`
+	ExpiresAt *float32 `json:"expiresAt"`
+	Name      string   `json:"name"`
+} {
+	return r.JSON200
+}
+
+// GetBody returns the raw response body bytes
+func (r ListMyAccountPersonalAccessTokensResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListMyAccountPersonalAccessTokensResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListMyAccountPersonalAccessTokensResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListMyAccountPersonalAccessTokensResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateMyAccountPersonalAccessTokenNameResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *struct {
+		CreatedAt float32  `json:"createdAt"`
+		ExpiresAt *float32 `json:"expiresAt"`
+		Name      string   `json:"name"`
+	}
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateMyAccountPersonalAccessTokenNameResponse) GetJSON200() *struct {
+	CreatedAt float32  `json:"createdAt"`
+	ExpiresAt *float32 `json:"expiresAt"`
+	Name      string   `json:"name"`
+} {
+	return r.JSON200
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateMyAccountPersonalAccessTokenNameResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateMyAccountPersonalAccessTokenNameResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateMyAccountPersonalAccessTokenNameResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateMyAccountPersonalAccessTokenNameResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateMyAccountPersonalAccessTokenResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *struct {
+		CreatedAt float32  `json:"createdAt"`
+		ExpiresAt *float32 `json:"expiresAt"`
+		Name      string   `json:"name"`
+		Value     string   `json:"value"`
+	}
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateMyAccountPersonalAccessTokenResponse) GetJSON201() *struct {
+	CreatedAt float32  `json:"createdAt"`
+	ExpiresAt *float32 `json:"expiresAt"`
+	Name      string   `json:"name"`
+	Value     string   `json:"value"`
+} {
+	return r.JSON201
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateMyAccountPersonalAccessTokenResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateMyAccountPersonalAccessTokenResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateMyAccountPersonalAccessTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateMyAccountPersonalAccessTokenResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteMyAccountPersonalAccessTokenResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteMyAccountPersonalAccessTokenResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteMyAccountPersonalAccessTokenResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteMyAccountPersonalAccessTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteMyAccountPersonalAccessTokenResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type DeletePrimaryEmailResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -47687,7 +48818,7 @@ type GetEnterpriseSsoIdentityAccessTokenResponse struct {
 	JSON200 *struct {
 		AccessToken string                                                            `json:"access_token"`
 		ExpiresIn   *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_ExpiresIn `json:"expires_in,omitempty"`
-		Scope       *string                                                           `json:"scope,omitempty"`
+		Scope       *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope     `json:"scope,omitempty"`
 		TokenType   *string                                                           `json:"token_type,omitempty"`
 	}
 }
@@ -47696,7 +48827,7 @@ type GetEnterpriseSsoIdentityAccessTokenResponse struct {
 func (r GetEnterpriseSsoIdentityAccessTokenResponse) GetJSON200() *struct {
 	AccessToken string                                                            `json:"access_token"`
 	ExpiresIn   *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_ExpiresIn `json:"expires_in,omitempty"`
-	Scope       *string                                                           `json:"scope,omitempty"`
+	Scope       *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope     `json:"scope,omitempty"`
 	TokenType   *string                                                           `json:"token_type,omitempty"`
 } {
 	return r.JSON200
@@ -50774,8 +51905,11 @@ type ListOrganizationUsersResponse struct {
 
 		// CustomData arbitrary
 		CustomData map[string]interface{} `json:"customData"`
-		Id         string                 `json:"id"`
-		Identities map[string]struct {
+
+		// HasPassword Whether the user has a password set.
+		HasPassword bool   `json:"hasPassword"`
+		Id          string `json:"id"`
+		Identities  map[string]struct {
 			// Details arbitrary
 			Details *map[string]interface{} `json:"details,omitempty"`
 			UserId  string                  `json:"userId"`
@@ -50826,8 +51960,11 @@ func (r ListOrganizationUsersResponse) GetJSON200() *[]struct {
 
 	// CustomData arbitrary
 	CustomData map[string]interface{} `json:"customData"`
-	Id         string                 `json:"id"`
-	Identities map[string]struct {
+
+	// HasPassword Whether the user has a password set.
+	HasPassword bool   `json:"hasPassword"`
+	Id          string `json:"id"`
+	Identities  map[string]struct {
 		// Details arbitrary
 		Details *map[string]interface{} `json:"details,omitempty"`
 		UserId  string                  `json:"userId"`
@@ -52491,6 +53628,8 @@ type ListRoleUsersResponse struct {
 		// CustomData arbitrary
 		CustomData                    map[string]interface{} `json:"customData"`
 		HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+		HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+		HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 		HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 		Id                            string                 `json:"id"`
 		Identities                    map[string]struct {
@@ -52554,6 +53693,8 @@ func (r ListRoleUsersResponse) GetJSON200() *[]struct {
 	// CustomData arbitrary
 	CustomData                    map[string]interface{} `json:"customData"`
 	HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+	HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+	HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 	HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 	Id                            string                 `json:"id"`
 	Identities                    map[string]struct {
@@ -52754,14 +53895,15 @@ type CreateSamlApplicationResponse struct {
 		Description *string                `json:"description"`
 
 		// Encryption Validator function
-		Encryption   *map[string]interface{}                              `json:"encryption"`
-		EntityId     *string                                              `json:"entityId"`
-		Id           string                                               `json:"id"`
-		IsThirdParty bool                                                 `json:"isThirdParty"`
-		Name         string                                               `json:"name"`
-		NameIdFormat CreateSamlApplication201JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
-		TenantId     string                                               `json:"tenantId"`
-		Type         CreateSamlApplication201JSONResponseBodyType         `json:"type"`
+		Encryption       *map[string]interface{}                              `json:"encryption"`
+		EntityId         *string                                              `json:"entityId"`
+		Id               string                                               `json:"id"`
+		IsThirdParty     bool                                                 `json:"isThirdParty"`
+		Name             string                                               `json:"name"`
+		NameIdFormat     CreateSamlApplication201JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
+		StaticAttributes map[string]string                                    `json:"staticAttributes"`
+		TenantId         string                                               `json:"tenantId"`
+		Type             CreateSamlApplication201JSONResponseBodyType         `json:"type"`
 	}
 }
 
@@ -52813,14 +53955,15 @@ func (r CreateSamlApplicationResponse) GetJSON201() *struct {
 	Description *string                `json:"description"`
 
 	// Encryption Validator function
-	Encryption   *map[string]interface{}                              `json:"encryption"`
-	EntityId     *string                                              `json:"entityId"`
-	Id           string                                               `json:"id"`
-	IsThirdParty bool                                                 `json:"isThirdParty"`
-	Name         string                                               `json:"name"`
-	NameIdFormat CreateSamlApplication201JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
-	TenantId     string                                               `json:"tenantId"`
-	Type         CreateSamlApplication201JSONResponseBodyType         `json:"type"`
+	Encryption       *map[string]interface{}                              `json:"encryption"`
+	EntityId         *string                                              `json:"entityId"`
+	Id               string                                               `json:"id"`
+	IsThirdParty     bool                                                 `json:"isThirdParty"`
+	Name             string                                               `json:"name"`
+	NameIdFormat     CreateSamlApplication201JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
+	StaticAttributes map[string]string                                    `json:"staticAttributes"`
+	TenantId         string                                               `json:"tenantId"`
+	Type             CreateSamlApplication201JSONResponseBodyType         `json:"type"`
 } {
 	return r.JSON201
 }
@@ -52939,14 +54082,15 @@ type GetSamlApplicationResponse struct {
 		Description *string                `json:"description"`
 
 		// Encryption Validator function
-		Encryption   *map[string]interface{}                           `json:"encryption"`
-		EntityId     *string                                           `json:"entityId"`
-		Id           string                                            `json:"id"`
-		IsThirdParty bool                                              `json:"isThirdParty"`
-		Name         string                                            `json:"name"`
-		NameIdFormat GetSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
-		TenantId     string                                            `json:"tenantId"`
-		Type         GetSamlApplication200JSONResponseBodyType         `json:"type"`
+		Encryption       *map[string]interface{}                           `json:"encryption"`
+		EntityId         *string                                           `json:"entityId"`
+		Id               string                                            `json:"id"`
+		IsThirdParty     bool                                              `json:"isThirdParty"`
+		Name             string                                            `json:"name"`
+		NameIdFormat     GetSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
+		StaticAttributes map[string]string                                 `json:"staticAttributes"`
+		TenantId         string                                            `json:"tenantId"`
+		Type             GetSamlApplication200JSONResponseBodyType         `json:"type"`
 	}
 }
 
@@ -52998,14 +54142,15 @@ func (r GetSamlApplicationResponse) GetJSON200() *struct {
 	Description *string                `json:"description"`
 
 	// Encryption Validator function
-	Encryption   *map[string]interface{}                           `json:"encryption"`
-	EntityId     *string                                           `json:"entityId"`
-	Id           string                                            `json:"id"`
-	IsThirdParty bool                                              `json:"isThirdParty"`
-	Name         string                                            `json:"name"`
-	NameIdFormat GetSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
-	TenantId     string                                            `json:"tenantId"`
-	Type         GetSamlApplication200JSONResponseBodyType         `json:"type"`
+	Encryption       *map[string]interface{}                           `json:"encryption"`
+	EntityId         *string                                           `json:"entityId"`
+	Id               string                                            `json:"id"`
+	IsThirdParty     bool                                              `json:"isThirdParty"`
+	Name             string                                            `json:"name"`
+	NameIdFormat     GetSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
+	StaticAttributes map[string]string                                 `json:"staticAttributes"`
+	TenantId         string                                            `json:"tenantId"`
+	Type             GetSamlApplication200JSONResponseBodyType         `json:"type"`
 } {
 	return r.JSON200
 }
@@ -53090,14 +54235,15 @@ type UpdateSamlApplicationResponse struct {
 		Description *string                `json:"description"`
 
 		// Encryption Validator function
-		Encryption   *map[string]interface{}                              `json:"encryption"`
-		EntityId     *string                                              `json:"entityId"`
-		Id           string                                               `json:"id"`
-		IsThirdParty bool                                                 `json:"isThirdParty"`
-		Name         string                                               `json:"name"`
-		NameIdFormat UpdateSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
-		TenantId     string                                               `json:"tenantId"`
-		Type         UpdateSamlApplication200JSONResponseBodyType         `json:"type"`
+		Encryption       *map[string]interface{}                              `json:"encryption"`
+		EntityId         *string                                              `json:"entityId"`
+		Id               string                                               `json:"id"`
+		IsThirdParty     bool                                                 `json:"isThirdParty"`
+		Name             string                                               `json:"name"`
+		NameIdFormat     UpdateSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
+		StaticAttributes map[string]string                                    `json:"staticAttributes"`
+		TenantId         string                                               `json:"tenantId"`
+		Type             UpdateSamlApplication200JSONResponseBodyType         `json:"type"`
 	}
 }
 
@@ -53149,14 +54295,15 @@ func (r UpdateSamlApplicationResponse) GetJSON200() *struct {
 	Description *string                `json:"description"`
 
 	// Encryption Validator function
-	Encryption   *map[string]interface{}                              `json:"encryption"`
-	EntityId     *string                                              `json:"entityId"`
-	Id           string                                               `json:"id"`
-	IsThirdParty bool                                                 `json:"isThirdParty"`
-	Name         string                                               `json:"name"`
-	NameIdFormat UpdateSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
-	TenantId     string                                               `json:"tenantId"`
-	Type         UpdateSamlApplication200JSONResponseBodyType         `json:"type"`
+	Encryption       *map[string]interface{}                              `json:"encryption"`
+	EntityId         *string                                              `json:"entityId"`
+	Id               string                                               `json:"id"`
+	IsThirdParty     bool                                                 `json:"isThirdParty"`
+	Name             string                                               `json:"name"`
+	NameIdFormat     UpdateSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
+	StaticAttributes map[string]string                                    `json:"staticAttributes"`
+	TenantId         string                                               `json:"tenantId"`
+	Type             UpdateSamlApplication200JSONResponseBodyType         `json:"type"`
 } {
 	return r.JSON200
 }
@@ -53688,6 +54835,9 @@ type GetSignInExpResponse struct {
 			PrimaryColor      string `json:"primaryColor"`
 		} `json:"color"`
 
+		// CrossOriginOpenerPolicy The `Cross-Origin-Opener-Policy` header sent with the hosted sign-in page while Custom UI assets are configured. `unsafe-none` (the default) sends no header.
+		CrossOriginOpenerPolicy GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy `json:"crossOriginOpenerPolicy"`
+
 		// CustomContent Custom content to display on experience flow pages. the page pathname will be the config key, the content will be the config value.
 		CustomContent  map[string]string `json:"customContent"`
 		CustomCss      *string           `json:"customCss"`
@@ -53810,6 +54960,9 @@ type GetSignInExpResponse struct {
 		// SocialSignInConnectorTargets Enabled social sign-in connectors, will displayed on the sign-in page.
 		SocialSignInConnectorTargets []string `json:"socialSignInConnectorTargets"`
 
+		// SsoBrandingBeforeEmailMatch Whether to include SSO connector branding (display name and logos) in the public sign-in experience before an email domain matches. Defaults to true.
+		SsoBrandingBeforeEmailMatch bool `json:"ssoBrandingBeforeEmailMatch"`
+
 		// SupportEmail The support email address to display on the error pages.
 		SupportEmail *string `json:"supportEmail"`
 
@@ -53857,6 +55010,9 @@ func (r GetSignInExpResponse) GetJSON200() *struct {
 		IsDarkModeEnabled bool   `json:"isDarkModeEnabled"`
 		PrimaryColor      string `json:"primaryColor"`
 	} `json:"color"`
+
+	// CrossOriginOpenerPolicy The `Cross-Origin-Opener-Policy` header sent with the hosted sign-in page while Custom UI assets are configured. `unsafe-none` (the default) sends no header.
+	CrossOriginOpenerPolicy GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy `json:"crossOriginOpenerPolicy"`
 
 	// CustomContent Custom content to display on experience flow pages. the page pathname will be the config key, the content will be the config value.
 	CustomContent  map[string]string `json:"customContent"`
@@ -53980,6 +55136,9 @@ func (r GetSignInExpResponse) GetJSON200() *struct {
 	// SocialSignInConnectorTargets Enabled social sign-in connectors, will displayed on the sign-in page.
 	SocialSignInConnectorTargets []string `json:"socialSignInConnectorTargets"`
 
+	// SsoBrandingBeforeEmailMatch Whether to include SSO connector branding (display name and logos) in the public sign-in experience before an email domain matches. Defaults to true.
+	SsoBrandingBeforeEmailMatch bool `json:"ssoBrandingBeforeEmailMatch"`
+
 	// SupportEmail The support email address to display on the error pages.
 	SupportEmail *string `json:"supportEmail"`
 
@@ -54057,9 +55216,10 @@ type UpdateSignInExpResponse struct {
 			IsDarkModeEnabled bool   `json:"isDarkModeEnabled"`
 			PrimaryColor      string `json:"primaryColor"`
 		} `json:"color"`
-		CustomContent  map[string]string `json:"customContent"`
-		CustomCss      *string           `json:"customCss"`
-		CustomUiAssets *struct {
+		CrossOriginOpenerPolicy UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy `json:"crossOriginOpenerPolicy"`
+		CustomContent           map[string]string                                         `json:"customContent"`
+		CustomCss               *string                                                   `json:"customCss"`
+		CustomUiAssets          *struct {
 			CreatedAt float32 `json:"createdAt"`
 			Id        string  `json:"id"`
 		} `json:"customUiAssets"`
@@ -54138,6 +55298,7 @@ type UpdateSignInExpResponse struct {
 			SkipRequiredIdentifiers *bool `json:"skipRequiredIdentifiers,omitempty"`
 		} `json:"socialSignIn"`
 		SocialSignInConnectorTargets []string `json:"socialSignInConnectorTargets"`
+		SsoBrandingBeforeEmailMatch  bool     `json:"ssoBrandingBeforeEmailMatch"`
 		SupportEmail                 *string  `json:"supportEmail"`
 		SupportWebsiteUrl            *string  `json:"supportWebsiteUrl"`
 		TenantId                     string   `json:"tenantId"`
@@ -54177,9 +55338,10 @@ func (r UpdateSignInExpResponse) GetJSON200() *struct {
 		IsDarkModeEnabled bool   `json:"isDarkModeEnabled"`
 		PrimaryColor      string `json:"primaryColor"`
 	} `json:"color"`
-	CustomContent  map[string]string `json:"customContent"`
-	CustomCss      *string           `json:"customCss"`
-	CustomUiAssets *struct {
+	CrossOriginOpenerPolicy UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy `json:"crossOriginOpenerPolicy"`
+	CustomContent           map[string]string                                         `json:"customContent"`
+	CustomCss               *string                                                   `json:"customCss"`
+	CustomUiAssets          *struct {
 		CreatedAt float32 `json:"createdAt"`
 		Id        string  `json:"id"`
 	} `json:"customUiAssets"`
@@ -54258,6 +55420,7 @@ func (r UpdateSignInExpResponse) GetJSON200() *struct {
 		SkipRequiredIdentifiers *bool `json:"skipRequiredIdentifiers,omitempty"`
 	} `json:"socialSignIn"`
 	SocialSignInConnectorTargets []string `json:"socialSignInConnectorTargets"`
+	SsoBrandingBeforeEmailMatch  bool     `json:"ssoBrandingBeforeEmailMatch"`
 	SupportEmail                 *string  `json:"supportEmail"`
 	SupportWebsiteUrl            *string  `json:"supportWebsiteUrl"`
 	TenantId                     string   `json:"tenantId"`
@@ -55258,6 +56421,115 @@ func (r GetSystemApplicationConfigResponse) ContentType() string {
 	return ""
 }
 
+type GetSystemLicenseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *struct {
+		Env             GetSystemLicense200JSONResponseBodyEnv  `json:"env"`
+		ExpiresAt       string                                  `json:"expiresAt"`
+		GraceEndsAt     string                                  `json:"graceEndsAt"`
+		InstalledAt     string                                  `json:"installedAt"`
+		LastRefreshedAt string                                  `json:"lastRefreshedAt"`
+		Plan            GetSystemLicense200JSONResponseBodyPlan `json:"plan"`
+		Quota           struct {
+			BringYourUi           bool     `json:"bringYourUi"`
+			ConsoleCollaboration  bool     `json:"consoleCollaboration"`
+			HideLogtoBranding     bool     `json:"hideLogtoBranding"`
+			HostedEmail           bool     `json:"hostedEmail"`
+			IdpInitiatedSso       bool     `json:"idpInitiatedSso"`
+			MandatoryMfa          bool     `json:"mandatoryMfa"`
+			SamlApplicationsLimit *float32 `json:"samlApplicationsLimit"`
+		} `json:"quota"`
+		RefusalReason *string `json:"refusalReason,omitempty"`
+	}
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetSystemLicenseResponse) GetJSON200() *struct {
+	Env             GetSystemLicense200JSONResponseBodyEnv  `json:"env"`
+	ExpiresAt       string                                  `json:"expiresAt"`
+	GraceEndsAt     string                                  `json:"graceEndsAt"`
+	InstalledAt     string                                  `json:"installedAt"`
+	LastRefreshedAt string                                  `json:"lastRefreshedAt"`
+	Plan            GetSystemLicense200JSONResponseBodyPlan `json:"plan"`
+	Quota           struct {
+		BringYourUi           bool     `json:"bringYourUi"`
+		ConsoleCollaboration  bool     `json:"consoleCollaboration"`
+		HideLogtoBranding     bool     `json:"hideLogtoBranding"`
+		HostedEmail           bool     `json:"hostedEmail"`
+		IdpInitiatedSso       bool     `json:"idpInitiatedSso"`
+		MandatoryMfa          bool     `json:"mandatoryMfa"`
+		SamlApplicationsLimit *float32 `json:"samlApplicationsLimit"`
+	} `json:"quota"`
+	RefusalReason *string `json:"refusalReason,omitempty"`
+} {
+	return r.JSON200
+}
+
+// GetBody returns the raw response body bytes
+func (r GetSystemLicenseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSystemLicenseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSystemLicenseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetSystemLicenseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type InstallSystemLicenseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// GetBody returns the raw response body bytes
+func (r InstallSystemLicenseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r InstallSystemLicenseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r InstallSystemLicenseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r InstallSystemLicenseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type CreateUserAssetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -55369,6 +56641,8 @@ type ListUsersResponse struct {
 		// CustomData arbitrary
 		CustomData                    map[string]interface{} `json:"customData"`
 		HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+		HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+		HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 		HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 		Id                            string                 `json:"id"`
 		Identities                    map[string]struct {
@@ -55434,6 +56708,8 @@ func (r ListUsersResponse) GetJSON200() *[]struct {
 	// CustomData arbitrary
 	CustomData                    map[string]interface{} `json:"customData"`
 	HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+	HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+	HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 	HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 	Id                            string                 `json:"id"`
 	Identities                    map[string]struct {
@@ -55532,6 +56808,8 @@ type CreateUserResponse struct {
 		// CustomData arbitrary
 		CustomData                    map[string]interface{} `json:"customData"`
 		HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+		HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+		HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 		HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 		Id                            string                 `json:"id"`
 		Identities                    map[string]struct {
@@ -55597,6 +56875,8 @@ func (r CreateUserResponse) GetJSON200() *struct {
 	// CustomData arbitrary
 	CustomData                    map[string]interface{} `json:"customData"`
 	HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+	HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+	HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 	HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 	Id                            string                 `json:"id"`
 	Identities                    map[string]struct {
@@ -55729,6 +57009,8 @@ type GetUserResponse struct {
 		// CustomData arbitrary
 		CustomData                    map[string]interface{} `json:"customData"`
 		HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+		HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+		HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 		HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 		Id                            string                 `json:"id"`
 		Identities                    map[string]struct {
@@ -55800,6 +57082,8 @@ func (r GetUserResponse) GetJSON200() *struct {
 	// CustomData arbitrary
 	CustomData                    map[string]interface{} `json:"customData"`
 	HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+	HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+	HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 	HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 	Id                            string                 `json:"id"`
 	Identities                    map[string]struct {
@@ -55904,6 +57188,8 @@ type UpdateUserResponse struct {
 		// CustomData arbitrary
 		CustomData                    map[string]interface{} `json:"customData"`
 		HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+		HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+		HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 		HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 		Id                            string                 `json:"id"`
 		Identities                    map[string]struct {
@@ -55969,6 +57255,8 @@ func (r UpdateUserResponse) GetJSON200() *struct {
 	// CustomData arbitrary
 	CustomData                    map[string]interface{} `json:"customData"`
 	HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+	HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+	HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 	HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 	Id                            string                 `json:"id"`
 	Identities                    map[string]struct {
@@ -56517,6 +57805,8 @@ type DeleteUserIdentityResponse struct {
 		// CustomData arbitrary
 		CustomData                    map[string]interface{} `json:"customData"`
 		HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+		HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+		HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 		HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 		Id                            string                 `json:"id"`
 		Identities                    map[string]struct {
@@ -56580,6 +57870,8 @@ func (r DeleteUserIdentityResponse) GetJSON200() *struct {
 	// CustomData arbitrary
 	CustomData                    map[string]interface{} `json:"customData"`
 	HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+	HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+	HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 	HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 	Id                            string                 `json:"id"`
 	Identities                    map[string]struct {
@@ -56835,6 +58127,8 @@ type UpdateUserIsSuspendedResponse struct {
 		// CustomData arbitrary
 		CustomData                    map[string]interface{} `json:"customData"`
 		HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+		HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+		HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 		HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 		Id                            string                 `json:"id"`
 		Identities                    map[string]struct {
@@ -56900,6 +58194,8 @@ func (r UpdateUserIsSuspendedResponse) GetJSON200() *struct {
 	// CustomData arbitrary
 	CustomData                    map[string]interface{} `json:"customData"`
 	HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+	HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+	HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 	HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 	Id                            string                 `json:"id"`
 	Identities                    map[string]struct {
@@ -56990,6 +58286,7 @@ type ListUserLogtoConfigsResponse struct {
 	JSON200 *struct {
 		Mfa struct {
 			Enabled         *bool `json:"enabled,omitempty"`
+			Required        bool  `json:"required"`
 			SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 			Skipped         bool  `json:"skipped"`
 		} `json:"mfa"`
@@ -57003,6 +58300,7 @@ type ListUserLogtoConfigsResponse struct {
 func (r ListUserLogtoConfigsResponse) GetJSON200() *struct {
 	Mfa struct {
 		Enabled         *bool `json:"enabled,omitempty"`
+		Required        bool  `json:"required"`
 		SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 		Skipped         bool  `json:"skipped"`
 	} `json:"mfa"`
@@ -57049,6 +58347,7 @@ type UpdateUserLogtoConfigsResponse struct {
 	JSON200 *struct {
 		Mfa struct {
 			Enabled         *bool `json:"enabled,omitempty"`
+			Required        bool  `json:"required"`
 			SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 			Skipped         bool  `json:"skipped"`
 		} `json:"mfa"`
@@ -57062,6 +58361,7 @@ type UpdateUserLogtoConfigsResponse struct {
 func (r UpdateUserLogtoConfigsResponse) GetJSON200() *struct {
 	Mfa struct {
 		Enabled         *bool `json:"enabled,omitempty"`
+		Required        bool  `json:"required"`
 		SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 		Skipped         bool  `json:"skipped"`
 	} `json:"mfa"`
@@ -57343,6 +58643,8 @@ type UpdateUserPasswordResponse struct {
 		// CustomData arbitrary
 		CustomData                    map[string]interface{} `json:"customData"`
 		HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+		HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+		HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 		HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 		Id                            string                 `json:"id"`
 		Identities                    map[string]struct {
@@ -57408,6 +58710,8 @@ func (r UpdateUserPasswordResponse) GetJSON200() *struct {
 	// CustomData arbitrary
 	CustomData                    map[string]interface{} `json:"customData"`
 	HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+	HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+	HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 	HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 	Id                            string                 `json:"id"`
 	Identities                    map[string]struct {
@@ -57506,6 +58810,8 @@ type UpdateUserPasswordExpirationResponse struct {
 		// CustomData arbitrary
 		CustomData                    map[string]interface{} `json:"customData"`
 		HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+		HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+		HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 		HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 		Id                            string                 `json:"id"`
 		Identities                    map[string]struct {
@@ -57571,6 +58877,8 @@ func (r UpdateUserPasswordExpirationResponse) GetJSON200() *struct {
 	// CustomData arbitrary
 	CustomData                    map[string]interface{} `json:"customData"`
 	HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+	HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+	HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 	HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 	Id                            string                 `json:"id"`
 	Identities                    map[string]struct {
@@ -61416,7 +62724,7 @@ func (c *ClientWithResponses) UpdateEmailTemplateDetailsWithResponse(ctx context
 
 // InitInteractionWithBodyWithResponse Init new interaction
 //
-// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject; if the pinned user has no method that can reach the selected authentication context class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
+// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject. If the session already satisfies the class the step-up pursues and the request forces no fresh authentication, the interaction is finished with the session's context untouched and a redirect URL is returned. If the pinned user has no method that can reach that class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61431,7 +62739,7 @@ func (c *ClientWithResponses) InitInteractionWithBodyWithResponse(ctx context.Co
 
 // InitInteractionWithResponse Init new interaction
 //
-// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject; if the pinned user has no method that can reach the selected authentication context class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
+// Init a new experience interaction with the given interaction type. Any existing interaction data will be cleared. When the login prompt carries a step-up authentication context (an authenticated session that does not satisfy the requested `acr_values`), the interaction pins the session subject. If the session already satisfies the class the step-up pursues and the request forces no fresh authentication, the interaction is finished with the session's context untouched and a redirect URL is returned. If the pinned user has no method that can reach that class, the interaction is finished with `unmet_authentication_requirements` and a redirect URL is returned instead.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61442,6 +62750,36 @@ func (c *ClientWithResponses) InitInteractionWithResponse(ctx context.Context, b
 		return nil, err
 	}
 	return ParseInitInteractionResponse(rsp)
+}
+
+// AbortInteractionWithBodyWithResponse Abort interaction
+//
+// Finish the current interaction with an `access_denied` OAuth error and return the URL that resumes the OIDC flow. Following it redirects the user agent back to the client's redirect URI with the error, preserving the authorization request's `state` and `iss`. The endpoint works at any interaction step, including consent, and is intended for flows where the client application owns the user-facing UI, so an abort surfaces there instead of on the hosted experience.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/experience/abort (the `AbortInteraction` operationId).
+func (c *ClientWithResponses) AbortInteractionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AbortInteractionResponse, error) {
+	rsp, err := c.AbortInteractionWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAbortInteractionResponse(rsp)
+}
+
+// AbortInteractionWithResponse Abort interaction
+//
+// Finish the current interaction with an `access_denied` OAuth error and return the URL that resumes the OIDC flow. Following it redirects the user agent back to the client's redirect URI with the error, preserving the authorization request's `state` and `iss`. The endpoint works at any interaction step, including consent, and is intended for flows where the client application owns the user-facing UI, so an abort surfaces there instead of on the hosted experience.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/experience/abort (the `AbortInteraction` operationId).
+func (c *ClientWithResponses) AbortInteractionWithResponse(ctx context.Context, body AbortInteractionJSONRequestBody, reqEditors ...RequestEditorFn) (*AbortInteractionResponse, error) {
+	rsp, err := c.AbortInteraction(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAbortInteractionResponse(rsp)
 }
 
 // IdentifyUserWithBodyWithResponse Identify user for the current interaction
@@ -61491,7 +62829,7 @@ func (c *ClientWithResponses) GetInteractionWithResponse(ctx context.Context, re
 
 // UpdateInteractionEventWithBodyWithResponse Update interaction event
 //
-// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`, while keeping all the verification records data.
+// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`. The verification records are kept, but any user already identified in this interaction is discarded, along with everything staged against that identification: the pending profile data, any MFA factor bound in this interaction, and the trusted-device opt-in. Identify the user again before submitting. A verification record answers only for the account it was made against, so it cannot identify a different user after the switch.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61506,7 +62844,7 @@ func (c *ClientWithResponses) UpdateInteractionEventWithBodyWithResponse(ctx con
 
 // UpdateInteractionEventWithResponse Update interaction event
 //
-// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`, while keeping all the verification records data.
+// Update the current experience interaction event to the given event type. This API is used to switch the interaction event between `SignIn` and `Register`. The verification records are kept, but any user already identified in this interaction is discarded, along with everything staged against that identification: the pending profile data, any MFA factor bound in this interaction, and the trusted-device opt-in. Identify the user again before submitting. A verification record answers only for the account it was made against, so it cannot identify a different user after the switch.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61517,6 +62855,21 @@ func (c *ClientWithResponses) UpdateInteractionEventWithResponse(ctx context.Con
 		return nil, err
 	}
 	return ParseUpdateInteractionEventResponse(rsp)
+}
+
+// GetDirectSignInWithResponse Get the direct sign-in target of the current interaction
+//
+// Return the `direct_sign_in` value carried by the current interaction's authorization request, or an empty object when the interaction did not start from direct sign-in. The value is read from the interaction's OIDC parameters, so it is scoped to this interaction and remains available even before the experience interaction is initialized. Used by the hosted experience to return a failed direct sign-in to the client application instead of falling back to the hosted sign-in page.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/experience/interaction/direct-sign-in (the `GetDirectSignIn` operationId).
+func (c *ClientWithResponses) GetDirectSignInWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDirectSignInResponse, error) {
+	rsp, err := c.GetDirectSignIn(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetDirectSignInResponse(rsp)
 }
 
 // CreateSignInPasskeyAuthenticationWithResponse Create passkey sign-in WebAuthn authentication
@@ -61761,7 +63114,7 @@ func (c *ClientWithResponses) GetEnabledSsoConnectorsWithResponse(ctx context.Co
 
 // SubmitInteractionWithResponse Submit interaction
 //
-// Submit the current interaction. <br/>- Submit the verified user identity to the OIDC provider for further authentication (SignIn and Register). <br/>- Update the user's profile data if any (SignIn and Register). <br/>- Reset the password and clear all the interaction records (ForgotPassword).
+// Submit the current interaction. <br/>- Submit the verified user identity to the OIDC provider for further authentication (SignIn and Register). <br/>- Update the user's profile data if any (SignIn and Register). <br/>- Reset the password and clear all the interaction records (ForgotPassword). <br/>- Complete a step-up interaction: the interaction must have reached the authentication context class the authorization request selected, and only the methods it established are written to the account, with no sign-in side effect.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -61956,7 +63309,7 @@ func (c *ClientWithResponses) VerifyOneTimeTokenVerificationWithResponse(ctx con
 
 // CreatePasswordVerificationWithBodyWithResponse Create password verification record
 //
-// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
+// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), `identifier` may be omitted: the password is then verified against that user's credential, the subject is read from the interaction storage, and the request never carries a raw identifier. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -61971,7 +63324,7 @@ func (c *ClientWithResponses) CreatePasswordVerificationWithBodyWithResponse(ctx
 
 // CreatePasswordVerificationWithResponse Create password verification record
 //
-// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
+// Create and verify a new Password verification record. The verification record can only be created if the provided user credentials are correct. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), `identifier` may be omitted: the password is then verified against that user's credential, the subject is read from the interaction storage, and the request never carries a raw identifier. If the password has expired under the password expiration policy, the request is rejected with `password.expired` and the user must reset their password before continuing.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62211,7 +63564,7 @@ func (c *ClientWithResponses) VerifyTotpVerificationWithResponse(ctx context.Con
 
 // CreateAndSendVerificationCodeWithBodyWithResponse Create and send verification code
 //
-// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier.
+// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), the identifier may carry only its `type`: the code is then sent to that user's primary email or phone with the `SignIn` template, the subject is read from the interaction storage, and the request never carries a raw identifier. This variant is only accepted with the `SignIn` interaction event.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62226,7 +63579,7 @@ func (c *ClientWithResponses) CreateAndSendVerificationCodeWithBodyWithResponse(
 
 // CreateAndSendVerificationCodeWithResponse Create and send verification code
 //
-// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier.
+// Create a new `CodeVerification` record and sends the code to the specified identifier. The code verification can be used to verify the given identifier. Once the interaction already carries a subject (the subject pinned by a step-up authentication, or an identified user), the identifier may carry only its `type`: the code is then sent to that user's primary email or phone with the `SignIn` template, the subject is read from the interaction storage, and the request never carries a raw identifier. This variant is only accepted with the `SignIn` interaction event.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62241,7 +63594,7 @@ func (c *ClientWithResponses) CreateAndSendVerificationCodeWithResponse(ctx cont
 
 // VerifyVerificationCodeVerificationWithBodyWithResponse Verify verification code
 //
-// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified.
+// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified. For a code sent to the subject the interaction carries (an identifier with only its `type`), the identifier likewise carries only its `type`: the code is verified against the identifier the record was sent to, and the request never carries a raw identifier.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62256,7 +63609,7 @@ func (c *ClientWithResponses) VerifyVerificationCodeVerificationWithBodyWithResp
 
 // VerifyVerificationCodeVerificationWithResponse Verify verification code
 //
-// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified.
+// Verify the provided verification code against the user's identifier. If successful, the verification record will be marked as verified. For a code sent to the subject the interaction carries (an identifier with only its `type`), the identifier likewise carries only its `type`: the code is verified against the identifier the record was sent to, and the request never carries a raw identifier.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62805,7 +64158,7 @@ func (c *ClientWithResponses) UpdateLogtoConfigWithResponse(ctx context.Context,
 
 // GetMfaSettingsWithResponse Get MFA settings
 //
-// Get MFA settings for the user. This endpoint requires the Identities scope. Returns current MFA configuration preferences.
+// Get MFA settings for the user. This endpoint requires the Identities scope. Returns whether the user has enabled MFA and whether MFA verification is skipped at sign-in. `enabled` is omitted for users who predate the flag, which is treated as enabled when the user has usable factors.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -62820,7 +64173,7 @@ func (c *ClientWithResponses) GetMfaSettingsWithResponse(ctx context.Context, re
 
 // UpdateMfaSettingsWithBodyWithResponse Update MFA settings
 //
-// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured.
+// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured. Set `enabled` to `true` when turning verification on so an explicit MFA disablement no longer overrides the preference; omit it to keep the stored value.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62835,7 +64188,7 @@ func (c *ClientWithResponses) UpdateMfaSettingsWithBodyWithResponse(ctx context.
 
 // UpdateMfaSettingsWithResponse Update MFA settings
 //
-// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured.
+// Update MFA settings for the user. This endpoint requires identity verification and the Identities scope. Controls whether MFA verification is required during sign-in when the user has MFA configured. Set `enabled` to `true` when turning verification on so an explicit MFA disablement no longer overrides the preference; omit it to keep the stored value.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62865,7 +64218,7 @@ func (c *ClientWithResponses) GetMfaVerificationsWithResponse(ctx context.Contex
 
 // AddMfaVerificationWithBodyWithResponse Add a MFA verification
 //
-// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions.
+// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions. Adding a backup code factor replaces any exhausted backup code record.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -62880,7 +64233,7 @@ func (c *ClientWithResponses) AddMfaVerificationWithBodyWithResponse(ctx context
 
 // AddMfaVerificationWithResponse Add a MFA verification
 //
-// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions.
+// Add a MFA verification to the user, a logto-verification-id in header is required for checking sensitive permissions. Adding a backup code factor replaces any exhausted backup code record.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -63041,6 +64394,111 @@ func (c *ClientWithResponses) UpdatePasswordWithResponse(ctx context.Context, bo
 		return nil, err
 	}
 	return ParseUpdatePasswordResponse(rsp)
+}
+
+// ListMyAccountPersonalAccessTokensWithResponse List personal access tokens
+//
+// List all personal access tokens of the signed-in user, including expired ones, sorted by creation time in descending order. The token secret values are never returned. The personal-access-tokens scope is required.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/my-account/personal-access-tokens (the `ListMyAccountPersonalAccessTokens` operationId).
+func (c *ClientWithResponses) ListMyAccountPersonalAccessTokensWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListMyAccountPersonalAccessTokensResponse, error) {
+	rsp, err := c.ListMyAccountPersonalAccessTokens(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListMyAccountPersonalAccessTokensResponse(rsp)
+}
+
+// UpdateMyAccountPersonalAccessTokenNameWithBodyWithResponse Rename a personal access token
+//
+// Rename a personal access token of the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/my-account/personal-access-tokens (the `UpdateMyAccountPersonalAccessTokenName` operationId).
+func (c *ClientWithResponses) UpdateMyAccountPersonalAccessTokenNameWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateMyAccountPersonalAccessTokenNameResponse, error) {
+	rsp, err := c.UpdateMyAccountPersonalAccessTokenNameWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateMyAccountPersonalAccessTokenNameResponse(rsp)
+}
+
+// UpdateMyAccountPersonalAccessTokenNameWithResponse Rename a personal access token
+//
+// Rename a personal access token of the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/my-account/personal-access-tokens (the `UpdateMyAccountPersonalAccessTokenName` operationId).
+func (c *ClientWithResponses) UpdateMyAccountPersonalAccessTokenNameWithResponse(ctx context.Context, body UpdateMyAccountPersonalAccessTokenNameJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMyAccountPersonalAccessTokenNameResponse, error) {
+	rsp, err := c.UpdateMyAccountPersonalAccessTokenName(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateMyAccountPersonalAccessTokenNameResponse(rsp)
+}
+
+// CreateMyAccountPersonalAccessTokenWithBodyWithResponse Create a personal access token
+//
+// Create a personal access token for the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required. The token secret value is returned only in this response. The expiration time is required, must be in the future, and must be at most 365 days from now. A user can have at most 20 unexpired personal access tokens.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/my-account/personal-access-tokens (the `CreateMyAccountPersonalAccessToken` operationId).
+func (c *ClientWithResponses) CreateMyAccountPersonalAccessTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateMyAccountPersonalAccessTokenResponse, error) {
+	rsp, err := c.CreateMyAccountPersonalAccessTokenWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateMyAccountPersonalAccessTokenResponse(rsp)
+}
+
+// CreateMyAccountPersonalAccessTokenWithResponse Create a personal access token
+//
+// Create a personal access token for the signed-in user. A logto-verification-id in header and the personal-access-tokens scope are required. The token secret value is returned only in this response. The expiration time is required, must be in the future, and must be at most 365 days from now. A user can have at most 20 unexpired personal access tokens.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/my-account/personal-access-tokens (the `CreateMyAccountPersonalAccessToken` operationId).
+func (c *ClientWithResponses) CreateMyAccountPersonalAccessTokenWithResponse(ctx context.Context, body CreateMyAccountPersonalAccessTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateMyAccountPersonalAccessTokenResponse, error) {
+	rsp, err := c.CreateMyAccountPersonalAccessToken(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateMyAccountPersonalAccessTokenResponse(rsp)
+}
+
+// DeleteMyAccountPersonalAccessTokenWithBodyWithResponse Delete a personal access token
+//
+// Delete a personal access token of the signed-in user by name. A logto-verification-id in header and the personal-access-tokens scope are required.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/my-account/personal-access-tokens/delete (the `DeleteMyAccountPersonalAccessToken` operationId).
+func (c *ClientWithResponses) DeleteMyAccountPersonalAccessTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteMyAccountPersonalAccessTokenResponse, error) {
+	rsp, err := c.DeleteMyAccountPersonalAccessTokenWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteMyAccountPersonalAccessTokenResponse(rsp)
+}
+
+// DeleteMyAccountPersonalAccessTokenWithResponse Delete a personal access token
+//
+// Delete a personal access token of the signed-in user by name. A logto-verification-id in header and the personal-access-tokens scope are required.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/my-account/personal-access-tokens/delete (the `DeleteMyAccountPersonalAccessToken` operationId).
+func (c *ClientWithResponses) DeleteMyAccountPersonalAccessTokenWithResponse(ctx context.Context, body DeleteMyAccountPersonalAccessTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteMyAccountPersonalAccessTokenResponse, error) {
+	rsp, err := c.DeleteMyAccountPersonalAccessToken(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteMyAccountPersonalAccessTokenResponse(rsp)
 }
 
 // DeletePrimaryEmailWithResponse Delete primary email
@@ -65527,7 +66985,7 @@ func (c *ClientWithResponses) DeleteSecretWithResponse(ctx context.Context, id S
 
 // DeleteSentinelActivitiesWithBodyWithResponse Bulk delete sentinel activities
 //
-// Remove sentinel activity reports based on the provided target value(identifier).Use this endpoint to unblock users who may be locked out due to too many failed authentication attempts.
+// Remove sentinel activity reports based on the provided target value (identifier or user ID). Use this endpoint to unblock users who may be locked out due to too many failed authentication or security verification attempts. Password and email/phone code lockouts are keyed by the identifier (email address, phone number, or username); TOTP, WebAuthn, and backup code lockouts are keyed by user ID.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -65542,7 +67000,7 @@ func (c *ClientWithResponses) DeleteSentinelActivitiesWithBodyWithResponse(ctx c
 
 // DeleteSentinelActivitiesWithResponse Bulk delete sentinel activities
 //
-// Remove sentinel activity reports based on the provided target value(identifier).Use this endpoint to unblock users who may be locked out due to too many failed authentication attempts.
+// Remove sentinel activity reports based on the provided target value (identifier or user ID). Use this endpoint to unblock users who may be locked out due to too many failed authentication or security verification attempts. Password and email/phone code lockouts are keyed by the identifier (email address, phone number, or username); TOTP, WebAuthn, and backup code lockouts are keyed by user ID.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -65946,6 +67404,51 @@ func (c *ClientWithResponses) GetSystemApplicationConfigWithResponse(ctx context
 	return ParseGetSystemApplicationConfigResponse(rsp)
 }
 
+// GetSystemLicenseWithResponse Get the installed license.
+//
+// Get the license installed on this self-hosted deployment, i.e. the plan it grants, the entitlements it unlocks, its expiration, and its refresh/grace status. The license key itself is never returned. Returns 404 when no license is installed, and 501 on Logto Cloud.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/systems/license (the `GetSystemLicense` operationId).
+func (c *ClientWithResponses) GetSystemLicenseWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSystemLicenseResponse, error) {
+	rsp, err := c.GetSystemLicense(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSystemLicenseResponse(rsp)
+}
+
+// InstallSystemLicenseWithBodyWithResponse Install a license.
+//
+// Install a license key on this self-hosted deployment, replacing the installed license if there is one. The key's signature is verified against the public key built into Logto before it is saved, and a key past its expiration is rejected as a stale copy. Returns 501 on Logto Cloud.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/systems/license (the `InstallSystemLicense` operationId).
+func (c *ClientWithResponses) InstallSystemLicenseWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*InstallSystemLicenseResponse, error) {
+	rsp, err := c.InstallSystemLicenseWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseInstallSystemLicenseResponse(rsp)
+}
+
+// InstallSystemLicenseWithResponse Install a license.
+//
+// Install a license key on this self-hosted deployment, replacing the installed license if there is one. The key's signature is verified against the public key built into Logto before it is saved, and a key past its expiration is rejected as a stale copy. Returns 501 on Logto Cloud.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/systems/license (the `InstallSystemLicense` operationId).
+func (c *ClientWithResponses) InstallSystemLicenseWithResponse(ctx context.Context, body InstallSystemLicenseJSONRequestBody, reqEditors ...RequestEditorFn) (*InstallSystemLicenseResponse, error) {
+	rsp, err := c.InstallSystemLicense(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseInstallSystemLicenseResponse(rsp)
+}
+
 // CreateUserAssetWithBodyWithResponse Upload asset
 //
 // Upload a user asset.
@@ -66318,7 +67821,7 @@ func (c *ClientWithResponses) UpdateUserIsSuspendedWithResponse(ctx context.Cont
 
 // ListUserLogtoConfigsWithResponse Get user logto config
 //
-// Retrieve the exposed portion of a user's logto config. Includes MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped).
+// Retrieve the exposed portion of a user's logto config. Includes MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped).
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -66333,7 +67836,7 @@ func (c *ClientWithResponses) ListUserLogtoConfigsWithResponse(ctx context.Conte
 
 // UpdateUserLogtoConfigsWithBodyWithResponse Update user logto config
 //
-// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
+// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -66348,7 +67851,7 @@ func (c *ClientWithResponses) UpdateUserLogtoConfigsWithBodyWithResponse(ctx con
 
 // UpdateUserLogtoConfigsWithResponse Update user logto config
 //
-// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
+// Update the exposed portion of a user's logto config. Supports updating MFA states (enabled, skipped, required, skipMfaOnSignIn) and passkey sign-in states (skipped). All fields are optional — only provided fields will be updated.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -67169,22 +68672,24 @@ func ParseGetWellKnownAccountCenterResponse(rsp *http.Response) (*GetWellKnownAc
 			DeleteAccountUrl *string `json:"deleteAccountUrl"`
 			Enabled          bool    `json:"enabled"`
 			Fields           struct {
-				Avatar        *GetWellKnownAccountCenter200JSONResponseBodyFieldsAvatar        `json:"avatar,omitempty"`
-				CustomData    *GetWellKnownAccountCenter200JSONResponseBodyFieldsCustomData    `json:"customData,omitempty"`
-				Email         *GetWellKnownAccountCenter200JSONResponseBodyFieldsEmail         `json:"email,omitempty"`
-				Mfa           *GetWellKnownAccountCenter200JSONResponseBodyFieldsMfa           `json:"mfa,omitempty"`
-				Name          *GetWellKnownAccountCenter200JSONResponseBodyFieldsName          `json:"name,omitempty"`
-				Passkey       *GetWellKnownAccountCenter200JSONResponseBodyFieldsPasskey       `json:"passkey,omitempty"`
-				Password      *GetWellKnownAccountCenter200JSONResponseBodyFieldsPassword      `json:"password,omitempty"`
-				Phone         *GetWellKnownAccountCenter200JSONResponseBodyFieldsPhone         `json:"phone,omitempty"`
-				Profile       *GetWellKnownAccountCenter200JSONResponseBodyFieldsProfile       `json:"profile,omitempty"`
-				Session       *GetWellKnownAccountCenter200JSONResponseBodyFieldsSession       `json:"session,omitempty"`
-				Social        *GetWellKnownAccountCenter200JSONResponseBodyFieldsSocial        `json:"social,omitempty"`
-				TrustedDevice *GetWellKnownAccountCenter200JSONResponseBodyFieldsTrustedDevice `json:"trustedDevice,omitempty"`
-				Username      *GetWellKnownAccountCenter200JSONResponseBodyFieldsUsername      `json:"username,omitempty"`
+				Avatar              *GetWellKnownAccountCenter200JSONResponseBodyFieldsAvatar              `json:"avatar,omitempty"`
+				CustomData          *GetWellKnownAccountCenter200JSONResponseBodyFieldsCustomData          `json:"customData,omitempty"`
+				Email               *GetWellKnownAccountCenter200JSONResponseBodyFieldsEmail               `json:"email,omitempty"`
+				Mfa                 *GetWellKnownAccountCenter200JSONResponseBodyFieldsMfa                 `json:"mfa,omitempty"`
+				Name                *GetWellKnownAccountCenter200JSONResponseBodyFieldsName                `json:"name,omitempty"`
+				Passkey             *GetWellKnownAccountCenter200JSONResponseBodyFieldsPasskey             `json:"passkey,omitempty"`
+				Password            *GetWellKnownAccountCenter200JSONResponseBodyFieldsPassword            `json:"password,omitempty"`
+				PersonalAccessToken *GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken `json:"personalAccessToken,omitempty"`
+				Phone               *GetWellKnownAccountCenter200JSONResponseBodyFieldsPhone               `json:"phone,omitempty"`
+				Profile             *GetWellKnownAccountCenter200JSONResponseBodyFieldsProfile             `json:"profile,omitempty"`
+				Session             *GetWellKnownAccountCenter200JSONResponseBodyFieldsSession             `json:"session,omitempty"`
+				Social              *GetWellKnownAccountCenter200JSONResponseBodyFieldsSocial              `json:"social,omitempty"`
+				TrustedDevice       *GetWellKnownAccountCenter200JSONResponseBodyFieldsTrustedDevice       `json:"trustedDevice,omitempty"`
+				Username            *GetWellKnownAccountCenter200JSONResponseBodyFieldsUsername            `json:"username,omitempty"`
 			} `json:"fields"`
-			Id            string `json:"id"`
-			ProfileFields *[]struct {
+			Id                                string  `json:"id"`
+			MaximumAuthenticationAgeInSeconds float32 `json:"maximumAuthenticationAgeInSeconds"`
+			ProfileFields                     *[]struct {
 				Name string `json:"name"`
 			} `json:"profileFields"`
 			TenantId               string   `json:"tenantId"`
@@ -67839,22 +69344,24 @@ func ParseGetAccountCenterSettingsResponse(rsp *http.Response) (*GetAccountCente
 			DeleteAccountUrl *string `json:"deleteAccountUrl"`
 			Enabled          bool    `json:"enabled"`
 			Fields           struct {
-				Avatar        *GetAccountCenterSettings200JSONResponseBodyFieldsAvatar        `json:"avatar,omitempty"`
-				CustomData    *GetAccountCenterSettings200JSONResponseBodyFieldsCustomData    `json:"customData,omitempty"`
-				Email         *GetAccountCenterSettings200JSONResponseBodyFieldsEmail         `json:"email,omitempty"`
-				Mfa           *GetAccountCenterSettings200JSONResponseBodyFieldsMfa           `json:"mfa,omitempty"`
-				Name          *GetAccountCenterSettings200JSONResponseBodyFieldsName          `json:"name,omitempty"`
-				Passkey       *GetAccountCenterSettings200JSONResponseBodyFieldsPasskey       `json:"passkey,omitempty"`
-				Password      *GetAccountCenterSettings200JSONResponseBodyFieldsPassword      `json:"password,omitempty"`
-				Phone         *GetAccountCenterSettings200JSONResponseBodyFieldsPhone         `json:"phone,omitempty"`
-				Profile       *GetAccountCenterSettings200JSONResponseBodyFieldsProfile       `json:"profile,omitempty"`
-				Session       *GetAccountCenterSettings200JSONResponseBodyFieldsSession       `json:"session,omitempty"`
-				Social        *GetAccountCenterSettings200JSONResponseBodyFieldsSocial        `json:"social,omitempty"`
-				TrustedDevice *GetAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice `json:"trustedDevice,omitempty"`
-				Username      *GetAccountCenterSettings200JSONResponseBodyFieldsUsername      `json:"username,omitempty"`
+				Avatar              *GetAccountCenterSettings200JSONResponseBodyFieldsAvatar              `json:"avatar,omitempty"`
+				CustomData          *GetAccountCenterSettings200JSONResponseBodyFieldsCustomData          `json:"customData,omitempty"`
+				Email               *GetAccountCenterSettings200JSONResponseBodyFieldsEmail               `json:"email,omitempty"`
+				Mfa                 *GetAccountCenterSettings200JSONResponseBodyFieldsMfa                 `json:"mfa,omitempty"`
+				Name                *GetAccountCenterSettings200JSONResponseBodyFieldsName                `json:"name,omitempty"`
+				Passkey             *GetAccountCenterSettings200JSONResponseBodyFieldsPasskey             `json:"passkey,omitempty"`
+				Password            *GetAccountCenterSettings200JSONResponseBodyFieldsPassword            `json:"password,omitempty"`
+				PersonalAccessToken *GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken `json:"personalAccessToken,omitempty"`
+				Phone               *GetAccountCenterSettings200JSONResponseBodyFieldsPhone               `json:"phone,omitempty"`
+				Profile             *GetAccountCenterSettings200JSONResponseBodyFieldsProfile             `json:"profile,omitempty"`
+				Session             *GetAccountCenterSettings200JSONResponseBodyFieldsSession             `json:"session,omitempty"`
+				Social              *GetAccountCenterSettings200JSONResponseBodyFieldsSocial              `json:"social,omitempty"`
+				TrustedDevice       *GetAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice       `json:"trustedDevice,omitempty"`
+				Username            *GetAccountCenterSettings200JSONResponseBodyFieldsUsername            `json:"username,omitempty"`
 			} `json:"fields"`
-			Id            string `json:"id"`
-			ProfileFields *[]struct {
+			Id                                string  `json:"id"`
+			MaximumAuthenticationAgeInSeconds float32 `json:"maximumAuthenticationAgeInSeconds"`
+			ProfileFields                     *[]struct {
 				Name string `json:"name"`
 			} `json:"profileFields"`
 			TenantId               string   `json:"tenantId"`
@@ -67896,22 +69403,24 @@ func ParseUpdateAccountCenterSettingsResponse(rsp *http.Response) (*UpdateAccoun
 			DeleteAccountUrl *string `json:"deleteAccountUrl"`
 			Enabled          bool    `json:"enabled"`
 			Fields           struct {
-				Avatar        *UpdateAccountCenterSettings200JSONResponseBodyFieldsAvatar        `json:"avatar,omitempty"`
-				CustomData    *UpdateAccountCenterSettings200JSONResponseBodyFieldsCustomData    `json:"customData,omitempty"`
-				Email         *UpdateAccountCenterSettings200JSONResponseBodyFieldsEmail         `json:"email,omitempty"`
-				Mfa           *UpdateAccountCenterSettings200JSONResponseBodyFieldsMfa           `json:"mfa,omitempty"`
-				Name          *UpdateAccountCenterSettings200JSONResponseBodyFieldsName          `json:"name,omitempty"`
-				Passkey       *UpdateAccountCenterSettings200JSONResponseBodyFieldsPasskey       `json:"passkey,omitempty"`
-				Password      *UpdateAccountCenterSettings200JSONResponseBodyFieldsPassword      `json:"password,omitempty"`
-				Phone         *UpdateAccountCenterSettings200JSONResponseBodyFieldsPhone         `json:"phone,omitempty"`
-				Profile       *UpdateAccountCenterSettings200JSONResponseBodyFieldsProfile       `json:"profile,omitempty"`
-				Session       *UpdateAccountCenterSettings200JSONResponseBodyFieldsSession       `json:"session,omitempty"`
-				Social        *UpdateAccountCenterSettings200JSONResponseBodyFieldsSocial        `json:"social,omitempty"`
-				TrustedDevice *UpdateAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice `json:"trustedDevice,omitempty"`
-				Username      *UpdateAccountCenterSettings200JSONResponseBodyFieldsUsername      `json:"username,omitempty"`
+				Avatar              *UpdateAccountCenterSettings200JSONResponseBodyFieldsAvatar              `json:"avatar,omitempty"`
+				CustomData          *UpdateAccountCenterSettings200JSONResponseBodyFieldsCustomData          `json:"customData,omitempty"`
+				Email               *UpdateAccountCenterSettings200JSONResponseBodyFieldsEmail               `json:"email,omitempty"`
+				Mfa                 *UpdateAccountCenterSettings200JSONResponseBodyFieldsMfa                 `json:"mfa,omitempty"`
+				Name                *UpdateAccountCenterSettings200JSONResponseBodyFieldsName                `json:"name,omitempty"`
+				Passkey             *UpdateAccountCenterSettings200JSONResponseBodyFieldsPasskey             `json:"passkey,omitempty"`
+				Password            *UpdateAccountCenterSettings200JSONResponseBodyFieldsPassword            `json:"password,omitempty"`
+				PersonalAccessToken *UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken `json:"personalAccessToken,omitempty"`
+				Phone               *UpdateAccountCenterSettings200JSONResponseBodyFieldsPhone               `json:"phone,omitempty"`
+				Profile             *UpdateAccountCenterSettings200JSONResponseBodyFieldsProfile             `json:"profile,omitempty"`
+				Session             *UpdateAccountCenterSettings200JSONResponseBodyFieldsSession             `json:"session,omitempty"`
+				Social              *UpdateAccountCenterSettings200JSONResponseBodyFieldsSocial              `json:"social,omitempty"`
+				TrustedDevice       *UpdateAccountCenterSettings200JSONResponseBodyFieldsTrustedDevice       `json:"trustedDevice,omitempty"`
+				Username            *UpdateAccountCenterSettings200JSONResponseBodyFieldsUsername            `json:"username,omitempty"`
 			} `json:"fields"`
-			Id            string `json:"id"`
-			ProfileFields *[]struct {
+			Id                                string  `json:"id"`
+			MaximumAuthenticationAgeInSeconds float32 `json:"maximumAuthenticationAgeInSeconds"`
+			ProfileFields                     *[]struct {
 				Name string `json:"name"`
 			} `json:"profileFields"`
 			TenantId               string   `json:"tenantId"`
@@ -72369,6 +73878,37 @@ func ParseInitInteractionResponse(rsp *http.Response) (*InitInteractionResponse,
 	return response, nil
 }
 
+// ParseAbortInteractionResponse parses an HTTP response from a AbortInteractionWithResponse call
+func ParseAbortInteractionResponse(rsp *http.Response) (*AbortInteractionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AbortInteractionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			RedirectTo string `json:"redirectTo"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	}
+
+	return response, nil
+}
+
 // ParseIdentifyUserResponse parses an HTTP response from a IdentifyUserWithResponse call
 func ParseIdentifyUserResponse(rsp *http.Response) (*IdentifyUserResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -72409,10 +73949,11 @@ func ParseGetInteractionResponse(rsp *http.Response) (*GetInteractionResponse, e
 					Email *string `json:"email,omitempty"`
 					Phone *string `json:"phone,omitempty"`
 				} `json:"maskedIdentifiers"`
-				Mode                   *GetInteraction200JSONResponseBodyAuthenticationContextMode                `json:"mode,omitempty"`
-				RequestedAcrValues     []GetInteraction200JSONResponseBodyAuthenticationContextRequestedAcrValues `json:"requestedAcrValues"`
-				SelectedAcr            *GetInteraction200JSONResponseBodyAuthenticationContextSelectedAcr         `json:"selectedAcr,omitempty"`
-				SubjectProofConnectors []struct {
+				Mode                     *GetInteraction200JSONResponseBodyAuthenticationContextMode                `json:"mode,omitempty"`
+				ReauthenticationRequired *bool                                                                      `json:"reauthenticationRequired,omitempty"`
+				RequestedAcrValues       []GetInteraction200JSONResponseBodyAuthenticationContextRequestedAcrValues `json:"requestedAcrValues"`
+				SelectedAcr              *GetInteraction200JSONResponseBodyAuthenticationContextSelectedAcr         `json:"selectedAcr,omitempty"`
+				SubjectProofConnectors   []struct {
 					ConnectorId string                                                                           `json:"connectorId"`
 					Type        GetInteraction200JSONResponseBodyAuthenticationContextSubjectProofConnectorsType `json:"type"`
 				} `json:"subjectProofConnectors"`
@@ -72528,6 +74069,34 @@ func ParseUpdateInteractionEventResponse(rsp *http.Response) (*UpdateInteraction
 	response := &UpdateInteractionEventResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetDirectSignInResponse parses an HTTP response from a GetDirectSignInWithResponse call
+func ParseGetDirectSignInResponse(rsp *http.Response) (*GetDirectSignInResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetDirectSignInResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			DirectSignIn *string `json:"directSignIn,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	}
 
 	return response, nil
@@ -72745,6 +74314,21 @@ func ParseGetEnabledSsoConnectorsResponse(rsp *http.Response) (*GetEnabledSsoCon
 		var dest struct {
 			// ConnectorIds The list of enabled SSO connectorIds. Returns an empty array if no enabled SSO connectors are found.
 			ConnectorIds []string `json:"connectorIds"`
+
+			// Connectors The enabled SSO connectors that match the email domain, including their display branding. Returns an empty array if no enabled SSO connectors are found.
+			Connectors []struct {
+				// ConnectorName The display name of the SSO connector.
+				ConnectorName string `json:"connectorName"`
+
+				// DarkLogo The dark mode logo of the SSO connector.
+				DarkLogo *string `json:"darkLogo,omitempty"`
+
+				// Id The unique identifier of the SSO connector.
+				Id string `json:"id"`
+
+				// Logo The light mode logo of the SSO connector.
+				Logo string `json:"logo"`
+			} `json:"connectors"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -73091,6 +74675,12 @@ func ParseCreatePasswordVerificationResponse(rsp *http.Response) (*CreatePasswor
 	case rsp.StatusCode == 401:
 		break // No content-type
 
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
 	case rsp.StatusCode == 409:
 		break // No content-type
 
@@ -73182,6 +74772,9 @@ func ParseVerifySignInPasskeyAuthenticationResponse(rsp *http.Response) (*Verify
 	case rsp.StatusCode == 400:
 		break // No content-type
 
+	case rsp.StatusCode == 403:
+		break // No content-type
+
 	case rsp.StatusCode == 404:
 		break // No content-type
 
@@ -73223,6 +74816,9 @@ func ParseCreateSocialVerificationResponse(rsp *http.Response) (*CreateSocialVer
 	case rsp.StatusCode == 400:
 		break // No content-type
 
+	case rsp.StatusCode == 403:
+		break // No content-type
+
 	case rsp.StatusCode == 404:
 		break // No content-type
 
@@ -73261,10 +74857,19 @@ func ParseVerifySocialVerificationResponse(rsp *http.Response) (*VerifySocialVer
 	case rsp.StatusCode == 400:
 		break // No content-type
 
+	case rsp.StatusCode == 401:
+		break // No content-type
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
 	case rsp.StatusCode == 404:
 		break // No content-type
 
 	case rsp.StatusCode == 500:
+		break // No content-type
+
+	case rsp.StatusCode == 502:
 		break // No content-type
 
 	}
@@ -73300,6 +74905,9 @@ func ParseCreateEnterpriseSsoVerificationResponse(rsp *http.Response) (*CreateEn
 		response.JSON200 = &dest
 
 	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case rsp.StatusCode == 403:
 		break // No content-type
 
 	case rsp.StatusCode == 404:
@@ -73338,6 +74946,9 @@ func ParseVerifyEnterpriseSsoVerificationResponse(rsp *http.Response) (*VerifyEn
 		response.JSON200 = &dest
 
 	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case rsp.StatusCode == 403:
 		break // No content-type
 
 	case rsp.StatusCode == 404:
@@ -73593,6 +75204,9 @@ func ParseVerifyWebAuthnAuthenticationVerificationResponse(rsp *http.Response) (
 		response.JSON200 = &dest
 
 	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case rsp.StatusCode == 403:
 		break // No content-type
 
 	case rsp.StatusCode == 404:
@@ -74314,10 +75928,16 @@ func ParseGetProfileResponse(rsp *http.Response) (*GetProfileResponse, error) {
 			CreatedAt    *float32 `json:"createdAt,omitempty"`
 
 			// CustomData arbitrary
-			CustomData                    *map[string]interface{} `json:"customData,omitempty"`
-			HasPassword                   *bool                   `json:"hasPassword,omitempty"`
-			HasSecurityVerificationMethod *bool                   `json:"hasSecurityVerificationMethod,omitempty"`
-			Id                            *string                 `json:"id,omitempty"`
+			CustomData  *map[string]interface{} `json:"customData,omitempty"`
+			HasPassword *bool                   `json:"hasPassword,omitempty"`
+
+			// HasPrimaryEmail Whether the user has a primary email. Requires the `email` scope. Returned even when the Account Center email field is not readable; the email address itself remains filtered.
+			HasPrimaryEmail *bool `json:"hasPrimaryEmail,omitempty"`
+
+			// HasPrimaryPhone Whether the user has a primary phone. Requires the `phone` scope. Returned even when the Account Center phone field is not readable; the phone number itself remains filtered.
+			HasPrimaryPhone               *bool   `json:"hasPrimaryPhone,omitempty"`
+			HasSecurityVerificationMethod *bool   `json:"hasSecurityVerificationMethod,omitempty"`
+			Id                            *string `json:"id,omitempty"`
 			Identities                    *map[string]struct {
 				// Details arbitrary
 				Details *map[string]interface{} `json:"details,omitempty"`
@@ -74405,10 +76025,16 @@ func ParseUpdateProfileResponse(rsp *http.Response) (*UpdateProfileResponse, err
 			CreatedAt    *float32 `json:"createdAt,omitempty"`
 
 			// CustomData arbitrary
-			CustomData                    *map[string]interface{} `json:"customData,omitempty"`
-			HasPassword                   *bool                   `json:"hasPassword,omitempty"`
-			HasSecurityVerificationMethod *bool                   `json:"hasSecurityVerificationMethod,omitempty"`
-			Id                            *string                 `json:"id,omitempty"`
+			CustomData  *map[string]interface{} `json:"customData,omitempty"`
+			HasPassword *bool                   `json:"hasPassword,omitempty"`
+
+			// HasPrimaryEmail Whether the user has a primary email. Requires the `email` scope. Returned even when the Account Center email field is not readable; the email address itself remains filtered.
+			HasPrimaryEmail *bool `json:"hasPrimaryEmail,omitempty"`
+
+			// HasPrimaryPhone Whether the user has a primary phone. Requires the `phone` scope. Returned even when the Account Center phone field is not readable; the phone number itself remains filtered.
+			HasPrimaryPhone               *bool   `json:"hasPrimaryPhone,omitempty"`
+			HasSecurityVerificationMethod *bool   `json:"hasSecurityVerificationMethod,omitempty"`
+			Id                            *string `json:"id,omitempty"`
 			Identities                    *map[string]struct {
 				// Details arbitrary
 				Details *map[string]interface{} `json:"details,omitempty"`
@@ -74615,7 +76241,7 @@ func ParseGetSocialIdentityAccessTokenResponse(rsp *http.Response) (*GetSocialId
 		var dest struct {
 			AccessToken string                                                     `json:"access_token"`
 			ExpiresIn   *GetSocialIdentityAccessToken200JSONResponseBody_ExpiresIn `json:"expires_in,omitempty"`
-			Scope       *string                                                    `json:"scope,omitempty"`
+			Scope       *GetSocialIdentityAccessToken200JSONResponseBody_Scope     `json:"scope,omitempty"`
 			TokenType   *string                                                    `json:"token_type,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -74636,6 +76262,9 @@ func ParseGetSocialIdentityAccessTokenResponse(rsp *http.Response) (*GetSocialId
 		break // No content-type
 
 	case rsp.StatusCode == 422:
+		break // No content-type
+
+	case rsp.StatusCode == 502:
 		break // No content-type
 
 	}
@@ -74661,7 +76290,7 @@ func ParseUpdateSocialIdentityAccessTokenByVerificationIdResponse(rsp *http.Resp
 		var dest struct {
 			AccessToken string                                                                        `json:"access_token"`
 			ExpiresIn   *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_ExpiresIn `json:"expires_in,omitempty"`
-			Scope       *string                                                                       `json:"scope,omitempty"`
+			Scope       *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope     `json:"scope,omitempty"`
 			TokenType   *string                                                                       `json:"token_type,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -74790,7 +76419,8 @@ func ParseGetMfaSettingsResponse(rsp *http.Response) (*GetMfaSettingsResponse, e
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			SkipMfaOnSignIn bool `json:"skipMfaOnSignIn"`
+			Enabled         *bool `json:"enabled,omitempty"`
+			SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -74827,7 +76457,8 @@ func ParseUpdateMfaSettingsResponse(rsp *http.Response) (*UpdateMfaSettingsRespo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			SkipMfaOnSignIn bool `json:"skipMfaOnSignIn"`
+			Enabled         *bool `json:"enabled,omitempty"`
+			SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -75012,6 +76643,149 @@ func ParseUpdatePasswordResponse(rsp *http.Response) (*UpdatePasswordResponse, e
 	}
 
 	response := &UpdatePasswordResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListMyAccountPersonalAccessTokensResponse parses an HTTP response from a ListMyAccountPersonalAccessTokensWithResponse call
+func ParseListMyAccountPersonalAccessTokensResponse(rsp *http.Response) (*ListMyAccountPersonalAccessTokensResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListMyAccountPersonalAccessTokensResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []struct {
+			CreatedAt float32  `json:"createdAt"`
+			ExpiresAt *float32 `json:"expiresAt"`
+			Name      string   `json:"name"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case rsp.StatusCode == 401:
+		break // No content-type
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateMyAccountPersonalAccessTokenNameResponse parses an HTTP response from a UpdateMyAccountPersonalAccessTokenNameWithResponse call
+func ParseUpdateMyAccountPersonalAccessTokenNameResponse(rsp *http.Response) (*UpdateMyAccountPersonalAccessTokenNameResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateMyAccountPersonalAccessTokenNameResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			CreatedAt float32  `json:"createdAt"`
+			ExpiresAt *float32 `json:"expiresAt"`
+			Name      string   `json:"name"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case rsp.StatusCode == 401:
+		break // No content-type
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 422:
+		break // No content-type
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateMyAccountPersonalAccessTokenResponse parses an HTTP response from a CreateMyAccountPersonalAccessTokenWithResponse call
+func ParseCreateMyAccountPersonalAccessTokenResponse(rsp *http.Response) (*CreateMyAccountPersonalAccessTokenResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateMyAccountPersonalAccessTokenResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest struct {
+			CreatedAt float32  `json:"createdAt"`
+			ExpiresAt *float32 `json:"expiresAt"`
+			Name      string   `json:"name"`
+			Value     string   `json:"value"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case rsp.StatusCode == 401:
+		break // No content-type
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 422:
+		break // No content-type
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteMyAccountPersonalAccessTokenResponse parses an HTTP response from a DeleteMyAccountPersonalAccessTokenWithResponse call
+func ParseDeleteMyAccountPersonalAccessTokenResponse(rsp *http.Response) (*DeleteMyAccountPersonalAccessTokenResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteMyAccountPersonalAccessTokenResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -75237,7 +77011,7 @@ func ParseGetEnterpriseSsoIdentityAccessTokenResponse(rsp *http.Response) (*GetE
 		var dest struct {
 			AccessToken string                                                            `json:"access_token"`
 			ExpiresIn   *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_ExpiresIn `json:"expires_in,omitempty"`
-			Scope       *string                                                           `json:"scope,omitempty"`
+			Scope       *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope     `json:"scope,omitempty"`
 			TokenType   *string                                                           `json:"token_type,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -77310,8 +79084,11 @@ func ParseListOrganizationUsersResponse(rsp *http.Response) (*ListOrganizationUs
 
 			// CustomData arbitrary
 			CustomData map[string]interface{} `json:"customData"`
-			Id         string                 `json:"id"`
-			Identities map[string]struct {
+
+			// HasPassword Whether the user has a password set.
+			HasPassword bool   `json:"hasPassword"`
+			Id          string `json:"id"`
+			Identities  map[string]struct {
 				// Details arbitrary
 				Details *map[string]interface{} `json:"details,omitempty"`
 				UserId  string                  `json:"userId"`
@@ -78520,6 +80297,8 @@ func ParseListRoleUsersResponse(rsp *http.Response) (*ListRoleUsersResponse, err
 			// CustomData arbitrary
 			CustomData                    map[string]interface{} `json:"customData"`
 			HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+			HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+			HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 			HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 			Id                            string                 `json:"id"`
 			Identities                    map[string]struct {
@@ -78685,14 +80464,15 @@ func ParseCreateSamlApplicationResponse(rsp *http.Response) (*CreateSamlApplicat
 			Description *string                `json:"description"`
 
 			// Encryption Validator function
-			Encryption   *map[string]interface{}                              `json:"encryption"`
-			EntityId     *string                                              `json:"entityId"`
-			Id           string                                               `json:"id"`
-			IsThirdParty bool                                                 `json:"isThirdParty"`
-			Name         string                                               `json:"name"`
-			NameIdFormat CreateSamlApplication201JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
-			TenantId     string                                               `json:"tenantId"`
-			Type         CreateSamlApplication201JSONResponseBodyType         `json:"type"`
+			Encryption       *map[string]interface{}                              `json:"encryption"`
+			EntityId         *string                                              `json:"entityId"`
+			Id               string                                               `json:"id"`
+			IsThirdParty     bool                                                 `json:"isThirdParty"`
+			Name             string                                               `json:"name"`
+			NameIdFormat     CreateSamlApplication201JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
+			StaticAttributes map[string]string                                    `json:"staticAttributes"`
+			TenantId         string                                               `json:"tenantId"`
+			Type             CreateSamlApplication201JSONResponseBodyType         `json:"type"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -78794,14 +80574,15 @@ func ParseGetSamlApplicationResponse(rsp *http.Response) (*GetSamlApplicationRes
 			Description *string                `json:"description"`
 
 			// Encryption Validator function
-			Encryption   *map[string]interface{}                           `json:"encryption"`
-			EntityId     *string                                           `json:"entityId"`
-			Id           string                                            `json:"id"`
-			IsThirdParty bool                                              `json:"isThirdParty"`
-			Name         string                                            `json:"name"`
-			NameIdFormat GetSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
-			TenantId     string                                            `json:"tenantId"`
-			Type         GetSamlApplication200JSONResponseBodyType         `json:"type"`
+			Encryption       *map[string]interface{}                           `json:"encryption"`
+			EntityId         *string                                           `json:"entityId"`
+			Id               string                                            `json:"id"`
+			IsThirdParty     bool                                              `json:"isThirdParty"`
+			Name             string                                            `json:"name"`
+			NameIdFormat     GetSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
+			StaticAttributes map[string]string                                 `json:"staticAttributes"`
+			TenantId         string                                            `json:"tenantId"`
+			Type             GetSamlApplication200JSONResponseBodyType         `json:"type"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -78890,14 +80671,15 @@ func ParseUpdateSamlApplicationResponse(rsp *http.Response) (*UpdateSamlApplicat
 			Description *string                `json:"description"`
 
 			// Encryption Validator function
-			Encryption   *map[string]interface{}                              `json:"encryption"`
-			EntityId     *string                                              `json:"entityId"`
-			Id           string                                               `json:"id"`
-			IsThirdParty bool                                                 `json:"isThirdParty"`
-			Name         string                                               `json:"name"`
-			NameIdFormat UpdateSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
-			TenantId     string                                               `json:"tenantId"`
-			Type         UpdateSamlApplication200JSONResponseBodyType         `json:"type"`
+			Encryption       *map[string]interface{}                              `json:"encryption"`
+			EntityId         *string                                              `json:"entityId"`
+			Id               string                                               `json:"id"`
+			IsThirdParty     bool                                                 `json:"isThirdParty"`
+			Name             string                                               `json:"name"`
+			NameIdFormat     UpdateSamlApplication200JSONResponseBodyNameIdFormat `json:"nameIdFormat"`
+			StaticAttributes map[string]string                                    `json:"staticAttributes"`
+			TenantId         string                                               `json:"tenantId"`
+			Type             UpdateSamlApplication200JSONResponseBodyType         `json:"type"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -79259,6 +81041,9 @@ func ParseGetSignInExpResponse(rsp *http.Response) (*GetSignInExpResponse, error
 				PrimaryColor      string `json:"primaryColor"`
 			} `json:"color"`
 
+			// CrossOriginOpenerPolicy The `Cross-Origin-Opener-Policy` header sent with the hosted sign-in page while Custom UI assets are configured. `unsafe-none` (the default) sends no header.
+			CrossOriginOpenerPolicy GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy `json:"crossOriginOpenerPolicy"`
+
 			// CustomContent Custom content to display on experience flow pages. the page pathname will be the config key, the content will be the config value.
 			CustomContent  map[string]string `json:"customContent"`
 			CustomCss      *string           `json:"customCss"`
@@ -79381,6 +81166,9 @@ func ParseGetSignInExpResponse(rsp *http.Response) (*GetSignInExpResponse, error
 			// SocialSignInConnectorTargets Enabled social sign-in connectors, will displayed on the sign-in page.
 			SocialSignInConnectorTargets []string `json:"socialSignInConnectorTargets"`
 
+			// SsoBrandingBeforeEmailMatch Whether to include SSO connector branding (display name and logos) in the public sign-in experience before an email domain matches. Defaults to true.
+			SsoBrandingBeforeEmailMatch bool `json:"ssoBrandingBeforeEmailMatch"`
+
 			// SupportEmail The support email address to display on the error pages.
 			SupportEmail *string `json:"supportEmail"`
 
@@ -79456,9 +81244,10 @@ func ParseUpdateSignInExpResponse(rsp *http.Response) (*UpdateSignInExpResponse,
 				IsDarkModeEnabled bool   `json:"isDarkModeEnabled"`
 				PrimaryColor      string `json:"primaryColor"`
 			} `json:"color"`
-			CustomContent  map[string]string `json:"customContent"`
-			CustomCss      *string           `json:"customCss"`
-			CustomUiAssets *struct {
+			CrossOriginOpenerPolicy UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy `json:"crossOriginOpenerPolicy"`
+			CustomContent           map[string]string                                         `json:"customContent"`
+			CustomCss               *string                                                   `json:"customCss"`
+			CustomUiAssets          *struct {
 				CreatedAt float32 `json:"createdAt"`
 				Id        string  `json:"id"`
 			} `json:"customUiAssets"`
@@ -79537,6 +81326,7 @@ func ParseUpdateSignInExpResponse(rsp *http.Response) (*UpdateSignInExpResponse,
 				SkipRequiredIdentifiers *bool `json:"skipRequiredIdentifiers,omitempty"`
 			} `json:"socialSignIn"`
 			SocialSignInConnectorTargets []string `json:"socialSignInConnectorTargets"`
+			SsoBrandingBeforeEmailMatch  bool     `json:"ssoBrandingBeforeEmailMatch"`
 			SupportEmail                 *string  `json:"supportEmail"`
 			SupportWebsiteUrl            *string  `json:"supportWebsiteUrl"`
 			TenantId                     string   `json:"tenantId"`
@@ -80269,6 +82059,77 @@ func ParseGetSystemApplicationConfigResponse(rsp *http.Response) (*GetSystemAppl
 	return response, nil
 }
 
+// ParseGetSystemLicenseResponse parses an HTTP response from a GetSystemLicenseWithResponse call
+func ParseGetSystemLicenseResponse(rsp *http.Response) (*GetSystemLicenseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSystemLicenseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Env             GetSystemLicense200JSONResponseBodyEnv  `json:"env"`
+			ExpiresAt       string                                  `json:"expiresAt"`
+			GraceEndsAt     string                                  `json:"graceEndsAt"`
+			InstalledAt     string                                  `json:"installedAt"`
+			LastRefreshedAt string                                  `json:"lastRefreshedAt"`
+			Plan            GetSystemLicense200JSONResponseBodyPlan `json:"plan"`
+			Quota           struct {
+				BringYourUi           bool     `json:"bringYourUi"`
+				ConsoleCollaboration  bool     `json:"consoleCollaboration"`
+				HideLogtoBranding     bool     `json:"hideLogtoBranding"`
+				HostedEmail           bool     `json:"hostedEmail"`
+				IdpInitiatedSso       bool     `json:"idpInitiatedSso"`
+				MandatoryMfa          bool     `json:"mandatoryMfa"`
+				SamlApplicationsLimit *float32 `json:"samlApplicationsLimit"`
+			} `json:"quota"`
+			RefusalReason *string `json:"refusalReason,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 401:
+		break // No content-type
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 501:
+		break // No content-type
+
+	}
+
+	return response, nil
+}
+
+// ParseInstallSystemLicenseResponse parses an HTTP response from a InstallSystemLicenseWithResponse call
+func ParseInstallSystemLicenseResponse(rsp *http.Response) (*InstallSystemLicenseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &InstallSystemLicenseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseCreateUserAssetResponse parses an HTTP response from a CreateUserAssetWithResponse call
 func ParseCreateUserAssetResponse(rsp *http.Response) (*CreateUserAssetResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -80366,6 +82227,8 @@ func ParseListUsersResponse(rsp *http.Response) (*ListUsersResponse, error) {
 			// CustomData arbitrary
 			CustomData                    map[string]interface{} `json:"customData"`
 			HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+			HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+			HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 			HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 			Id                            string                 `json:"id"`
 			Identities                    map[string]struct {
@@ -80462,6 +82325,8 @@ func ParseCreateUserResponse(rsp *http.Response) (*CreateUserResponse, error) {
 			// CustomData arbitrary
 			CustomData                    map[string]interface{} `json:"customData"`
 			HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+			HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+			HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 			HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 			Id                            string                 `json:"id"`
 			Identities                    map[string]struct {
@@ -80583,6 +82448,8 @@ func ParseGetUserResponse(rsp *http.Response) (*GetUserResponse, error) {
 			// CustomData arbitrary
 			CustomData                    map[string]interface{} `json:"customData"`
 			HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+			HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+			HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 			HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 			Id                            string                 `json:"id"`
 			Identities                    map[string]struct {
@@ -80688,6 +82555,8 @@ func ParseUpdateUserResponse(rsp *http.Response) (*UpdateUserResponse, error) {
 			// CustomData arbitrary
 			CustomData                    map[string]interface{} `json:"customData"`
 			HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+			HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+			HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 			HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 			Id                            string                 `json:"id"`
 			Identities                    map[string]struct {
@@ -81119,6 +82988,8 @@ func ParseDeleteUserIdentityResponse(rsp *http.Response) (*DeleteUserIdentityRes
 			// CustomData arbitrary
 			CustomData                    map[string]interface{} `json:"customData"`
 			HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+			HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+			HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 			HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 			Id                            string                 `json:"id"`
 			Identities                    map[string]struct {
@@ -81337,6 +83208,8 @@ func ParseUpdateUserIsSuspendedResponse(rsp *http.Response) (*UpdateUserIsSuspen
 			// CustomData arbitrary
 			CustomData                    map[string]interface{} `json:"customData"`
 			HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+			HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+			HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 			HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 			Id                            string                 `json:"id"`
 			Identities                    map[string]struct {
@@ -81428,6 +83301,7 @@ func ParseListUserLogtoConfigsResponse(rsp *http.Response) (*ListUserLogtoConfig
 		var dest struct {
 			Mfa struct {
 				Enabled         *bool `json:"enabled,omitempty"`
+				Required        bool  `json:"required"`
 				SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 				Skipped         bool  `json:"skipped"`
 			} `json:"mfa"`
@@ -81475,6 +83349,7 @@ func ParseUpdateUserLogtoConfigsResponse(rsp *http.Response) (*UpdateUserLogtoCo
 		var dest struct {
 			Mfa struct {
 				Enabled         *bool `json:"enabled,omitempty"`
+				Required        bool  `json:"required"`
 				SkipMfaOnSignIn bool  `json:"skipMfaOnSignIn"`
 				Skipped         bool  `json:"skipped"`
 			} `json:"mfa"`
@@ -81698,6 +83573,8 @@ func ParseUpdateUserPasswordResponse(rsp *http.Response) (*UpdateUserPasswordRes
 			// CustomData arbitrary
 			CustomData                    map[string]interface{} `json:"customData"`
 			HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+			HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+			HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 			HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 			Id                            string                 `json:"id"`
 			Identities                    map[string]struct {
@@ -81797,6 +83674,8 @@ func ParseUpdateUserPasswordExpirationResponse(rsp *http.Response) (*UpdateUserP
 			// CustomData arbitrary
 			CustomData                    map[string]interface{} `json:"customData"`
 			HasPassword                   *bool                  `json:"hasPassword,omitempty"`
+			HasPrimaryEmail               *bool                  `json:"hasPrimaryEmail,omitempty"`
+			HasPrimaryPhone               *bool                  `json:"hasPrimaryPhone,omitempty"`
 			HasSecurityVerificationMethod *bool                  `json:"hasSecurityVerificationMethod,omitempty"`
 			Id                            string                 `json:"id"`
 			Identities                    map[string]struct {
@@ -82747,6 +84626,9 @@ func ParseVerifyVerificationBySocialResponse(rsp *http.Response) (*VerifyVerific
 		break // No content-type
 
 	case rsp.StatusCode == 422:
+		break // No content-type
+
+	case rsp.StatusCode == 502:
 		break // No content-type
 
 	}

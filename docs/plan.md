@@ -70,7 +70,11 @@ type Kind interface {
 touched kinds and fails if Logto did not keep what was written.
 `check` = `Plan` + exit code. The CLI and the controller are thin shells around these two calls.
 
-Generator choice, **measured**: `oapi-codegen` 2.8.2 (pinned in `mise.toml`, mise `go` backend). `ogen` 1.25.0 was
+**Revised 2026-11-21 (option E):** kinds own their request and response types (only the fields they manage) and
+send them through the generated client's raw-body variants; the generated client provides routes and parameters.
+Contract tests validate those types against the vendored spec of every Logto version in the support window (the
+latest minor and the two before it). This replaces "request and response types generated from the spec": one client,
+no per-version code. Generator choice, **measured**: `oapi-codegen` 2.8.2 (pinned in `mise.toml`, mise `go` backend). `ogen` 1.25.0 was
 tried on the same spec and **skipped 46 operations**, among them `GetSignInExp`, `UpdateSignInExp`, every connector
 route, `CreateCustomProfileField`, `UpdateCustomProfileFieldByName`, the JWT customizer routes, `CreateUser` and
 `UpdateUser` (unsupported `oneOf` shapes): disqualifying. oapi-codegen generates all 245 paths after two documented

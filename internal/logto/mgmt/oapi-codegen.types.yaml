@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+# oapi-codegen config, run by `task generate` on api/logto/management.openapi.json (normalized by tools/specnorm). See doc.go.
+package: mgmt
+generate:
+  models: true
+output: internal/logto/mgmt/types.gen.go

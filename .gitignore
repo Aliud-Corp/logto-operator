@@ -1,0 +1,14 @@
+# Build outputs.
+/bin/
+/dist/
+# Intermediates of the tasks (normalized spec, test kubeconfigs). Never committed.
+/build/
+# Test outputs.
+*.out
+coverage.*
+# Editors / OS.
+.idea/
+.vscode/
+.DS_Store
+# Task fingerprint cache.
+/.task/

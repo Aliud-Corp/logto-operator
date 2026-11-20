@@ -1,0 +1,22 @@
+# Pinned toolchain of the repository. Every tool whose output is committed (the generated client) or whose verdict
+# gates CI (the linter) is pinned like a library, so a laptop and a CI runner produce byte-identical
+# artefacts and identical verdicts.
+#
+#   go             the language. Also the floor of `go.mod` (`go` directive), bump both in one commit.
+#   task           the only entry point to the repository: CI runs `task <target>`, never a raw command.
+#   oapi-codegen   generates internal/logto/mgmt from api/logto/management.openapi.json. Its output is committed and
+#                  guarded by `task generate:check`, so two versions would make that guard flap between machines.
+#                  Installed through mise's `go` backend (`go install <module>@<version>`): the aqua registry entry
+#                  is a go_install package that mise's aqua backend refuses.
+#   golangci-lint  the gate of `task lint`.
+#   actionlint     lints .github/workflows (part of `task lint`).
+#   shellcheck     what actionlint runs on the `run:` scripts; pinned so the verdict does not depend on the machine.
+#
+# Bump deliberately: change a version here, run `task generate`, commit the regenerated code in the same commit.
+[tools]
+go = "1.27.4"
+task = "3.54.0"
+"go:github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen" = "2.8.2"
+golangci-lint = "2.15.0"
+actionlint = "1.7.12"
+shellcheck = "0.11.0"

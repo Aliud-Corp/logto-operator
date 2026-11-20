@@ -1,0 +1,71 @@
+# The only entry point of the repository: CI calls these targets and nothing else, so a red CI
+# step is reproduced locally by running the target it names. Tools come from mise.toml (`mise install`).
+version: '3'
+
+vars:
+  SPEC: api/logto/management.openapi.json
+  # The normalized spec is an intermediate, never committed: the committed artefact is the generated Go code.
+  CODEGEN_SPEC: build/management.codegen.json
+  MGMT_DIR: internal/logto/mgmt
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  generate:
+    desc: Regenerate the Management API client from the vendored OpenAPI spec (commit the result).
+    # No `sources:` fingerprint on purpose: the drift guard below must ALWAYS regenerate, never trust a checksum.
+    cmds:
+      - mkdir -p build
+      - go run ./tools/specnorm {{.SPEC}} {{.CODEGEN_SPEC}}
+      - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.types.yaml {{.CODEGEN_SPEC}}
+      - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.client.yaml {{.CODEGEN_SPEC}}
+      - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.server.yaml {{.CODEGEN_SPEC}}
+
+  generate:check:
+    desc: Fail when the committed generated code differs from a fresh generation (drift guard, runs on every push).
+    cmds:
+      - task: generate
+      - cmd: |
+          if ! git diff --exit-code -- {{.MGMT_DIR}} || [ -n "$(git status --porcelain -- {{.MGMT_DIR}})" ]; then
+            echo "generate:check FAILED: {{.MGMT_DIR}} is not what the spec and the pinned generator produce." >&2
+            echo "Run 'task generate' and commit the result." >&2
+            exit 1
+          fi
+
+  tidy:check:
+    desc: Fail when go.mod / go.sum are not tidy.
+    cmds:
+      - go mod tidy -diff
+
+  test:
+    desc: Unit tests (no network, no Logto).
+    cmds:
+      - go test -race -count=1 ./...
+
+  lint:
+    desc: golangci-lint on the Go code (generated files excluded), actionlint on the workflows, the runner guard.
+    cmds:
+      - golangci-lint run ./...
+      - actionlint
+      - task: ci:runners
+
+  ci:runners:
+    desc: Fail when a workflow runs on anything but a GitHub-hosted `ubuntu-<version>` runner (the repository goes public).
+    cmds:
+      - cmd: |
+          bad=$(grep -nE '^[[:space:]]*runs-on:' .github/workflows/*.yml | grep -vE 'runs-on:[[:space:]]*ubuntu-[0-9]+\.[0-9]+[[:space:]]*$' || true)
+          if [ -n "$bad" ]; then
+            echo "ci:runners FAILED: only GitHub-hosted 'ubuntu-<version>' runners are allowed (no self-hosted, no expression):" >&2
+            echo "$bad" >&2
+            exit 1
+          fi
+
+  check:
+    desc: The gate of ci.yml.
+    cmds:
+      - task: generate:check
+      - task: tidy:check
+      - task: lint
+      - task: test

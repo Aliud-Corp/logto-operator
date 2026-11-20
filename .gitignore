@@ -3,6 +3,8 @@
 /dist/
 # Intermediates of the tasks (normalized spec, test kubeconfigs). Never committed.
 /build/
+# Go module, build and lint caches when pointed into the workspace (CI).
+/.cache/
 # Test outputs.
 *.out
 coverage.*

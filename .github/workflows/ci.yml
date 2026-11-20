@@ -6,6 +6,11 @@
 # quota blocks every hosted job of the organization until the next month. Hence ONE job running the whole gate (each
 # job is billed rounded up to the minute), the mise cache, and e2e in its own path-filtered workflow (e2e.yml).
 #
+# CACHES. A pull request can read the caches of `main` but never another pull request's, so caches are SAVED ON
+# `main` ONLY (each push) and only RESTORED on pull requests: saving from pull requests would fill the repository's
+# cache storage with entries nobody else can read. Go module, build and golangci-lint caches live under `.cache/` in
+# the workspace (fixed paths set below, ignored by git and by `./...`).
+#
 # Every step calls a `task` target a developer calls locally: reproduce a red step by running the target it names.
 # Public-repository hygiene: no `pull_request_target`, read-only token, no secret used anywhere, actions pinned by SHA.
 #
@@ -39,6 +44,10 @@ jobs:
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      GOMODCACHE: ${{ github.workspace }}/.cache/go-mod
+      GOCACHE: ${{ github.workspace }}/.cache/go-build
+      GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.cache/golangci-lint
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
@@ -47,5 +56,20 @@ jobs:
         uses: jdx/mise-action@dba19683ed58901619b14f395a24841710cb4925  # v4.1.0
         with:
           cache: true
+          cache_save: ${{ github.event_name == 'push' }}
+      - name: Restore the Go caches (module, build, lint)
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .cache
+          key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.toml') }}-${{ github.run_id }}
+          restore-keys: |
+            go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.toml') }}-
+            go-${{ runner.os }}-
       - name: task check
         run: task check
+      - name: Save the Go caches (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .cache
+          key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.toml') }}-${{ github.run_id }}

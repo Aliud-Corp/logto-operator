@@ -7,6 +7,8 @@
 - `ci.yml`: one `check` job running `task check`. `e2e.yml`: `task e2e`, path-filtered on what it exercises.
 - While private, minutes come out of the organization's shared free quota, and an exhausted quota blocks every hosted
   job of the organization until the next month: keep one job per workflow, the mise cache, path filters.
+- Caches (mise, Go modules, Go build, golangci-lint) are saved on `main` only and restored on pull requests: a pull
+  request can read `main`'s caches, never another pull request's. Go caches are pointed into `.cache/` of the workspace.
 - No `pull_request_target`, read-only token, no secret in any pull request job, actions pinned by commit SHA.
 
 ## Environments

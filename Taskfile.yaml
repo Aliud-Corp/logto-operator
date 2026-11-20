@@ -122,6 +122,16 @@ tasks:
       - task: it:bootstrap
       - LOGTO_IT_REQUIRED=1 go test -tags integration -count=1 ./...
 
+  it:all:
+    desc: Integration tests on every version of the support window, one after the other (what CI runs on main).
+    cmds:
+      - for: { var: WINDOW, split: "\n" }
+        cmd: task it:down LOGTO_VERSION={{.ITEM}} && task it LOGTO_VERSION={{.ITEM}}
+      - task: it:down
+    vars:
+      WINDOW:
+        sh: grep -v '^$' api/logto/versions.txt
+
   spec:refresh:
     desc: Vendor the spec served by Logto VERSION (restarts the throwaway Logto at that version). Usage - task spec:refresh VERSION=1.46.0
     requires:

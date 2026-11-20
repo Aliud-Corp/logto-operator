@@ -15,4 +15,10 @@
 - Enabling an application's access control without a rule answers 422.
 - SMTP connector config: `port` must be a number, `auth` must be non-empty, and `Register`, `SignIn` and
   `ForgotPassword` templates are mandatory.
+- Support window: the latest Logto minor and the two before it (`api/logto/versions.txt`); a new minor is judged
+  with `task spec:diff`, which fails only on a breaking change of an operation in `tools/specdiff/used.txt`.
+- `/api/swagger.json` (also public at `/api/.well-known/management.openapi.json`) echoes the request host in
+  `servers`: `task spec:refresh` always asks `localhost:3001`.
+- `m-default` gets its token at the admin endpoint for `https://default.logto.app/api`; the token is accepted by the
+  tenant endpoint (measured on 1.44.0, 1.45.0, 1.46.0).
 - Never call a deployed Logto from a test or a development session.

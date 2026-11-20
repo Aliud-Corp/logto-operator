@@ -15,11 +15,14 @@ flowchart TD
 
 ## Areas
 
-- `api/logto/`: the Management API spec, vendored byte for byte, and how to refresh it.
+- `api/logto/`: one vendored spec per Logto version of the support window, and how to move the window.
 - `tools/specnorm/`: turns the spec into valid input for the generator.
+- `tools/specdiff/`: classifies the differences between two vendored specs; `used.txt` lists the operations used.
 - `internal/logto/mgmt/`: generated code plus its three `oapi-codegen` configs; `doc.go` is the only hand-written file.
 - `internal/logto/logtofake/`: in-process fake on the generated server; unmodelled routes answer 501.
 - `cmd/logtoctl/`: the CLI.
+- `test/integration/`: the throwaway Logto (compose, bootstrap) and the integration tests;
+  `internal/logto/integration/` loads its credentials.
 - `test/e2e/`: Chainsaw tests and the k3d cluster config.
 
 ## Entry points

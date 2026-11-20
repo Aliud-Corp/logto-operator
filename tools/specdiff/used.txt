@@ -1,0 +1,2 @@
+# operationIds the kinds call, one per line. specdiff exits 1 when a breaking change touches one of them.
+# Each kind adds its operations here when it is written (docs: api/logto/README.md).

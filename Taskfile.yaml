@@ -136,6 +136,13 @@ tasks:
       - mv build/spec-{{.VERSION}}.json api/logto/{{.VERSION}}.openapi.json
       - task: it:down
 
+  spec:diff:
+    desc: Classify the differences between two vendored specs; fails on a breaking change of an operation the kinds use. Usage - task spec:diff FROM=1.44.0 TO=1.46.0
+    requires:
+      vars: [FROM, TO]
+    cmds:
+      - go run ./tools/specdiff -used tools/specdiff/used.txt api/logto/{{.FROM}}.openapi.json api/logto/{{.TO}}.openapi.json
+
   check:
     desc: The gate of ci.yml. Does not cover `task e2e` (e2e.yml, needs Docker).
     cmds:

@@ -120,7 +120,7 @@ tasks:
     cmds:
       - task: it:up
       - task: it:bootstrap
-      - go test -tags integration -count=1 ./...
+      - LOGTO_IT_REQUIRED=1 go test -tags integration -count=1 ./...
 
   spec:refresh:
     desc: Vendor the spec served by Logto VERSION (restarts the throwaway Logto at that version). Usage - task spec:refresh VERSION=1.46.0

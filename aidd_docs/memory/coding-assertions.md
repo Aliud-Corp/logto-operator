@@ -11,7 +11,7 @@
 
 | Order | Command | Checks |
 | ----- | ------- | ------ |
-| 1 | `task check` | generate drift, `go mod tidy`, lint, unit tests (= `ci.yml`) |
+| 1 | `task check` | generate drift, `go mod tidy`, lint, unit tests, build (= `ci.yml`) |
 
 `task generate:check` compares against the git index: it fails on generated files that are not yet committed.
 

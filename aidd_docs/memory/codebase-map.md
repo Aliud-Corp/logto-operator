@@ -5,7 +5,11 @@ flowchart TD
     api["api/logto: vendored spec"]
     tools["tools/specnorm: spec normalizer"]
     mgmt["internal/logto/mgmt: generated client"]
+    fake["internal/logto/logtofake: fake Logto"]
+    cmd["cmd/logtoctl: CLI"]
     api --> tools --> mgmt
+    mgmt --> fake
+    mgmt --> cmd
 ```
 
 ## Areas
@@ -13,7 +17,9 @@ flowchart TD
 - `api/logto/`: the Management API spec, vendored byte for byte, and how to refresh it.
 - `tools/specnorm/`: turns the spec into valid input for the generator.
 - `internal/logto/mgmt/`: generated code plus its three `oapi-codegen` configs; `doc.go` is the only hand-written file.
+- `internal/logto/logtofake/`: in-process fake on the generated server; unmodelled routes answer 501.
+- `cmd/logtoctl/`: the CLI.
 
 ## Entry points
 
-- `task generate`: the generation chain, from the spec to the client.
+- `cmd/logtoctl/main.go`.

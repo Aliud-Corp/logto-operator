@@ -1,4 +1,4 @@
-package main
+package specnorm
 
 import (
 	"encoding/json"
@@ -46,18 +46,18 @@ func TestNormalizeRefusesAQuotedFormatThatIsNotJSON(t *testing.T) {
 
 func TestAnOverlayWhoseTargetIsGoneFails(t *testing.T) {
 	doc := map[string]any{"a": map[string]any{"type": "string"}}
-	err := applyOverlays(doc, []overlay{{Pointer: "/a", Expect: []string{"enum"}, Key: "x", Value: 1}})
+	err := applyOverlays(doc, []Overlay{{Pointer: "/a", Expect: []string{"enum"}, Key: "x", Value: 1}})
 	if err == nil {
 		t.Fatal("want an error: the target lost the key the overlay was written for")
 	}
-	if err := applyOverlays(doc, []overlay{{Pointer: "/b", Key: "x", Value: 1}}); err == nil {
+	if err := applyOverlays(doc, []Overlay{{Pointer: "/b", Key: "x", Value: 1}}); err == nil {
 		t.Fatal("want an error: the target does not exist")
 	}
 }
 
 func TestAnOverlaySetsItsKey(t *testing.T) {
 	doc := map[string]any{"p": []any{map[string]any{"enum": []any{"A"}}}}
-	if err := applyOverlays(doc, []overlay{{Pointer: "/p/0", Expect: []string{"enum"}, Key: "x-go-type-name", Value: "T"}}); err != nil {
+	if err := applyOverlays(doc, []Overlay{{Pointer: "/p/0", Expect: []string{"enum"}, Key: "x-go-type-name", Value: "T"}}); err != nil {
 		t.Fatal(err)
 	}
 	if got := doc["p"].([]any)[0].(map[string]any)["x-go-type-name"]; got != "T" {
@@ -68,7 +68,7 @@ func TestAnOverlaySetsItsKey(t *testing.T) {
 // The real inputs: every vendored spec of the support window must normalize with the real overlays. A Logto upgrade
 // that moves an overlay target fails here, before the generator runs.
 func TestEveryVendoredSpecNormalizes(t *testing.T) {
-	files, err := filepath.Glob("../../api/logto/*.openapi.json")
+	files, err := filepath.Glob("../../../api/logto/*.openapi.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestEveryVendoredSpecNormalizes(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, n, err := Normalize(raw, overlays)
+			_, n, err := Normalize(raw, Overlays)
 			if err != nil {
 				t.Fatal(err)
 			}

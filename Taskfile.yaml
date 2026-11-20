@@ -13,6 +13,8 @@ vars:
   # The normalized spec is an intermediate, never committed: the committed artefact is the generated Go code.
   CODEGEN_SPEC: build/management.codegen.json
   MGMT_DIR: internal/logto/mgmt
+  # Every directory `task generate` writes into; `generate:check` guards them all.
+  GENERATED_DIRS: internal/logto/mgmt api/v1alpha1 config/crd
   BIN_DIR: bin
   E2E_CLUSTER: logto-operator-e2e
   E2E_KUBECONFIG: build/e2e.kubeconfig
@@ -25,7 +27,7 @@ tasks:
       - task --list
 
   generate:
-    desc: Regenerate the Management API client from the vendored OpenAPI spec (commit the result).
+    desc: Regenerate the Management API client and the LogtoConfig deepcopy, CRD and JSON Schema (commit the result).
     # No `sources:` fingerprint on purpose: the drift guard below must ALWAYS regenerate, never trust a checksum.
     cmds:
       - mkdir -p build
@@ -33,14 +35,18 @@ tasks:
       - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.types.yaml {{.CODEGEN_SPEC}}
       - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.client.yaml {{.CODEGEN_SPEC}}
       - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.server.yaml {{.CODEGEN_SPEC}}
+      # The LogtoConfig schema: deepcopy and CRD from api/v1alpha1, then the JSON Schema of the CLI file from the CRD.
+      - controller-gen object paths=./api/...
+      - controller-gen crd paths=./api/... output:crd:artifacts:config=config/crd
+      - go run ./tools/crd2schema config/crd/logto.aliud.fr_logtoconfigs.yaml api/v1alpha1/logtoconfig.schema.json
 
   generate:check:
     desc: Fail when the committed generated code differs from a fresh generation (drift guard, runs on every push).
     cmds:
       - task: generate
       - cmd: |
-          if ! git diff --exit-code -- {{.MGMT_DIR}} || [ -n "$(git status --porcelain -- {{.MGMT_DIR}})" ]; then
-            echo "generate:check FAILED: {{.MGMT_DIR}} is not what the spec and the pinned generator produce." >&2
+          if ! git diff --exit-code -- {{.GENERATED_DIRS}} || [ -n "$(git status --porcelain -- {{.GENERATED_DIRS}})" ]; then
+            echo "generate:check FAILED: generated code ({{.GENERATED_DIRS}}) is not what its sources and the pinned generators produce." >&2
             echo "Run 'task generate' and commit the result." >&2
             exit 1
           fi

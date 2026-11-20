@@ -11,7 +11,9 @@
 ```mermaid
 flowchart LR
     spec["api/logto spec"] --> norm["tools/specnorm"] --> gen["internal/logto/mgmt (generated)"]
-    gen --> logto[("Logto Management API")]
+    gen --> fake["internal/logto/logtofake"]
+    gen --> cli["cmd/logtoctl"]
+    cli --> logto[("Logto Management API")]
 ```
 
 ## Key decisions
@@ -23,6 +25,7 @@ flowchart LR
 - `oapi-codegen` over `ogen`: `ogen` skipped 46 operations of Logto's spec, including sign-in experience, connectors
   and custom profile fields.
 - Generated code is committed and guarded by `task generate:check`, which always regenerates.
+- Engine first, operator second: the CLI and the controller are thin shells over the same engine.
 
 ## Gotchas
 

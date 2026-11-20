@@ -33,7 +33,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # generate drift (on EVERY push, not only on PR open), go mod tidy, runner guard, lint, unit tests.
+  # generate drift (on EVERY push, not only on PR open), go mod tidy, runner guard, lint, unit tests, build.
   check:
     name: check
     if: github.event.pull_request.draft != true

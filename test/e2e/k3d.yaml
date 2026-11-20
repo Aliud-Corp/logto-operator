@@ -1,0 +1,23 @@
+# The throwaway cluster of `task e2e`. The k3s image is pinned (same minor as kubectl in mise.toml): an unpinned
+# cluster version makes the suite's verdict depend on the day it ran.
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: logto-operator-e2e
+servers: 1
+agents: 0
+image: rancher/k3s:v1.37.2-k3s1
+options:
+  k3d:
+    wait: true
+    timeout: 120s
+  k3s:
+    extraArgs:
+      # Nothing the suite needs; smaller and faster cluster.
+      - arg: --disable=traefik
+        nodeFilters: [server:*]
+      - arg: --disable=metrics-server
+        nodeFilters: [server:*]
+  kubeconfig:
+    updateDefaultKubeconfig: false
+    switchCurrentContext: false

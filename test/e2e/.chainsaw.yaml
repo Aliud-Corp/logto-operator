@@ -1,0 +1,19 @@
+# Chainsaw configuration of the end-to-end suite (`task e2e`). Each test runs in its own namespace, deleted after.
+apiVersion: chainsaw.kyverno.io/v1alpha2
+kind: Configuration
+metadata:
+  name: logto-operator-e2e
+spec:
+  timeouts:
+    apply: 30s
+    assert: 60s
+    cleanup: 60s
+    delete: 30s
+    error: 30s
+  cleanup:
+    skipDelete: false
+  execution:
+    failFast: true
+    parallel: 1
+  discovery:
+    testFile: chainsaw-test

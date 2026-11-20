@@ -8,6 +8,8 @@ vars:
   CODEGEN_SPEC: build/management.codegen.json
   MGMT_DIR: internal/logto/mgmt
   BIN_DIR: bin
+  E2E_CLUSTER: logto-operator-e2e
+  E2E_KUBECONFIG: build/e2e.kubeconfig
   VERSION:
     sh: git describe --tags --always --dirty 2>/dev/null || echo dev
 
@@ -71,8 +73,29 @@ tasks:
             exit 1
           fi
 
+  e2e:cluster:up:
+    desc: Create (or reuse) the throwaway k3d cluster of the e2e suite. Needs a Docker daemon.
+    status:
+      - k3d cluster get {{.E2E_CLUSTER}} >/dev/null 2>&1
+    cmds:
+      - k3d cluster create --config test/e2e/k3d.yaml
+
+  e2e:cluster:down:
+    desc: Delete the e2e cluster.
+    cmds:
+      - k3d cluster delete {{.E2E_CLUSTER}}
+
+  e2e:
+    desc: Run the Chainsaw end-to-end suite against the k3d cluster (created if missing). Needs Docker; CI runs it in e2e.yml.
+    deps: [e2e:cluster:up]
+    cmds:
+      - mkdir -p build
+      # Its own kubeconfig file: the suite never touches the developer's current context.
+      - k3d kubeconfig get {{.E2E_CLUSTER}} > {{.E2E_KUBECONFIG}}
+      - KUBECONFIG={{.E2E_KUBECONFIG}} chainsaw test --config test/e2e/.chainsaw.yaml test/e2e
+
   check:
-    desc: The gate of ci.yml.
+    desc: The gate of ci.yml. Does not cover `task e2e` (e2e.yml, needs Docker).
     cmds:
       - task: generate:check
       - task: tidy:check

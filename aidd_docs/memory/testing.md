@@ -3,11 +3,13 @@
 ## Strategy
 
 - Unit: engine and tools against the in-process fake (`internal/logto/logtofake`), no network.
+- End-to-end: Chainsaw on a throwaway k3d cluster (`test/e2e`); today only a smoke test of the harness.
 
 ## Tools
 
 - `go test` with the race detector.
 - The fake is built on the generated chi server: routing and parameter parsing come from the spec.
+- Chainsaw for declarative Kubernetes assertions, k3d for the cluster.
 
 ## Conventions
 
@@ -15,10 +17,9 @@
 - The fake overrides only what a test needs; every other route answers 501, so a test cannot pass against an
   unmodelled route.
 - Never a deployed Logto in a test: the fake, a local Logto, or a Logto started inside the CI job.
-- A test against the vendored spec guards the generator workarounds: an upgrade that moves an overlay target fails
-  there (`tools/specnorm`).
 - Test names state the behaviour (`TestARouteTheFakeDoesNotModelAnswers501`).
 
 ## Run
 
-- `task test`.
+- `task test` for unit tests.
+- `task e2e` for the e2e suite (creates the cluster if missing, its own kubeconfig in `build/`); `task e2e:cluster:down` removes it.

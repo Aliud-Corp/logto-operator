@@ -8,7 +8,7 @@ name: logto-operator-it
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.11-alpine
     environment:
       POSTGRES_USER: logto
       POSTGRES_PASSWORD: logto

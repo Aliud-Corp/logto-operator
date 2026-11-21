@@ -6,6 +6,7 @@ package signinexperience
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -53,41 +54,62 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	if err != nil {
 		return nil, err
 	}
+	var body json.RawMessage
+	if err := env.Client.Do(ctx, req, &body); err != nil {
+		return nil, err
+	}
 	var have wireSIE
-	if err := env.Client.Do(ctx, req, &have); err != nil {
+	var raw map[string]any
+	if err := json.Unmarshal(body, &have); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, err
 	}
 	want := desired(d, have)
-	patch := patchSIE{}
+	// The PATCH carries each changed key over what Logto holds in it (kindkit.Overlay): a sub-object is replaced
+	// whole, and its fields the kind does not manage must survive.
+	patch := map[string]any{}
 	var changes []plan.Change
+	// A key is in sync when writing the declared value over what Logto holds would change nothing: a field Logto
+	// holds that the document does not declare (a default dark logo) is neither a drift nor overwritten.
 	cmp := func(field string, w, h any, set func()) {
-		if w == nil || kindkit.Subset(w, h) && kindkit.Subset(h, w) {
+		if w == nil {
+			return
+		}
+		if kindkit.InSync(raw[field], w) {
 			return
 		}
 		changes = append(changes, plan.Change{Field: field, From: kindkit.JSON(h), To: kindkit.JSON(w)})
 		set()
 	}
 	if want.Color != nil {
-		cmp("color", want.Color, have.Color, func() { patch.Color = want.Color })
+		cmp("color", want.Color, have.Color, func() { patch["color"] = kindkit.Overlay(raw["color"], want.Color) })
 	}
 	if want.LanguageInfo != nil {
-		cmp("languageInfo", want.LanguageInfo, have.LanguageInfo, func() { patch.LanguageInfo = want.LanguageInfo })
+		cmp("languageInfo", want.LanguageInfo, have.LanguageInfo, func() { patch["languageInfo"] = kindkit.Overlay(raw["languageInfo"], want.LanguageInfo) })
 	}
 	if want.Branding != nil {
-		cmp("branding", want.Branding, have.Branding, func() { patch.Branding = want.Branding })
+		cmp("branding", want.Branding, have.Branding, func() { patch["branding"] = kindkit.Overlay(raw["branding"], want.Branding) })
 	}
 	if want.CustomCSS != nil {
-		cmp("customCss", kindkit.Deref(want.CustomCSS), kindkit.Deref(have.CustomCSS), func() { patch.CustomCSS = want.CustomCSS })
+		cmp("customCss", kindkit.Deref(want.CustomCSS), kindkit.Deref(have.CustomCSS), func() { patch["customCss"] = kindkit.Overlay(raw["customCss"], want.CustomCSS) })
 	}
 	if want.SignUp != nil {
-		cmp("signUp", want.SignUp, have.SignUp, func() { patch.SignUp = want.SignUp })
+		cmp("signUp", want.SignUp, have.SignUp, func() { patch["signUp"] = kindkit.Overlay(raw["signUp"], want.SignUp) })
 	}
 	if want.SignIn != nil {
-		cmp("signIn", want.SignIn, have.SignIn, func() { patch.SignIn = want.SignIn })
+		// Each sign-in method is written over the one Logto holds for the same identifier (fields per method a newer
+		// Logto adds survive); the list of methods is the declared one.
+		heldSignIn, _ := raw["signIn"].(map[string]any)
+		signIn := map[string]any{"methods": kindkit.OverlayBy("identifier", heldSignIn["methods"], want.SignIn.Methods)}
+		cmp("signIn", signIn, have.SignIn, func() { patch["signIn"] = kindkit.Overlay(raw["signIn"], signIn) })
 	}
 	if want.UnknownSessionRedirectURL != nil {
 		cmp("unknownSessionRedirectUrl", kindkit.Deref(want.UnknownSessionRedirectURL), kindkit.Deref(have.UnknownSessionRedirectURL),
-			func() { patch.UnknownSessionRedirectURL = want.UnknownSessionRedirectURL })
+			func() {
+				patch["unknownSessionRedirectUrl"] = kindkit.Overlay(raw["unknownSessionRedirectUrl"], want.UnknownSessionRedirectURL)
+			})
 	}
 	return []plan.Op{{Kind: Name, Key: "default", Action: kindkit.Action(changes), Changes: changes, Payload: patch}}, nil
 }

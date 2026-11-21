@@ -55,7 +55,7 @@ func (Kind) Needs(env *engine.Env) ([]capability.Need, error) {
 			needs = append(needs, need)
 		}
 	}
-	return needs, nil
+	return append(needs, kindkit.Deletes(env.Spec.Prune.Connectors, "spec.prune.connectors", "DeleteConnector")...), nil
 }
 
 type payload struct {
@@ -104,13 +104,14 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 		}
 		matched[have.ID] = true
 		env.Refs.Set(Name, key, RefID, have.ID)
-		changes, err := diff(want, have.Config)
+		next, err := body(want, have.Config)
 		if err != nil {
 			return nil, err
 		}
+		changes := diff(next, have.Config)
 		ops = append(ops, plan.Op{
 			Kind: Name, Key: key, Name: d.ConnectorID, Action: kindkit.Action(changes), Changes: changes,
-			Payload: payload{id: have.ID, body: updateConnector{Config: want}},
+			Payload: payload{id: have.ID, body: updateConnector{Config: next}},
 		})
 	}
 	if env.Spec.Prune.Connectors {
@@ -167,8 +168,9 @@ func desiredConfig(env *engine.Env, path string, d v1alpha1.Connector) (smtpConf
 	return c, nil
 }
 
-// diff compares the desired config with Logto's, field by field; the password is a sensitive change.
-func diff(want smtpConfig, have map[string]any) ([]plan.Change, error) {
+// body is the whole config to send: the declared one over what Logto holds (a key the kind does not manage
+// survives), an undeclared replyTo removed.
+func body(want smtpConfig, have map[string]any) (map[string]any, error) {
 	raw, err := json.Marshal(want)
 	if err != nil {
 		return nil, err
@@ -177,27 +179,43 @@ func diff(want smtpConfig, have map[string]any) ([]plan.Change, error) {
 	if err := json.Unmarshal(raw, &w); err != nil {
 		return nil, err
 	}
+	out, _ := kindkit.Overlay(have, w).(map[string]any)
+	if want.ReplyTo == "" {
+		delete(out, "replyTo")
+	}
+	return out, nil
+}
+
+// diff compares the config to send with Logto's, key by key; the password is a sensitive change.
+func diff(next, have map[string]any) []plan.Change {
 	if t, ok := have["templates"].([]any); ok {
 		sort.Slice(t, func(i, j int) bool { return usage(t[i]) < usage(t[j]) })
 	}
+	keys := map[string]bool{}
+	for k := range next {
+		keys[k] = true
+	}
+	for k := range have {
+		keys[k] = true
+	}
 	var changes []plan.Change
-	for _, k := range kindkit.Keys(w) {
+	for _, k := range kindkit.Keys(keys) {
 		if k == "auth" {
-			wa, _ := w["auth"].(map[string]any)
+			wa, _ := next["auth"].(map[string]any)
 			ha, _ := have["auth"].(map[string]any)
 			if fmt.Sprint(wa["user"]) != fmt.Sprint(ha["user"]) {
 				changes = append(changes, plan.Change{Field: "config.auth.user", From: fmt.Sprint(ha["user"]), To: fmt.Sprint(wa["user"])})
 			}
 			if fmt.Sprint(wa["pass"]) != fmt.Sprint(ha["pass"]) {
-				changes = append(changes, plan.Change{Field: "config.auth.pass", From: "x", To: "x", Sensitive: true})
+				changes = append(changes, plan.Change{Field: "config.auth.pass", From: plan.Masked, To: plan.Masked, Sensitive: true})
 			}
 			continue
 		}
-		if !kindkit.Subset(w[k], have[k]) {
-			changes = append(changes, plan.Change{Field: "config." + k, From: kindkit.JSON(have[k]), To: kindkit.JSON(w[k])})
+		if !kindkit.Equal(next[k], have[k]) {
+			changes = append(changes, plan.Change{Field: "config." + k, From: kindkit.JSON(have[k]), To: kindkit.JSON(next[k])})
 		}
 	}
-	return changes, nil
+	return changes
 }
 
 func usage(t any) string {

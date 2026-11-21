@@ -86,3 +86,27 @@ func TestAnEmailIdentifierWithoutAConnectorIsRefusedBeforeAnyWrite(t *testing.T)
 		t.Fatalf("%d writes before the refusal", fake.Writes())
 	}
 }
+
+// Logto's PATCH replaces a sub-object whole: what Logto holds in it beyond what the kind manages (a field set in the
+// console, or one a newer Logto adds) must survive an apply that changes that sub-object.
+func TestAFieldTheKindDoesNotManageSurvivesAChangeOfItsSubObject(t *testing.T) {
+	t.Setenv("TEST_SMTP_PASS", "pass-value")
+	fake, c := kindtest.Fake(t)
+	req, _ := mgmt.NewUpdateSignInExpRequestWithBody(c.Endpoint(), &mgmt.UpdateSignInExpParams{}, "application/json", strings.NewReader(
+		`{"signUp":{"identifiers":["username"],"password":true,"verify":false,"secondaryIdentifiers":[{"identifier":"phone","verify":true}]},`+
+			`"branding":{"logoUrl":"https://old.example.test/logo.svg","darkFavicon":"https://cdn.example.test/dark.ico"}}`))
+	if err := c.Do(context.Background(), req, nil); err != nil {
+		t.Fatal(err)
+	}
+	doc := smtp + sie + "    branding: {logoUrl: {value: \"https://new.example.test/logo.svg\"}}\n"
+	kindtest.Apply(t, c, kindtest.Spec(t, doc), kinds...)
+	got := fake.SignInExperience()
+	su := got["signUp"].(map[string]any)
+	if su["verify"] != true || kindtest.JSON(su["secondaryIdentifiers"]) != `[{"identifier":"phone","verify":true}]` {
+		t.Fatalf("signUp = %v", su)
+	}
+	b := got["branding"].(map[string]any)
+	if b["logoUrl"] != "https://new.example.test/logo.svg" || b["darkFavicon"] != "https://cdn.example.test/dark.ico" {
+		t.Fatalf("branding = %v", b)
+	}
+}

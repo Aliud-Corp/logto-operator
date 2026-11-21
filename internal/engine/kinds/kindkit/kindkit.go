@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"sort"
 
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
@@ -48,6 +49,19 @@ func Need(operationID, where string, body any) (capability.Need, error) {
 	return capability.Need{OperationID: operationID, Fields: fields, Where: where}, nil
 }
 
+// Deletes is the need of a delete operation (no body: only its presence is checked), when the kind's prune switch
+// is on.
+func Deletes(on bool, where string, operationIDs ...string) []capability.Need {
+	if !on {
+		return nil
+	}
+	out := make([]capability.Need, 0, len(operationIDs))
+	for _, op := range operationIDs {
+		out = append(out, capability.Need{OperationID: op, Where: where})
+	}
+	return out
+}
+
 // Subset reports whether every value of want is in have, recursively: Logto adds fields and defaults to what it
 // stores, which must not look like drift. Arrays are compared element by element (same length).
 func Subset(want, have any) bool {
@@ -80,7 +94,8 @@ func subset(w, h any) bool {
 		}
 		return true
 	default:
-		return fmt.Sprint(w) == fmt.Sprint(h)
+		// Decoded JSON scalars: a number, a string, a boolean or null; a type change is a difference.
+		return reflect.DeepEqual(w, h)
 	}
 }
 
@@ -118,6 +133,62 @@ func Action(changes []plan.Change) plan.Action {
 	}
 	return plan.Noop
 }
+
+// Overlay is what Logto holds (raw, as decoded from its answer) with the declared value written over it: objects are
+// merged key by key, recursively; anything else (a list, a scalar) is the declared value. Kinds send it where Logto
+// replaces a sub-object whole, so that a field they do not manage (set in the console, or added by a newer Logto)
+// survives.
+func Overlay(have, want any) any {
+	w := normalize(want)
+	h, ok := normalize(have).(map[string]any)
+	wm, isObject := w.(map[string]any)
+	if !ok || !isObject {
+		return w
+	}
+	out := make(map[string]any, len(h)+len(wm))
+	for k, v := range h {
+		out[k] = v
+	}
+	for k, v := range wm {
+		out[k] = Overlay(h[k], v)
+	}
+	return out
+}
+
+// OverlayBy is Overlay for a list of objects that Logto replaces whole: each declared item is written over the item
+// Logto holds with the same key field (a sign-in method by its identifier), so that fields a kind does not manage
+// survive on each item. The list itself (order, items) is the declared one.
+func OverlayBy(key string, have, want any) any {
+	held := map[string]any{}
+	if list, ok := normalize(have).([]any); ok {
+		for _, item := range list {
+			if m, ok := item.(map[string]any); ok {
+				held[fmt.Sprint(m[key])] = m
+			}
+		}
+	}
+	w, ok := normalize(want).([]any)
+	if !ok {
+		return normalize(want)
+	}
+	out := make([]any, len(w))
+	for i, item := range w {
+		m, isObject := item.(map[string]any)
+		if !isObject {
+			out[i] = item
+			continue
+		}
+		out[i] = Overlay(held[fmt.Sprint(m[key])], m)
+	}
+	return out
+}
+
+// Equal reports whether two values are the same once encoded as JSON (key order aside, types included).
+func Equal(a, b any) bool { return reflect.DeepEqual(normalize(a), normalize(b)) }
+
+// InSync reports whether writing want over what Logto holds (Overlay) would change nothing: a declared value is in
+// sync even when Logto holds more next to it.
+func InSync(have, want any) bool { return Equal(Overlay(have, want), have) }
 
 // Deref is the string a pointer holds, empty for nil.
 func Deref(s *string) string {

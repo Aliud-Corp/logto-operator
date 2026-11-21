@@ -50,9 +50,6 @@ type wireSIE struct {
 	UnknownSessionRedirectURL *string       `json:"unknownSessionRedirectUrl,omitempty"`
 }
 
-// patchSIE is the body of PATCH /api/sign-in-exp: the changed keys only.
-type patchSIE = wireSIE
-
 // desired builds the declared keys, the parts the document leaves out taken from what Logto holds.
 func desired(d *v1alpha1.SignInExperience, have wireSIE) wireSIE {
 	var w wireSIE

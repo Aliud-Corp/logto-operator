@@ -15,7 +15,7 @@ func (s *Server) initSignInExp() {
 		"tenantId": "default", "id": "default",
 		"color":                     object{"primaryColor": "#6139F6", "isDarkModeEnabled": false, "darkPrimaryColor": "#8C6CFF"},
 		"languageInfo":              object{"autoDetect": true, "fallbackLanguage": "en"},
-		"branding":                  object{},
+		"branding":                  object{"logoUrl": "https://logto.io/logo.svg", "darkLogoUrl": "https://logto.io/logo-dark.svg"},
 		"customCss":                 nil,
 		"signUp":                    object{"identifiers": []any{"username"}, "password": true, "verify": false},
 		"signIn":                    object{"methods": []any{object{"identifier": "username", "password": true, "verificationCode": false, "isPasswordPrimary": true}}},

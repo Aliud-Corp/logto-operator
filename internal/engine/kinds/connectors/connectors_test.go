@@ -110,3 +110,44 @@ func TestPruneRemovesOnlyUndeclaredSMTPConnectorsNotKept(t *testing.T) {
 		}
 	}
 }
+
+// A connector's config is sent whole (Logto refuses a partial one): a config key the kind does not manage survives.
+func TestAConfigKeyTheKindDoesNotManageSurvivesAnUpdate(t *testing.T) {
+	t.Setenv("TEST_SMTP_PASS", "first-password")
+	fake, c := kindtest.Fake(t)
+	kindtest.Apply(t, c, kindtest.Spec(t, declared), connectors.Kind{})
+	cfg := fake.Connectors()["example-smtp"]["config"].(map[string]any)
+	cfg["customHeaders"] = map[string]any{"X-Example": "1"}
+	body, _ := json.Marshal(map[string]any{"config": cfg})
+	req, _ := mgmt.NewUpdateConnectorRequestWithBody(c.Endpoint(), "example-smtp", "application/json", bytes.NewReader(body))
+	if err := c.Do(context.Background(), req, nil); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("TEST_SMTP_PASS", "second-password")
+	kindtest.Apply(t, c, kindtest.Spec(t, declared), connectors.Kind{})
+	got := fake.Connectors()["example-smtp"]["config"].(map[string]any)
+	if got["auth"].(map[string]any)["pass"] != "second-password" || kindtest.JSON(got["customHeaders"]) != `{"X-Example":"1"}` {
+		t.Fatalf("config = %v", got)
+	}
+}
+
+// A field turned off or removed in the document reaches Logto: the config is sent over Logto's own (Overlay), so a
+// false or an absent value must be sent, not left out.
+func TestAFieldTurnedOffOrRemovedReachesLogto(t *testing.T) {
+	t.Setenv("TEST_SMTP_PASS", "first-password")
+	fake, c := kindtest.Fake(t)
+	on := strings.Replace(declared, "        port: 587\n", "        port: 587\n        ignoreTLS: true\n        replyTo: support@example.test\n", 1)
+	kindtest.Apply(t, c, kindtest.Spec(t, on), connectors.Kind{})
+	if cfg := fake.Connectors()["example-smtp"]["config"].(map[string]any); cfg["ignoreTLS"] != true || cfg["replyTo"] != "support@example.test" {
+		t.Fatalf("config = %v", cfg)
+	}
+	p := kindtest.Apply(t, c, kindtest.Spec(t, declared), connectors.Kind{})
+	if p.Count(plan.Update) != 1 {
+		t.Fatalf("no drift planned for ignoreTLS and replyTo: %d updates", p.Count(plan.Update))
+	}
+	cfg := fake.Connectors()["example-smtp"]["config"].(map[string]any)
+	if _, has := cfg["replyTo"]; cfg["ignoreTLS"] != false || has {
+		t.Fatalf("config = %v", cfg)
+	}
+	kindtest.Unchanged(t, kindtest.Apply(t, c, kindtest.Spec(t, declared), connectors.Kind{}))
+}

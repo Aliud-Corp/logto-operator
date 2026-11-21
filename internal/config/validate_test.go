@@ -20,6 +20,7 @@ const smtpOK = `  connectors:
             - {usageType: Register, contentType: text/plain, subject: s, content: {value: c}}
             - {usageType: SignIn, contentType: text/plain, subject: s, content: {value: c}}
             - {usageType: ForgotPassword, contentType: text/plain, subject: s, content: {value: c}}
+            - {usageType: Generic, contentType: text/plain, subject: s, content: {value: c}}
 `
 
 // Each rule: a document breaking it, and the path and message the violation must carry.

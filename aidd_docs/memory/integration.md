@@ -19,8 +19,11 @@
   defaults to `config`, so a field's config is compared as "what the document declares is there".
 - Prune in integration tests touches only the test's own objects (`kindtest.KeepAllBut`); integration packages run
   one at a time (`go test -p 1`) against the shared throwaway Logto.
-- SMTP connector config: `port` must be a number, `auth` must be non-empty, and `Register`, `SignIn` and
-  `ForgotPassword` templates are mandatory.
+- SMTP connector config: `port` must be a number, `auth` must be non-empty, and `Register`, `SignIn`,
+  `ForgotPassword` and `Generic` templates are mandatory (measured: without `Generic`, 400 `connector.invalid_config`).
+- SMTP connector: `GET /api/connectors/{id}` returns `auth.pass` in clear, and a PATCH with a partial config is
+  refused: always send the whole config (asserted by `test/integration/connector_probe_test.go`).
+- Logto's 400 answers carry `data.issues` (path, message): `client.APIError` keeps them.
 - Support window: the latest Logto minor and the two before it (`api/logto/versions.txt`); a new minor is judged
   with `task spec:diff`, which fails only on a breaking change of an operation in `tools/specdiff/used.txt`.
 - `/api/swagger.json` (also public at `/api/.well-known/management.openapi.json`) echoes the request host in

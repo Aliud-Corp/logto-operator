@@ -9,8 +9,9 @@ import (
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
 )
 
-// RequiredSMTPTemplates are the usage types the SMTP connector refuses to work without.
-var RequiredSMTPTemplates = []string{"Register", "SignIn", "ForgotPassword"}
+// RequiredSMTPTemplates are the usage types the SMTP connector refuses to be created without (measured on Logto
+// 1.44.0 and 1.46.0: "Template with UsageType (Generic) should be provided!").
+var RequiredSMTPTemplates = []string{"Register", "SignIn", "ForgotPassword", "Generic"}
 
 // Validate applies the schema rules of a loaded document and returns every violation at once, each with its path.
 func Validate(cfg *v1alpha1.LogtoConfig) error {

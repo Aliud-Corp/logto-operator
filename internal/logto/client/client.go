@@ -253,10 +253,24 @@ func newAPIError(req *http.Request, status int, body []byte) *APIError {
 	var b struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
+		Data    struct {
+			Issues []struct {
+				Message string `json:"message"`
+				Path    []any  `json:"path"`
+			} `json:"issues"`
+		} `json:"data"`
 	}
 	_ = json.Unmarshal(body, &b)
-	if len(b.Message) > 300 {
-		b.Message = b.Message[:300] + "..."
+	// Logto's validation issues say what is wrong (a field, a missing template): keep them, path first.
+	for _, is := range b.Data.Issues {
+		var path []string
+		for _, p := range is.Path {
+			path = append(path, fmt.Sprint(p))
+		}
+		b.Message += " [" + strings.Join(path, ".") + ": " + is.Message + "]"
+	}
+	if len(b.Message) > 600 {
+		b.Message = b.Message[:600] + "..."
 	}
 	return &APIError{Method: req.Method, Path: req.URL.Path, Status: status, Code: b.Code, Message: b.Message}
 }

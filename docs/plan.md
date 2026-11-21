@@ -323,7 +323,7 @@ default-tenant users and are in scope from milestone 2.
 | 4 | No first credential without a credential | by construction | bootstrap is a manual step (section 7) |
 | 5 | Admin tenant (console users) unreachable with a default-tenant token | observed | section 8 |
 | 6 | JWT customizer: whether a self-hosted 1.44.0 actually runs the stored script at token issuance is **unproven** (observations disagree); `/api/configs/jwt-customizer/test` only proves the script runs | observed, conflicting | supported as a kind, gated by an integration test minting a real token; the `/test` endpoint proves the script runs, not that issuance uses it |
-| 7 | Connector `config` PATCH: merge or replace unknown; `GET /api/connectors/{id}` may or may not return `auth.pass` | unknown | assume replace (always send the full config incl. secrets); drift on write-only secrets: open question 5 |
+| 7 | Connector `config`: a PATCH with a partial config is refused (the config is validated whole); `GET /api/connectors/{id}` returns `auth.pass` in clear | measured (1.44.0, 1.46.0) | the whole config is always sent; a changed password is drift seen by comparison (Q5 settled) |
 | 8 | No "managed-by" marker on resources, scopes, roles; no state file | spec | prune is opt-in per kind with a keep list |
 | 9 | Spec says `info.version: Cloud`: presence of a route is not proof it works on OSS (custom UI assets zip, domains, SAML apps, sentinel...) | spec | each kind enters scope only with an integration test |
 | 10 | Two e-mail template mechanisms: connector `config.templates` and `/api/email-templates` (per language) | spec | open question 6 |
@@ -393,11 +393,9 @@ small; switching later is a one-line `runs-on` change.
 4. **Environment-specific values.** `${var}` interpolation in the document (explicit, limited to
    declared variables) vs one fully-rendered document per environment (kustomize overlays on the
    CR). My pick: interpolation, limited to declared `variables`, rendered and shown by `render`.
-5. **Write-only secrets drift** (SMTP password, if Logto does not return it): (a) store a salted hash in the object's
-   `customData`/`metadata` where Logto offers one and compare that; (b) always re-send (breaks "unchanged = zero
-   writes" for that one field, reported as such); (c) ignore. Decide after measuring what Logto returns (M1).
-6. **E-mail templates.** Connector `config.templates` or `/api/email-templates` (per language), or both as
-   two kinds?
+5. ~~Write-only secrets drift~~ — **settled 2026-11-21 by measurement**: Logto returns the SMTP password in clear,
+   so it is compared like any field (shown as `(sensitive)` in a plan); the whole config is always sent.
+6. ~~E-mail templates~~ — **decided**: connector `config.templates` in M1, `/api/email-templates` in M2.
 7. **CR deletion.** Leave Logto untouched (my pick, no finalizer) or prune everything the CR declared?
 8. **JWT customizer** (gap 6): keep it in M2 behind an integration test that mints a real token and decodes it?
 9. **Admin console users** (section 8): spike in M5, or drop the requirement given the `m-admin` blast radius?

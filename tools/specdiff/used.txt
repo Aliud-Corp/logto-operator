@@ -22,3 +22,7 @@ ListCustomProfileFields
 CreateCustomProfileField
 UpdateCustomProfileFieldByName
 DeleteCustomProfileFieldByName
+ListConnectors
+CreateConnector
+UpdateConnector
+DeleteConnector

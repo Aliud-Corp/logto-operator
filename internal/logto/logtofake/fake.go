@@ -47,6 +47,7 @@ type Server struct {
 	orgRoleScopes         map[string][]string // role id -> organization scope ids
 	orgRoleResourceScopes map[string][]string // role id -> resource scope ids
 	profileFields         map[string]object   // by name
+	connectors            map[string]object   // by id
 }
 
 // New returns a fake that issues Management API tokens to the given client credentials only.

@@ -119,6 +119,14 @@ func Action(changes []plan.Change) plan.Action {
 	return plan.Noop
 }
 
+// Deref is the string a pointer holds, empty for nil.
+func Deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
 // Keys returns the sorted keys of a map.
 func Keys[V any](m map[string]V) []string {
 	keys := make([]string, 0, len(m))
@@ -129,11 +137,14 @@ func Keys[V any](m map[string]V) []string {
 	return keys
 }
 
-// Kept reports whether a Logto name is protected from prune by spec.prune.keep.
-func Kept(env *engine.Env, name string) bool {
+// Kept reports whether an object is protected from prune by spec.prune.keep, given the keys it can be listed by:
+// its name, its indicator for a resource, its id for a connector.
+func Kept(env *engine.Env, keys ...string) bool {
 	for _, k := range env.Spec.Prune.Keep {
-		if k == name {
-			return true
+		for _, key := range keys {
+			if key != "" && k == key {
+				return true
+			}
 		}
 	}
 	return false

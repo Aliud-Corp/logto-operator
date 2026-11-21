@@ -62,6 +62,10 @@ func TestAnUndeclaredFieldIsDeletedOnlyWithPrune(t *testing.T) {
 	if _, ok := fake.ProfileFields()["company"]; !ok {
 		t.Fatal("deleted without prune")
 	}
+	kindtest.Apply(t, c, kindtest.Spec(t, "  prune: {customProfileFields: true, keep: [company]}\n"+onlyFullname), profilefields.Kind{})
+	if _, ok := fake.ProfileFields()["company"]; !ok {
+		t.Fatal("a field listed in spec.prune.keep was pruned")
+	}
 	kindtest.Apply(t, c, kindtest.Spec(t, "  prune: {customProfileFields: true}\n"+onlyFullname), profilefields.Kind{})
 	if _, ok := fake.ProfileFields()["company"]; ok {
 		t.Fatal("survived the prune")

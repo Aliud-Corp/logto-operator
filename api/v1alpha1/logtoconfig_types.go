@@ -131,7 +131,8 @@ type Prune struct {
 	OrganizationScopes bool `json:"organizationScopes,omitempty"`
 	// +optional
 	OrganizationRoles bool `json:"organizationRoles,omitempty"`
-	// Keep lists Logto names never pruned, whatever the switches say.
+	// Keep lists objects never pruned, whatever the switches say: by name (organization scope and role, custom
+	// profile field), by name or indicator (resource), by id (connector, which has no name of its own).
 	// +optional
 	Keep []string `json:"keep,omitempty"`
 }

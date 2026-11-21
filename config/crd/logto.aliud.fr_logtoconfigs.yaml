@@ -433,8 +433,9 @@ spec:
                   customProfileFields:
                     type: boolean
                   keep:
-                    description: Keep lists Logto names never pruned, whatever the
-                      switches say.
+                    description: |-
+                      Keep lists objects never pruned, whatever the switches say: by name (organization scope and role, custom
+                      profile field), by name or indicator (resource), by id (connector, which has no name of its own).
                     items:
                       type: string
                     type: array

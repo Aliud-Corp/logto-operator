@@ -75,7 +75,8 @@ An apply that publishes secrets without writing them anywhere exits 3.
 ## What the tool never does
 
 - It never deletes an object that the document does not declare, unless that kind's `spec.prune` switch is set.
-  Even then it never prunes users, Logto's own Management API resource, or names listed in `spec.prune.keep`.
+  Even then it never prunes users, Logto's own Management API resource, or what `spec.prune.keep` lists
+  (by name; a resource also by indicator, a connector by id).
 - It never recreates an application: applications are matched by name and their type cannot change.
 - It never rotates a secret, and never sends a user a password.
 - It never revokes a role an application or a user holds; it only grants the declared ones.

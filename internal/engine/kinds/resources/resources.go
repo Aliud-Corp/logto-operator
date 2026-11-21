@@ -120,7 +120,7 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	}
 	if env.Spec.Prune.Resources {
 		for _, r := range observed {
-			if declared[r.Indicator] || protected(r) || kindkit.Kept(env, r.Name) {
+			if declared[r.Indicator] || protected(r) || kindkit.Kept(env, r.Name, r.Indicator) {
 				continue
 			}
 			ops = append(ops, plan.Op{
@@ -173,8 +173,8 @@ func updateOp(ctx context.Context, env *engine.Env, key string, d v1alpha1.Resou
 		case !exists:
 			changes = append(changes, plan.Change{Field: "scopes." + name, To: "added"})
 			p.scopeCreates = append(p.scopeCreates, newScope(name, want))
-		case want.Description != "" && deref(s.Description) != want.Description:
-			changes = append(changes, plan.Change{Field: "scopes." + name + ".description", From: deref(s.Description), To: want.Description})
+		case want.Description != "" && kindkit.Deref(s.Description) != want.Description:
+			changes = append(changes, plan.Change{Field: "scopes." + name + ".description", From: kindkit.Deref(s.Description), To: want.Description})
 			desc := want.Description
 			p.scopeUpdates[s.ID] = updateScope{Description: &desc}
 		}
@@ -247,11 +247,4 @@ func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 		}
 	}
 	return nil
-}
-
-func deref(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

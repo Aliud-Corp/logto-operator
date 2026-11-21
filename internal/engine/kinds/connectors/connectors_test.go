@@ -2,12 +2,15 @@ package connectors_test
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/connectors"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/kindtest"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
 )
 
 const declared = `  connectors:
@@ -80,5 +83,30 @@ func TestAMissingPasswordStopsThePlan(t *testing.T) {
 	_, err := kindtest.Plan(c, kindtest.Spec(t, declared), connectors.Kind{})
 	if err == nil || !strings.Contains(err.Error(), "spec.connectors.smtp.smtp.auth.pass.valueFrom: environment variable TEST_SMTP_PASS is unset or empty") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestPruneRemovesOnlyUndeclaredSMTPConnectorsNotKept(t *testing.T) {
+	t.Setenv("TEST_SMTP_PASS", "first-password")
+	fake, c := kindtest.Fake(t)
+	kindtest.Apply(t, c, kindtest.Spec(t, declared), connectors.Kind{})
+	smtp := fake.Connectors()["example-smtp"]["config"]
+	for id, factory := range map[string]string{"stray-smtp": connectors.SMTPFactory, "kept-smtp": connectors.SMTPFactory, "social": "github-universal"} {
+		body, _ := json.Marshal(map[string]any{"id": id, "connectorId": factory, "config": smtp})
+		req, _ := mgmt.NewCreateConnectorRequestWithBody(c.Endpoint(), "application/json", bytes.NewReader(body))
+		if err := c.Do(context.Background(), req, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	kindtest.Apply(t, c, kindtest.Spec(t, declared), connectors.Kind{})
+	if n := len(fake.Connectors()); n != 4 {
+		t.Fatalf("%d connectors without prune, want 4", n)
+	}
+	kindtest.Apply(t, c, kindtest.Spec(t, "  prune: {connectors: true, keep: [kept-smtp]}\n"+declared), connectors.Kind{})
+	have := fake.Connectors()
+	for id, want := range map[string]bool{"example-smtp": true, "kept-smtp": true, "social": true, "stray-smtp": false} {
+		if _, ok := have[id]; ok != want {
+			t.Errorf("connector %s present = %v, want %v", id, ok, want)
+		}
 	}
 }

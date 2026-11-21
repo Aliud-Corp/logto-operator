@@ -10,6 +10,7 @@ import (
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/organizations"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/resources"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
 )
 
@@ -97,8 +98,40 @@ func TestAnUndeclaredRoleIsDeletedOnlyWithPrune(t *testing.T) {
 	if _, ok := fake.OrganizationRoles()["stray"]; !ok {
 		t.Fatal("an undeclared role was deleted without prune")
 	}
-	kindtest.Apply(t, c, kindtest.Spec(t, "  prune: {organizationRoles: true}\n"+template), kinds...)
+	createRole(t, c, "kept")
+	kindtest.Apply(t, c, kindtest.Spec(t, "  prune: {organizationRoles: true, keep: [kept]}\n"+template), kinds...)
 	if _, ok := fake.OrganizationRoles()["stray"]; ok {
 		t.Fatal("the undeclared role survived the prune")
+	}
+	if _, ok := fake.OrganizationRoles()["kept"]; !ok {
+		t.Fatal("a role listed in spec.prune.keep was pruned")
+	}
+}
+
+func TestAnUndeclaredScopeIsDeletedOnlyWithPruneAndKeepProtectsIt(t *testing.T) {
+	fake, c := kindtest.Fake(t)
+	kindtest.Apply(t, c, kindtest.Spec(t, template), kinds...)
+	for _, name := range []string{"stray:read", "kept:read"} {
+		req, _ := mgmt.NewCreateOrganizationScopeRequestWithBody(c.Endpoint(), "application/json", strings.NewReader(`{"name":"`+name+`"}`))
+		if err := c.Do(context.Background(), req, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	kindtest.Apply(t, c, kindtest.Spec(t, template), kinds...)
+	if got := strings.Join(fake.OrganizationScopeNames(), ","); !strings.Contains(got, "stray:read") {
+		t.Fatalf("an undeclared scope was deleted without prune: %s", got)
+	}
+	kindtest.Apply(t, c, kindtest.Spec(t, "  prune: {organizationScopes: true, keep: [\"kept:read\"]}\n"+template), kinds...)
+	if got := strings.Join(fake.OrganizationScopeNames(), ","); strings.Contains(got, "stray:read") || !strings.Contains(got, "kept:read") || !strings.Contains(got, "members:write") {
+		t.Fatalf("scopes after prune = %s", got)
+	}
+}
+
+func createRole(t *testing.T, c *client.Client, name string) {
+	t.Helper()
+	req, _ := mgmt.NewCreateOrganizationRoleRequestWithBody(c.Endpoint(), "application/json",
+		strings.NewReader(`{"name":"`+name+`","organizationScopeIds":[],"resourceScopeIds":[]}`))
+	if err := c.Do(context.Background(), req, nil); err != nil {
+		t.Fatal(err)
 	}
 }

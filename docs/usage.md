@@ -11,6 +11,10 @@ The latest Logto OSS minor and the two before it: **1.44, 1.45 and 1.46** today
 field the document declares that the target Logto does not accept is refused at plan time, before any write: the
 target's own API spec decides.
 
+`logtoctl` recognises the version from the API spec the target serves. A Logto whose spec is none of the supported
+ones (an older or newer minor, a patched build) is refused, because its behaviour was never tested; pass
+`--allow-untested-logto` to run anyway, at your own risk.
+
 ## Install and build
 
 ```bash
@@ -36,7 +40,9 @@ spec:
 ```
 
 - **Strict.** An unknown key fails with its path, and `${name}` only reads `spec.variables`. Every rule is checked
-  before any call: unique names, references that resolve, SMTP templates, distinct audiences, and so on.
+  before any call: the document's JSON Schema (`api/v1alpha1/logtoconfig.schema.json`, the same rules as the CRD:
+  required fields, URLs, colours, enums), then unique names, references that resolve, SMTP templates, distinct
+  audiences, and so on.
 - **Secrets are never written in the document.** They are read from `valueFrom.env` or `valueFrom.file` at run time.
 - **Files.** `fromFile` and `fromDir` are resolved relative to the document. Use `as: dataUri` for images.
 
@@ -72,6 +78,11 @@ M2M application with `secret: {publish: true}`) are never printed; they go to:
 
 An apply that publishes secrets without writing them anywhere exits 3.
 
+An apply that stops on an error says what it did: how many changes were applied, which one failed and how many
+were never run. Nothing is rolled back: run `apply` again once the cause is fixed, it starts from what Logto holds.
+When the failure is transient (Logto overloaded, failing or unreachable), the message says a later apply may
+succeed.
+
 ## What the tool never does
 
 - It never deletes an object that the document does not declare, unless that kind's `spec.prune` switch is set.
@@ -80,3 +91,5 @@ An apply that publishes secrets without writing them anywhere exits 3.
 - It never recreates an application: applications are matched by name and their type cannot change.
 - It never rotates a secret, and never sends a user a password.
 - It never revokes a role an application or a user holds; it only grants the declared ones.
+- It never drops what Logto holds next to a declared value: when it must send a whole object (a connector's
+  config, a part of the sign-in experience), the fields it does not manage are sent back as Logto has them.

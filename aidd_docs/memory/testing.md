@@ -16,6 +16,9 @@
 ## Conventions
 
 - Tests first; a guard is shown failing once before it is trusted.
+- In kind and CLI tests the fake validates every request against each spec of the window, and the fields of its
+  answers (`ValidateAgainst`); a problem fails the test. `FailNext("POST /api/x", ...)` fails one method only.
+- `tools/specdiff/used.txt` lists exactly the operations the code calls (a test scans the code).
 - The fake overrides only what a test needs; every other route answers 501, so a test cannot pass against an
   unmodelled route.
 - Never a deployed Logto in a test: the fake, a local Logto, or a Logto started inside the CI job.

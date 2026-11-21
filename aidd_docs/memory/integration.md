@@ -24,6 +24,7 @@
   `ForgotPassword` and `Generic` templates are mandatory (measured: without `Generic`, 400 `connector.invalid_config`).
 - SMTP connector: `GET /api/connectors/{id}` returns `auth.pass` in clear, and a PATCH with a partial config is
   refused: always send the whole config (asserted by `test/integration/connector_probe_test.go`).
+- The client replays a 429 always, a 5xx only for GET, HEAD, PUT and DELETE: a POST may have been written already.
 - Logto's 400 answers carry `data.issues` (path, message): `client.APIError` keeps them.
 - Support window: the latest Logto minor and the two before it (`api/logto/versions.txt`); a new minor is judged
   with `task spec:diff`, which fails only on a breaking change of an operation in `tools/specdiff/used.txt`.

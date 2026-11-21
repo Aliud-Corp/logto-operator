@@ -220,6 +220,14 @@ Dependency rules:
   and an unchanged count. `check` = `plan`, exit **0** in sync, **2** drift, **1** error; `apply` exits **3** when it
   completed with warnings.
 - A re-apply of an unchanged document issues **zero writes** (tested: the fake counts non-GET calls).
+- A sub-object Logto replaces whole (sign-in experience keys, a connector's `config`) is sent as the declared value
+  written over what Logto holds (`kindkit.Overlay`): a field no kind manages, set in a console or added by a newer
+  Logto, survives. A list is the declared one; its items, when Logto replaces them whole too (sign-in methods),
+  are each written over the item Logto holds with the same key.
+- Deletes run last, kinds in reverse order. An interrupted apply reports each op: applied, failed, not run; and
+  whether the failure is transient (429, 5xx, unreachable) or not.
+- A Logto outside the support window is recognised by its own spec (none of the vendored ones, `servers` aside) and
+  refused unless `--allow-untested-logto`: its behaviour was never tested, whatever routes its spec lists.
 - **Write-only secrets** are the hard case: Logto may not return the SMTP `auth.pass` (unverified). If Logto returns
   it, compare it. If not, the engine cannot know whether it changed; options in open question 5.
 - **Prune** is per kind, off by default, and never applies to users, organizations, Logto built-ins (the Management
@@ -289,8 +297,9 @@ default-tenant users and are in scope from milestone 2.
    control without a rule, `page_size` > 100 refused, default page of 20, connector `config` replace-on-PATCH once
    measured). Table tests per kind: create, adopt, update one field, no-op, ambiguous match, prune on/off. Property
    asserted everywhere: **apply twice, the second plan is empty and the fake saw zero writes**.
-2. **Contract**: the fake validates every request body the engine sends against the normalized spec (kin-openapi
-   request validation middleware), so an engine that builds a body Logto would reject fails in unit tests.
+2. **Contract**: in every kind test the fake validates each request body the kinds really send against every spec
+   of the support window, and the fields of each answer it gives (types, declared keys); one problem fails the
+   test. Wire types are also validated per version by each kind's contract test.
 3. **Behaviour scenarios**, run on the fake and again on a real Logto (4), against the reference configuration
    `examples/reference.yaml` (every kind, committed): first run creates everything; replay changes nothing,
    secrets included; drift repaired without touching secrets (a redirect URI, a hook URL); JWT environment
@@ -346,11 +355,24 @@ default-tenant users and are in scope from milestone 2.
   then 2 after a console edit, `render` shows no secret. Integration test harness (`task it`) run locally and by a
   CI job against a Logto started in the job.
 - **M2 — remaining kinds.** Global roles, access control, webhooks, JWT customizer + id token, account center,
-  captcha, `/api/email-templates`; the behaviour scenarios of section 9 complete; outputs files.
+  captcha, `/api/email-templates`; the behaviour scenarios of section 9 complete; outputs files. Before the new
+  kinds:
+  - a generic "collection by natural key" in `kindkit` (list, adopt, refuse an ambiguous match, create, update,
+    prune with `keep`, `Needs` built from the same request builders as Apply), and the matching helper in the fake,
+    so that twenty kinds do not each rewrite Logto;
+  - global roles publish their ids as Refs; applications and users depend on them and read Refs, so that a role
+    created and granted by the same document plans (today they resolve roles by reading Logto).
 - **M3 — operator.** CRD generated from `api/v1alpha1` (controller-gen, committed, drift-guarded), controller-runtime
   manager, Secret watch, resync (`RequeueAfter`, default 10 min, no CronJob), conditions, outputs Secret/ConfigMap,
   `spec.mode: Observe|Apply` (Observe = plan only, status `Drifted`), narrow RBAC, manifests (kustomize, committed);
-  Chainsaw e2e with Logto inside k3d.
+  Chainsaw e2e with Logto inside k3d. From the engine:
+  - conditions from each op's `plan.Result`; `engine.Transient` picks a requeue with backoff, anything else
+    `Degraded` until the document changes;
+  - one CR per Logto endpoint (a second one is refused through an index) and one reconcile at a time per endpoint:
+    two documents would fight over the sign-in experience, and one's prune would delete the other's objects;
+  - `secretKeyRef` through a `Resolver` that takes a context and reads Kubernetes Secrets; outputs (a flat map) map
+    to the keys of one Secret and one ConfigMap;
+  - the untested-Logto override becomes a field of the CR.
 - **M4 — first adopters.** A consuming project renders its `LogtoConfig` and runs `check` in its CI; each
   environment starts in `Observe` (drift reviewed, anything edited by hand in a console shows up), then `Apply`.
 - **M5 — admin console users** (only if section 8's spike succeeds).

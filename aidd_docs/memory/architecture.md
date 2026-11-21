@@ -35,8 +35,16 @@ flowchart LR
   and the engine refuses at plan time a field the target's own spec lacks (`internal/logto/capability`).
 - The engine (`internal/engine`) runs kinds in `DependsOn` order: Plan observes and diffs; Apply runs the ops, then
   plans the kind again and fails if Logto did not keep the write. No state file: Logto is the state.
+- A sub-object Logto replaces whole is sent as the declared value over Logto's own (`kindkit.Overlay`): unmanaged
+  fields survive. Deletes run after every create and update, kinds in reverse order; apply results are per op
+  (`plan.Result`), failures `*engine.OpError`, `engine.Transient` says whether a retry may help.
+- The target's version is its spec: `api/logto.Match` fingerprints it (without `servers`) against the vendored ones;
+  an unknown one is refused unless `--allow-untested-logto`. The vendored specs are embedded in the binary.
+- Secret values are read only during an apply (`engine.Publisher`); a plan never holds one, and a sensitive change
+  is masked as it enters a plan.
 - A document is loaded strictly (`internal/config`): unknown keys fail with their path, `${name}` comes from
-  `spec.variables` only, files are resolved relative to the document, then every schema rule runs at once.
+  `spec.variables` only, the generated JSON Schema is checked on the document as written (what the CRD refuses),
+  files are resolved relative to the document, then the rules across fields; each step reports every violation.
 
 ## Gotchas
 

@@ -30,7 +30,7 @@ const smtp = `  connectors:
 `
 
 const sie = `  signInExperience:
-    color: {primaryColor: "#5B4FE0"}
+    color: {primaryColor: "#101418"}
     languageInfo: {autoDetect: false, fallbackLanguage: fr}
     customCss: {value: ".logto_main-content { border-radius: 12px; }"}
     signUp: {identifiers: [email], password: true, verify: true}
@@ -49,7 +49,7 @@ func TestTheDeclaredKeysAreAppliedAndAReplayWritesNothing(t *testing.T) {
 	kindtest.Apply(t, c, spec, kinds...)
 	got := fake.SignInExperience()
 	col := got["color"].(map[string]any)
-	if col["primaryColor"] != "#5B4FE0" || col["darkPrimaryColor"] != "#8C6CFF" {
+	if col["primaryColor"] != "#101418" || col["darkPrimaryColor"] != "#8C6CFF" {
 		t.Fatalf("color = %v (the undeclared dark colour must come from Logto)", col)
 	}
 	if got["languageInfo"].(map[string]any)["fallbackLanguage"] != "fr" || got["unknownSessionRedirectUrl"] != "https://app.example.test" {

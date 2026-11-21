@@ -105,7 +105,7 @@ spec:
   prune: {resources: false, organizationRoles: true, webhooks: false}             # per kind, all false by default
 
   signInExperience:                                 # only declared keys are owned, compared and patched
-    color: {primaryColor: "#5B4FE0", isDarkModeEnabled: false}
+    color: {primaryColor: "#101418", isDarkModeEnabled: false}
     languageInfo: {autoDetect: false, fallbackLanguage: fr}
     branding: {logoUrl: {fromFile: sign-in-experience/logo.svg, as: dataUri}}
     customCss: {fromFile: sign-in-experience/custom.css}

@@ -205,7 +205,7 @@ func assertObjects(t *testing.T, c *client.Client) {
 	}
 	req, err = mgmt.NewGetSignInExpRequest(c.Endpoint())
 	get(req, err, &sie)
-	if sie.Color.PrimaryColor != "#5B4FE0" || sie.LanguageInfo.FallbackLanguage != "en" || !strings.Contains(sie.CustomCSS, "border-radius") ||
+	if sie.Color.PrimaryColor != "#101418" || sie.LanguageInfo.FallbackLanguage != "en" || !strings.Contains(sie.CustomCSS, "border-radius") ||
 		!strings.HasPrefix(sie.Branding.LogoURL, "data:image/svg+xml;base64,") || sie.UnknownSessionRedirectURL != "https://app.example.test" {
 		t.Errorf("sign-in experience = %+v", sie)
 	}

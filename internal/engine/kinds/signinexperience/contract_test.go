@@ -19,7 +19,7 @@ func requireValid(t *testing.T, what string, p contract.Problems, err error) {
 
 func TestTheWireBodiesAreValidForTheWholeWindow(t *testing.T) {
 	full := &v1alpha1.SignInExperience{
-		Color:        &v1alpha1.Color{PrimaryColor: "#5B4FE0"},
+		Color:        &v1alpha1.Color{PrimaryColor: "#101418"},
 		LanguageInfo: &v1alpha1.LanguageInfo{FallbackLanguage: "fr"},
 		Branding:     &v1alpha1.Branding{LogoURL: &v1alpha1.TextSource{Value: "data:image/svg+xml;base64,PHN2Zy8+"}},
 		CustomCSS:    &v1alpha1.TextSource{Value: ".x{}"},
@@ -32,7 +32,7 @@ func TestTheWireBodiesAreValidForTheWholeWindow(t *testing.T) {
 	have := wireSIE{Color: &color{DarkPrimaryColor: "#8C6CFF"}}
 	p, err := contract.Request("UpdateSignInExp", desired(full, have))
 	requireValid(t, "UpdateSignInExp (every managed key)", p, err)
-	p, err = contract.Request("UpdateSignInExp", desired(&v1alpha1.SignInExperience{Color: &v1alpha1.Color{PrimaryColor: "#5B4FE0"}}, wireSIE{}))
+	p, err = contract.Request("UpdateSignInExp", desired(&v1alpha1.SignInExperience{Color: &v1alpha1.Color{PrimaryColor: "#101418"}}, wireSIE{}))
 	requireValid(t, "UpdateSignInExp (colour only, nothing observed)", p, err)
 }
 

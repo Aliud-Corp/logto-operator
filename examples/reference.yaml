@@ -41,7 +41,7 @@ spec:
           - {enabled: true, name: familyName, type: Text, label: Family name, required: true}
 
   signInExperience:
-    color: {primaryColor: "#5B4FE0", isDarkModeEnabled: false}
+    color: {primaryColor: "#101418", isDarkModeEnabled: false}
     languageInfo: {autoDetect: false, fallbackLanguage: en}
     branding:
       logoUrl: {fromFile: reference/logo.svg, as: dataUri}

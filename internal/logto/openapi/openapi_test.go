@@ -36,7 +36,7 @@ func TestAJavaScriptPatternIsHonoured(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ok := map[string]any{"color": map[string]any{"primaryColor": "#5B4FE0", "isDarkModeEnabled": false, "darkPrimaryColor": "#8B5CF6"}}
+	ok := map[string]any{"color": map[string]any{"primaryColor": "#101418", "isDarkModeEnabled": false, "darkPrimaryColor": "#8B5CF6"}}
 	if p := openapi.Validate(s, ok); len(p) > 0 {
 		t.Fatalf("a valid colour is refused: %v", p)
 	}

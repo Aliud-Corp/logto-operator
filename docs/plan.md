@@ -299,10 +299,10 @@ default-tenant users and are in scope from milestone 2.
 4. **Integration, real Logto 1.44.0** (`test/integration`, build tag): the same scenarios against a fresh Logto, plus
    what only a real Logto can tell (read-back of secrets, PATCH merge vs replace, JWT customizer execution by
    minting and decoding a real token, which endpoints of a "Cloud" spec actually work on OSS). In CI (GitHub-hosted
-   runner, section 12b): Postgres as a job service container, Logto started by a `docker run` step with its seeding
-   entrypoint (`npm run cli db seed -- --swe && npm run alteration deploy latest && npm start`), because a service
-   container cannot override the entrypoint. No secret involved: the bootstrap
-   credential of that throwaway Logto is created by the job itself.
+   runner, section 12b): the same `test/integration/compose.yaml` as locally (Postgres + Logto, the version from
+   `LOGTO_VERSION`, with its seeding entrypoint `npm run cli db seed -- --swe && npm run alteration deploy latest &&
+   npm start`). No secret involved: the harness reads the throwaway instance's `m-default` secret from its own
+   database.
 5. **End-to-end, Chainsaw on k3d** (`test/e2e`, `task e2e`): the operator deployed in a throwaway k3d cluster with
    Logto + Postgres in it; scenarios as Chainsaw tests (apply a `LogtoConfig`, assert `status` conditions and the
    published Secret/ConfigMap, edit Logto behind the operator's back and assert `Drifted` then repaired, delete the
@@ -337,7 +337,7 @@ default-tenant users and are in scope from milestone 2.
 - **M0 — plan and skeleton.** Four pull requests: this plan, the agent memory and the contributor docs; the pinned
   toolchain, generated client, drift and runner guards and the `check` CI; the fake Management API with its
   hello-world test and the CLI stub; the Chainsaw/k3d harness with a smoke test and its `e2e` workflow.
-- **M1 — core kinds through the CLI, on a local Logto.** `api/v1alpha1` types (generated JSON Schema), loader with
+- **M1 — core kinds through the CLI, on a local Logto (done 2026-11-21).** `api/v1alpha1` types (generated JSON Schema), loader with
   the schema rules of section 3, `internal/logto/client`, kinds: connectors, customProfileFields, signInExperience,
   resources + scopes, organizationScopes, organizationRoles, applications (+ M2M secret, role grants), users
   (application admins, no passwords); `plan` / `apply` / `check` / `render`; `examples/reference.yaml` covering
@@ -370,9 +370,9 @@ default-tenant users and are in scope from milestone 2.
 
 ### 12b. CI runners (decided 2026-11-20)
 
-CI runs on **GitHub-hosted runners** (`ubuntu-<version>`, pinned), which carry a Docker daemon (k3d, Logto via
-`docker run`). Never the studio's self-hosted runners: the repository will be **public**, and a fork's pull request
-would run arbitrary code on studio infrastructure. `task ci:runners` (in `task check`) fails on any other `runs-on`.
+CI runs on **GitHub-hosted runners** (`ubuntu-<version>`, pinned), which carry a Docker daemon (k3d, the Logto of
+`test/integration/compose.yaml`). Never the studio's self-hosted runners: the repository will be **public**, and a
+fork's pull request would run arbitrary code on studio infrastructure. `task ci:runners` (in `task check`) fails on any other `runs-on`.
 
 The repository starts **private** and goes public later. While private, its minutes count against the organization's
 shared free quota, and an exhausted quota blocks every hosted job of the organization until the next month. So: one
@@ -388,11 +388,10 @@ small; switching later is a one-line `runs-on` change.
 ## 13. Open questions
 
 1. ~~e2e cluster in CI~~ — **decided**: GitHub-hosted runners, k3d in the runner's Docker (12b).
-2. ~~Real Logto in CI~~ — **decided**: Postgres service container + Logto by `docker run` in the job (9.4, 12b).
-3. **Names.** CLI `logtoctl`, operator `logto-operator`, CRD group `logto.<domain>`: which studio domain?
-4. **Environment-specific values.** `${var}` interpolation in the document (explicit, limited to
-   declared variables) vs one fully-rendered document per environment (kustomize overlays on the
-   CR). My pick: interpolation, limited to declared `variables`, rendered and shown by `render`.
+2. ~~Real Logto in CI~~ — **decided**: one `test/integration/compose.yaml` (Postgres + Logto), locally and on the
+   runner (9.4, 12b).
+3. ~~Names~~ — **decided**: CLI `logtoctl`, CRD group `logto.aliud.fr`, `apiVersion: logto.aliud.fr/v1alpha1`.
+4. ~~Environment-specific values~~ — **decided**: `${var}` interpolation, limited to declared `spec.variables`.
 5. ~~Write-only secrets drift~~ — **settled 2026-11-21 by measurement**: Logto returns the SMTP password in clear,
    so it is compared like any field (shown as `(sensitive)` in a plan); the whole config is always sent.
 6. ~~E-mail templates~~ — **decided**: connector `config.templates` in M1, `/api/email-templates` in M2.

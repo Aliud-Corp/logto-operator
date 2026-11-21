@@ -12,8 +12,10 @@
 flowchart LR
     spec["api/logto spec"] --> norm["tools/specnorm"] --> gen["internal/logto/mgmt (generated)"]
     gen --> fake["internal/logto/logtofake"]
-    gen --> cli["cmd/logtoctl"]
-    cli --> logto[("Logto Management API")]
+    doc["LogtoConfig document"] --> config["internal/config"] --> engine["internal/engine + kinds"]
+    gen --> engine
+    engine --> client["internal/logto/client"] --> logto[("Logto Management API")]
+    cli["cmd/logtoctl"] --> engine
 ```
 
 ## Key decisions

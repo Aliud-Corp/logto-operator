@@ -29,7 +29,10 @@ flowchart TD
 - `internal/engine/`: kind ordering, plan and apply; `internal/engine/plan/`: the plan and its rendering.
 - `internal/logto/mgmt/`: generated code plus its three `oapi-codegen` configs; `doc.go` is the only hand-written file.
 - `internal/logto/logtofake/`: in-process fake on the generated server; unmodelled routes answer 501.
-- `cmd/logtoctl/`: the CLI.
+- `cmd/logtoctl/`: the binary; `internal/cli/`: the commands.
+- `internal/engine/kinds/`: one package per kind (`all.go` lists them), `kindkit` (shared helpers), `kindtest` (test
+  harness on the fake and on a real Logto).
+- `internal/outputs/`: identifiers on stdout, secrets to a 0600 file or a descriptor.
 - `test/integration/`: the throwaway Logto (compose, bootstrap) and the integration tests;
   `internal/logto/integration/` loads its credentials.
 - `test/e2e/`: Chainsaw tests and the k3d cluster config.

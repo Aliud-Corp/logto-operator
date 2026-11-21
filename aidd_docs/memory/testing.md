@@ -20,6 +20,10 @@
   unmodelled route.
 - Never a deployed Logto in a test: the fake, a local Logto, or a Logto started inside the CI job.
 - Test names state the behaviour (`TestARouteTheFakeDoesNotModelAnswers501`).
+- Every kind has three tests: `contract_test.go` (its wire types against every vendored spec), `<kind>_test.go`
+  (the fake: create, replay without writes, adoption, refusals, prune) and `integration_test.go` (a real Logto,
+  objects named with `kindtest.Unique`, prune limited by `kindtest.KeepAllBut`).
+- `test/integration/acceptance_test.go` is the M1 definition of done: the built binary on `examples/reference.yaml`.
 - Under `task it` (`LOGTO_IT_REQUIRED`), a missing harness fails instead of skipping: `go test` prints `ok` for a
   skipped test too.
 

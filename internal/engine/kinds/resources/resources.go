@@ -106,6 +106,7 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 		d := env.Spec.Resources[key]
 		declared[d.Indicator] = true
 		env.Refs.Set(Name, key, RefIndicator, d.Indicator)
+		env.Outputs.SetID("resources."+key+".indicator", d.Indicator)
 		have, exists := byIndicator[d.Indicator]
 		if !exists {
 			ops = append(ops, createOp(key, d))

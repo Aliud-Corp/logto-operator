@@ -38,7 +38,12 @@ type Server struct {
 	spec     []byte
 	seq      int
 
-	applications []Application
+	apps       map[string]object
+	appSecrets map[string][]object // app id -> secrets
+	appRoles   map[string][]string // app id -> role ids
+	roles      map[string]object
+	users      map[string]object
+	userRoles  map[string][]string // user id -> role ids
 
 	resources             map[string]object
 	resourceScopes        map[string]map[string]object // resource id -> scope id -> scope

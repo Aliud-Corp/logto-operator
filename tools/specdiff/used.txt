@@ -28,3 +28,11 @@ UpdateConnector
 DeleteConnector
 GetSignInExp
 UpdateSignInExp
+ListApplications
+CreateApplication
+UpdateApplication
+ListApplicationSecrets
+CreateApplicationSecret
+ListApplicationRoles
+AssignApplicationRoles
+ListRoles

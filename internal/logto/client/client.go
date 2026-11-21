@@ -27,7 +27,7 @@ type Config struct {
 	ClientID      string
 	ClientSecret  string
 	HTTP          *http.Client
-	MaxRetries    int           // retries of a 5xx or 429 answer; 3 when zero
+	MaxRetries    int           // retries of a 429, or of a 5xx to GET, PUT or DELETE; 3 when zero
 	RetryBase     time.Duration // first backoff, doubled each retry; 200ms when zero
 	Timeout       time.Duration // per call; 30s when zero
 }
@@ -137,7 +137,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, out any) error {
 		case res.StatusCode == http.StatusUnauthorized && !refreshed:
 			refreshed = true
 			c.forgetToken()
-		case (res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests) && attempt < c.cfg.MaxRetries && rewindable(req):
+		case retryable(req.Method, res.StatusCode) && attempt < c.cfg.MaxRetries && rewindable(req):
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -183,6 +183,19 @@ func (c cancelOnClose) Close() error {
 	return err
 }
 
+// retryable says whether an answer may be replayed. A 429 was not processed; a 5xx may have been (a proxy timing out
+// after Logto wrote), so only a method that can be repeated without a second effect is replayed on it: never a POST
+// (a second application, a second secret) nor a PATCH.
+func retryable(method string, status int) bool {
+	switch {
+	case status == http.StatusTooManyRequests:
+		return true
+	case status >= 500:
+		return method == http.MethodGet || method == http.MethodHead || method == http.MethodPut || method == http.MethodDelete
+	}
+	return false
+}
+
 func rewindable(req *http.Request) bool { return req.Body == nil || req.GetBody != nil }
 
 func rewind(req *http.Request) error {
@@ -195,15 +208,6 @@ func rewind(req *http.Request) error {
 	}
 	req.Body = b
 	return nil
-}
-
-// JSON encodes a wire value as a request body the client can replay on a retry.
-func JSON(v any) (io.Reader, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewReader(b), nil
 }
 
 // PageSize is the largest page Logto accepts.

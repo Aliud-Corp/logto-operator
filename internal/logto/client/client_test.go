@@ -82,11 +82,35 @@ func TestRetriesAreBounded(t *testing.T) {
 	}
 }
 
+func TestACreationIsNeverReplayedOnAServerError(t *testing.T) {
+	fake, c := setup(t)
+	fake.FailNext("/api/applications", http.StatusBadGateway)
+	req, _ := mgmt.NewCreateApplicationRequestWithBody(c.Endpoint(), "application/json", strings.NewReader(`{"name":"a","type":"SPA"}`))
+	err := c.Do(context.Background(), req, nil)
+	if !client.IsStatus(err, http.StatusBadGateway) {
+		t.Fatalf("err = %v, want the 502: Logto may have created the object already", err)
+	}
+	if n := len(fake.Applications()); n != 0 {
+		t.Fatalf("%d applications created by a replay", n)
+	}
+}
+
+func TestACreationIsReplayedOnTooManyRequests(t *testing.T) {
+	fake, c := setup(t)
+	fake.FailNext("/api/applications", http.StatusTooManyRequests)
+	req, _ := mgmt.NewCreateApplicationRequestWithBody(c.Endpoint(), "application/json", strings.NewReader(`{"name":"a","type":"SPA"}`))
+	if err := c.Do(context.Background(), req, nil); err != nil {
+		t.Fatalf("a 429 means not processed, the POST must be replayed: %v", err)
+	}
+	if n := len(fake.Applications()); n != 1 {
+		t.Fatalf("%d applications, want 1", n)
+	}
+}
+
 func TestAnErrorNeverCarriesTheRequestBody(t *testing.T) {
 	fake, c := setup(t)
 	fake.FailNext("/api/sign-in-exp", http.StatusBadRequest)
-	body, _ := client.JSON(map[string]string{"password": "s3cr3t-value"})
-	req, _ := mgmt.NewUpdateSignInExpRequestWithBody(c.Endpoint(), &mgmt.UpdateSignInExpParams{}, "application/json", body)
+	req, _ := mgmt.NewUpdateSignInExpRequestWithBody(c.Endpoint(), &mgmt.UpdateSignInExpParams{}, "application/json", strings.NewReader(`{"password":"s3cr3t-value"}`))
 	err := c.Do(context.Background(), req, nil)
 	if err == nil {
 		t.Fatal("want an error")

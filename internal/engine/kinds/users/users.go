@@ -97,8 +97,8 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 		env.Outputs.SetID(OutputID(key), have.ID)
 		p := payload{key: key, id: have.ID, d: d}
 		var changes []plan.Change
-		if d.Name != "" && deref(have.Name) != d.Name {
-			changes = append(changes, plan.Change{Field: "name", From: deref(have.Name), To: d.Name})
+		if d.Name != "" && kindkit.Deref(have.Name) != d.Name {
+			changes = append(changes, plan.Change{Field: "name", From: kindkit.Deref(have.Name), To: d.Name})
 			p.rename = true
 		}
 		if len(grantIDs) > 0 {
@@ -129,7 +129,7 @@ func find(ctx context.Context, env *engine.Env, email string) (wireUser, bool, e
 		return wireUser{}, false, err
 	}
 	for _, u := range list {
-		if strings.EqualFold(deref(u.PrimaryEmail), email) {
+		if strings.EqualFold(kindkit.Deref(u.PrimaryEmail), email) {
 			return u, true, nil
 		}
 	}
@@ -199,11 +199,4 @@ func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 		})
 	}
 	return nil
-}
-
-func deref(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

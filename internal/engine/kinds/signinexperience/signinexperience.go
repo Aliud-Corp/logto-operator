@@ -77,7 +77,7 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 		cmp("branding", want.Branding, have.Branding, func() { patch.Branding = want.Branding })
 	}
 	if want.CustomCSS != nil {
-		cmp("customCss", deref(want.CustomCSS), deref(have.CustomCSS), func() { patch.CustomCSS = want.CustomCSS })
+		cmp("customCss", kindkit.Deref(want.CustomCSS), kindkit.Deref(have.CustomCSS), func() { patch.CustomCSS = want.CustomCSS })
 	}
 	if want.SignUp != nil {
 		cmp("signUp", want.SignUp, have.SignUp, func() { patch.SignUp = want.SignUp })
@@ -86,7 +86,7 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 		cmp("signIn", want.SignIn, have.SignIn, func() { patch.SignIn = want.SignIn })
 	}
 	if want.UnknownSessionRedirectURL != nil {
-		cmp("unknownSessionRedirectUrl", deref(want.UnknownSessionRedirectURL), deref(have.UnknownSessionRedirectURL),
+		cmp("unknownSessionRedirectUrl", kindkit.Deref(want.UnknownSessionRedirectURL), kindkit.Deref(have.UnknownSessionRedirectURL),
 			func() { patch.UnknownSessionRedirectURL = want.UnknownSessionRedirectURL })
 	}
 	return []plan.Op{{Kind: Name, Key: "default", Action: kindkit.Action(changes), Changes: changes, Payload: patch}}, nil
@@ -136,11 +136,4 @@ func contains(list []string, s string) bool {
 		}
 	}
 	return false
-}
-
-func deref(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

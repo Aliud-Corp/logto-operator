@@ -70,7 +70,6 @@ type payload struct {
 	create  bool
 	update  *updateApp
 	grant   []string // role ids to grant
-	secret  bool     // a secret must be created
 	publish bool
 }
 
@@ -110,7 +109,7 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 			}
 			ops = append(ops, plan.Op{
 				Kind: Name, Key: key, Name: d.Name, Action: plan.Create, Changes: changes,
-				Payload: payload{key: key, d: d, create: true, grant: grant, publish: publish, secret: publish},
+				Payload: payload{key: key, d: d, create: true, grant: grant, publish: publish},
 			})
 		case 1:
 			op, err := updateOp(ctx, env, path, key, d, found[0], grant, publish)
@@ -134,7 +133,7 @@ func updateOp(ctx context.Context, env *engine.Env, path, key string, d v1alpha1
 	p := payload{key: key, id: have.ID, d: d, publish: publish}
 	var changes []plan.Change
 	if d.Description != "" {
-		changes = kindkit.Field(changes, "description", deref(have.Description), d.Description)
+		changes = kindkit.Field(changes, "description", kindkit.Deref(have.Description), d.Description)
 	}
 	if m := d.OIDCClientMetadata; m != nil {
 		if !plan.SameSet(strings(have.OIDC["redirectUris"]), m.RedirectURIs) {
@@ -170,7 +169,6 @@ func updateOp(ctx context.Context, env *engine.Env, path, key string, d v1alpha1
 		if ok {
 			env.Outputs.SetSecret(OutputSecret(key), secret)
 		} else {
-			p.secret = true
 			changes = append(changes, plan.Change{Field: "secret", To: "created", Sensitive: true})
 		}
 	}
@@ -328,11 +326,4 @@ func strings(v any) []string {
 		}
 	}
 	return out
-}
-
-func deref(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

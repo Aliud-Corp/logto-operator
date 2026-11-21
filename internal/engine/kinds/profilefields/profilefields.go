@@ -83,7 +83,7 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 		changes = kindkit.Field(changes, "type", have.Type, d.Type)
 		changes = kindkit.Field(changes, "label", have.Label, d.Label)
 		if d.Description != "" {
-			changes = kindkit.Field(changes, "description", deref(have.Description), d.Description)
+			changes = kindkit.Field(changes, "description", kindkit.Deref(have.Description), d.Description)
 		}
 		changes = kindkit.Field(changes, "required", strconv.FormatBool(have.Required), strconv.FormatBool(d.Required))
 		if d.Config != nil {
@@ -127,11 +127,4 @@ func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 			return mgmt.NewUpdateCustomProfileFieldByNameRequestWithBody(s, p.name, ct, b)
 		})
 	}
-}
-
-func deref(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

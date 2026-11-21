@@ -81,7 +81,7 @@ func (Scopes) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 		var changes []plan.Change
 		p := scopePayload{id: have.ID}
 		if d.Description != "" {
-			changes = kindkit.Field(changes, "description", deref(have.Description), d.Description)
+			changes = kindkit.Field(changes, "description", kindkit.Deref(have.Description), d.Description)
 		}
 		if len(changes) > 0 {
 			desc := d.Description
@@ -202,8 +202,8 @@ func (Roles) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 		env.Refs.Set(RolesName, key, RefID, have.ID)
 		p := rolePayload{id: have.ID, d: d}
 		var changes []plan.Change
-		if d.Description != deref(have.Description) && d.Description != "" {
-			changes = append(changes, plan.Change{Field: "description", From: deref(have.Description), To: d.Description})
+		if d.Description != kindkit.Deref(have.Description) && d.Description != "" {
+			changes = append(changes, plan.Change{Field: "description", From: kindkit.Deref(have.Description), To: d.Description})
 			p.description = true
 		}
 		var haveScopes []string
@@ -333,10 +333,3 @@ func (Roles) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 }
 
 func ptr[T any](v T) *T { return &v }
-
-func deref(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}

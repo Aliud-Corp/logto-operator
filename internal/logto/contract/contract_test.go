@@ -31,3 +31,13 @@ func TestAFieldUnknownToOneVersionFailsForThatVersionOnly(t *testing.T) {
 		}
 	}
 }
+
+func TestAResponseFixtureWithAnUnknownKeyFails(t *testing.T) {
+	p, err := contract.ResponseFields("GetSignInExp", 200, map[string]any{"colour": "x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p) != 3 {
+		t.Fatalf("problems = %v, want one per version", p)
+	}
+}

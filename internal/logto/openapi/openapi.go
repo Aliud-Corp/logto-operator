@@ -233,6 +233,18 @@ func ValidateSchema(schema any, value any) []string {
 	return Validate(s, value)
 }
 
+// UnknownKeys reports only the keys of value the schema does not declare (no type or required check): for a partial
+// fixture of a large response, holding just the fields a kind decodes.
+func UnknownKeys(schema any, value any) []string {
+	s, _ := schema.(*openapi3.Schema)
+	if s == nil {
+		return []string{"no schema"}
+	}
+	out := unknownKeys(s, value, "")
+	sort.Strings(out)
+	return out
+}
+
 // HasPath reports whether a property path (a.b.c; arrays are traversed implicitly) exists in a schema.
 func HasPath(s *openapi3.Schema, path string) bool {
 	cur := s

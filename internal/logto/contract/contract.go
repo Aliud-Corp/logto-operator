@@ -51,7 +51,17 @@ func Response(operationID string, status int, body any) (Problems, error) {
 	return check(body, func(d *openapi.Doc) (any, error) { return d.ResponseSchema(operationID, status) })
 }
 
+// ResponseFields checks that every key of a partial response fixture (the fields a kind decodes) exists in the
+// response of every version; types and required fields of the full response are not checked.
+func ResponseFields(operationID string, status int, body any) (Problems, error) {
+	return checkWith(body, func(d *openapi.Doc) (any, error) { return d.ResponseSchema(operationID, status) }, openapi.UnknownKeys)
+}
+
 func check(body any, schemaOf func(*openapi.Doc) (any, error)) (Problems, error) {
+	return checkWith(body, schemaOf, openapi.ValidateSchema)
+}
+
+func checkWith(body any, schemaOf func(*openapi.Doc) (any, error), validate func(any, any) []string) (Problems, error) {
 	all, err := window()
 	if err != nil {
 		return nil, err
@@ -71,7 +81,7 @@ func check(body any, schemaOf func(*openapi.Doc) (any, error)) (Problems, error)
 			out[v] = []string{err.Error()}
 			continue
 		}
-		if p := openapi.ValidateSchema(s, value); len(p) > 0 {
+		if p := validate(s, value); len(p) > 0 {
 			out[v] = p
 		}
 	}

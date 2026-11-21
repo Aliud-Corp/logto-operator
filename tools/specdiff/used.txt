@@ -26,3 +26,5 @@ ListConnectors
 CreateConnector
 UpdateConnector
 DeleteConnector
+GetSignInExp
+UpdateSignInExp

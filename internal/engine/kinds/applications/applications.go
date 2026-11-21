@@ -52,6 +52,13 @@ func (Kind) Needs(env *engine.Env) ([]capability.Need, error) {
 			}
 			needs = append(needs, need)
 		}
+		if d.Secret != nil && d.Secret.Publish {
+			need, err := kindkit.Need("CreateApplicationSecret", where+".secret", createSecret{Name: SecretName})
+			if err != nil {
+				return nil, err
+			}
+			needs = append(needs, need)
+		}
 		if len(d.Roles) > 0 {
 			need, err := kindkit.Need("AssignApplicationRoles", where+".roles", assignRoles{RoleIDs: []string{}})
 			if err != nil {
@@ -162,13 +169,12 @@ func updateOp(ctx context.Context, env *engine.Env, path, key string, d v1alpha1
 		}
 	}
 	if publish {
-		secret, ok, err := usableSecret(ctx, env, have.ID)
+		// The plan only learns whether a usable secret exists; its value is read by Publish, during an apply.
+		_, ok, err := usableSecret(ctx, env, have.ID, false)
 		if err != nil {
 			return plan.Op{}, err
 		}
-		if ok {
-			env.Outputs.SetSecret(OutputSecret(key), secret)
-		} else {
+		if !ok {
 			changes = append(changes, plan.Change{Field: "secret", To: "created", Sensitive: true})
 		}
 	}
@@ -226,8 +232,9 @@ func applicationRoles(ctx context.Context, env *engine.Env, id string) (map[stri
 	return out, nil
 }
 
-// usableSecret returns a secret that has not expired, preferring Logto's "Default secret".
-func usableSecret(ctx context.Context, env *engine.Env, id string) (secrets.Secret, bool, error) {
+// usableSecret finds a secret that has not expired, preferring Logto's "Default secret"; it returns its value only
+// when reveal is set (an apply), registered with the redactor.
+func usableSecret(ctx context.Context, env *engine.Env, id string, reveal bool) (secrets.Secret, bool, error) {
 	req, err := mgmt.NewListApplicationSecretsRequest(env.Client.Endpoint(), id)
 	if err != nil {
 		return secrets.Secret{}, false, err
@@ -247,6 +254,9 @@ func usableSecret(ctx context.Context, env *engine.Env, id string) (secrets.Secr
 	}
 	if found == nil {
 		return secrets.Secret{}, false, nil
+	}
+	if !reveal {
+		return secrets.Secret{}, true, nil
 	}
 	sec := secrets.New(found.Value)
 	if env.Secrets.Redactor != nil {
@@ -286,7 +296,7 @@ func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 	if !p.publish {
 		return nil
 	}
-	sec, ok, err := usableSecret(ctx, env, p.id)
+	sec, ok, err := usableSecret(ctx, env, p.id, true)
 	if err != nil {
 		return err
 	}
@@ -303,6 +313,28 @@ func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 		}
 	}
 	env.Outputs.SetSecret(OutputSecret(p.key), sec)
+	return nil
+}
+
+// Publish publishes, after an apply, the secret of every application declared with secret.publish whose op did not
+// already publish one (an unchanged application, or one changed without a new secret).
+func (Kind) Publish(ctx context.Context, env *engine.Env, ops []plan.Op) error {
+	for _, op := range ops {
+		p, ok := op.Payload.(payload)
+		if !ok || !p.publish || p.id == "" {
+			continue
+		}
+		if _, done := env.Outputs.Secrets[OutputSecret(p.key)]; done {
+			continue
+		}
+		sec, found, err := usableSecret(ctx, env, p.id, true)
+		if err != nil {
+			return err
+		}
+		if found {
+			env.Outputs.SetSecret(OutputSecret(p.key), sec)
+		}
+	}
 	return nil
 }
 

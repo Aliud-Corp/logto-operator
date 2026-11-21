@@ -121,3 +121,18 @@ func TestAMissingRoleIsRefused(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+// A plan (and check) never holds a secret value: only an apply publishes it.
+func TestAPlanPublishesNoSecret(t *testing.T) {
+	fake, c := kindtest.Fake(t)
+	spec := kindtest.Spec(t, declared)
+	apply(t, fake, kindtest.Env(c, spec))
+	env := kindtest.Env(c, spec)
+	e, _ := engine.New(applications.Kind{})
+	if _, err := e.Plan(context.Background(), env); err != nil {
+		t.Fatal(err)
+	}
+	if len(env.Outputs.Secrets) != 0 {
+		t.Fatalf("a plan published %d secret(s)", len(env.Outputs.Secrets))
+	}
+}

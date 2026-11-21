@@ -34,6 +34,17 @@ type Change struct {
 	Sensitive bool
 }
 
+// Result is what became of an op during an apply.
+type Result int
+
+const (
+	NotRun  Result = iota // planned, never run (a plan, a no-op, or an op after a failure)
+	Applied               // written, and kept by Logto
+	Failed                // the write failed
+)
+
+func (r Result) String() string { return [...]string{"not run", "applied", "failed"}[r] }
+
 // Op is what happens to one declared (or, on prune, undeclared) object.
 type Op struct {
 	Kind    string
@@ -41,8 +52,19 @@ type Op struct {
 	Name    string // Logto name, for the reader
 	Action  Action
 	Changes []Change
-	// Payload is the kind's own data for Apply (its wire body, the Logto id): opaque to the engine and never rendered.
-	Payload any
+	Result  Result // set by an apply
+	// Payload is the kind's own data for Apply (its wire body, the Logto id): opaque to the engine, and never
+	// encoded nor printed, since a body may hold a secret (Format).
+	Payload any `json:"-"`
+}
+
+// Format prints an op without its payload, for every verb (%v, %+v, %#v, %s): a payload may hold a secret.
+func (op Op) Format(f fmt.State, verb rune) {
+	payload := ""
+	if op.Payload != nil {
+		payload = " payload:(hidden)"
+	}
+	_, _ = fmt.Fprintf(f, "{%s %s %q %s %d change(s) %s%s}", op.Kind, op.Key, op.Name, op.Action.symbol(), len(op.Changes), op.Result, payload)
 }
 
 // Plan is the ops of a run, in the engine's kind order.
@@ -51,12 +73,29 @@ type Plan struct {
 	Ops   []Op
 }
 
-// Add appends ops, registering their kind.
+// Add appends ops, registering their kind. A sensitive change is masked on the way in: no value of it is kept.
 func (p *Plan) Add(kind string, ops ...Op) {
 	if !contains(p.Kinds, kind) {
 		p.Kinds = append(p.Kinds, kind)
 	}
-	p.Ops = append(p.Ops, ops...)
+	for _, op := range ops {
+		changes := make([]Change, len(op.Changes))
+		for i, c := range op.Changes {
+			if c.Sensitive {
+				c.From, c.To = mask(c.From), mask(c.To)
+			}
+			changes[i] = c
+		}
+		op.Changes = changes
+		p.Ops = append(p.Ops, op)
+	}
+}
+
+func mask(s string) string {
+	if s == "" {
+		return ""
+	}
+	return Masked
 }
 
 // Changed reports whether the plan writes anything.
@@ -122,12 +161,7 @@ func Render(w io.Writer, p *Plan) error {
 func renderChange(a Action, c Change) string {
 	from, to := c.From, c.To
 	if c.Sensitive {
-		if from != "" {
-			from = Masked
-		}
-		if to != "" {
-			to = Masked
-		}
+		from, to = mask(from), mask(to)
 	}
 	switch a {
 	case Create:

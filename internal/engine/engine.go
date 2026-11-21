@@ -3,17 +3,27 @@
 //
 //   - Plan checks first that the target accepts every field the document will send (capability), then asks each kind
 //     to observe Logto and diff it with the document. It writes nothing.
-//   - Apply does the same, kind by kind, then runs the kind's non-no-op ops, then plans that kind again and fails if
-//     Logto did not keep what was written. A replay of an unchanged document plans only no-ops and writes nothing.
+//   - Apply does the same, kind by kind, runs the kind's creates and updates, then plans that kind again and fails if
+//     Logto did not keep what was written. Deletes (prune) run last, kinds in reverse order, so that nothing is
+//     deleted while a declared object still points at it. A replay of an unchanged document writes nothing.
+//
+// A failed apply returns the plan it ran with each op's Result, and an *OpError; Transient says whether a retry may
+// succeed.
 package engine
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
+	"net"
 	"sort"
 	"strings"
+	"syscall"
 
+	logtospecs "github.com/Aliud-Corp/logto-operator/api/logto"
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/capability"
@@ -42,8 +52,73 @@ type Env struct {
 	Spec       *v1alpha1.LogtoConfigSpec // loaded and validated, files resolved
 	Secrets    secrets.Resolver
 	Refs       *Refs
-	Capability *capability.Spec // the target's own spec; nil skips the check (tests of a single kind)
-	Outputs    *Outputs
+	Capability *capability.Spec // the target's own spec; required unless SkipCapability
+	// SkipCapability runs without the capability check: tests of kinds against the fake only.
+	SkipCapability bool
+	// AllowUntested runs against a Logto whose spec is none of the supported versions (Capability.Version empty):
+	// its behaviour was never tested. The CLI's --allow-untested-logto, later a field of the CR.
+	AllowUntested bool
+	Outputs       *Outputs
+}
+
+// Publisher is a kind that publishes outputs read only during an apply (secret values), once every op has run: a
+// plan never reads them.
+type Publisher interface {
+	Publish(ctx context.Context, env *Env, ops []plan.Op) error
+}
+
+// ErrUntested is the refusal of a Logto outside the support window (Env.AllowUntested lifts it).
+var ErrUntested = errors.New("untested Logto")
+
+// OpError is the failure of one op.
+type OpError struct {
+	Kind, Key string
+	Err       error
+}
+
+func (e *OpError) Error() string { return e.Kind + " " + e.Key + ": " + e.Err.Error() }
+func (e *OpError) Unwrap() error { return e.Err }
+
+// Transient reports whether an error may go away on a retry: Logto (or its token endpoint) overloaded (429), failing
+// (5xx) or unreachable. A refusal (4xx), a certificate Logto's TLS does not pass, an invalid document or a write
+// Logto did not keep is not: retrying changes nothing.
+func Transient(err error) bool {
+	var api *client.APIError
+	if errors.As(err, &api) {
+		return api.Status == 429 || api.Status >= 500
+	}
+	var auth *client.AuthError
+	if errors.As(err, &auth) {
+		return auth.Status == 429 || auth.Status >= 500
+	}
+	if errors.Is(err, context.Canceled) {
+		return false
+	}
+	var unknownCA x509.UnknownAuthorityError
+	var invalid x509.CertificateInvalidError
+	var hostname x509.HostnameError
+	var verify *tls.CertificateVerificationError
+	if errors.As(err, &unknownCA) || errors.As(err, &invalid) || errors.As(err, &hostname) || errors.As(err, &verify) {
+		return false
+	}
+	// Transport: a timeout, a connection refused, reset or cut (a plain EOF: Logto or its ingress restarted mid-call),
+	// a DNS failure that is not "no such host". Anything
+	// else (an unknown host, an https endpoint on an http port) is a configuration error.
+	var dns *net.DNSError
+	if errors.As(err, &dns) {
+		return dns.IsTimeout || dns.IsTemporary
+	}
+	var ne net.Error
+	if errors.As(err, &ne) && ne.Timeout() {
+		return true
+	}
+	for _, e := range []error{syscall.ECONNREFUSED, syscall.ECONNRESET, syscall.ECONNABORTED, syscall.EPIPE, io.EOF, io.ErrUnexpectedEOF} {
+		if errors.Is(err, e) {
+			return true
+		}
+	}
+	var op *net.OpError
+	return errors.As(err, &op) && op.Op == "dial"
 }
 
 // Engine runs kinds in dependency order.
@@ -103,8 +178,15 @@ func (e *Engine) Kinds() []string {
 }
 
 func (e *Engine) checkCapabilities(env *Env) error {
-	if env.Capability == nil {
+	if env.SkipCapability {
 		return nil
+	}
+	if env.Capability == nil {
+		return errors.New("no capability spec: the target's own API spec is required before any call")
+	}
+	if env.Capability.Version == "" && !env.AllowUntested {
+		return fmt.Errorf("%w: its API spec is none of the supported versions (%s), its behaviour is untested; "+
+			"run a supported Logto, or allow an untested one", ErrUntested, strings.Join(logtospecs.Versions(), ", "))
 	}
 	var needs []capability.Need
 	for _, k := range e.kinds {
@@ -134,42 +216,74 @@ func (e *Engine) Plan(ctx context.Context, env *Env) (*plan.Plan, error) {
 	return p, nil
 }
 
-// Apply reconciles every kind in order and returns the plan it executed. It stops at the first failure: kinds
-// already applied stay applied (a later run resumes from Logto's state, there is no state file to repair).
+// Apply reconciles every kind and returns the plan it ran, each op with its Result. It stops at the first failure:
+// what was applied stays applied (a later run resumes from Logto's state, there is no state file to repair).
 func (e *Engine) Apply(ctx context.Context, env *Env) (*plan.Plan, error) {
 	env.init()
 	if err := e.checkCapabilities(env); err != nil {
 		return nil, err
 	}
 	done := &plan.Plan{}
-	for _, k := range e.kinds {
+	spans := make([][2]int, len(e.kinds)) // each kind's ops in done.Ops
+	creatingOrUpdating := func(a plan.Action) bool { return a == plan.Create || a == plan.Update }
+	for i, k := range e.kinds {
 		ops, err := k.Plan(ctx, env)
 		if err != nil {
 			return done, fmt.Errorf("%s: %w", k.Name(), err)
 		}
+		start := len(done.Ops)
 		done.Add(k.Name(), ops...)
-		touched := 0
-		for _, op := range ops {
-			if op.Action == plan.Noop {
-				continue
-			}
-			if err := k.Apply(ctx, env, op); err != nil {
-				return done, fmt.Errorf("%s %s: %w", k.Name(), op.Key, err)
-			}
-			touched++
-		}
-		if touched == 0 {
-			continue
-		}
-		again, err := k.Plan(ctx, env)
-		if err != nil {
-			return done, fmt.Errorf("%s: read back: %w", k.Name(), err)
-		}
-		if err := notKept(k.Name(), again); err != nil {
+		spans[i] = [2]int{start, len(done.Ops)}
+		if err := e.run(ctx, env, k, done.Ops[start:], creatingOrUpdating); err != nil {
 			return done, err
 		}
 	}
+	for i := len(e.kinds) - 1; i >= 0; i-- {
+		s := spans[i]
+		if err := e.run(ctx, env, e.kinds[i], done.Ops[s[0]:s[1]], func(a plan.Action) bool { return a == plan.Delete }); err != nil {
+			return done, err
+		}
+	}
+	for i, k := range e.kinds {
+		if pub, ok := k.(Publisher); ok {
+			if err := pub.Publish(ctx, env, done.Ops[spans[i][0]:spans[i][1]]); err != nil {
+				return done, fmt.Errorf("%s: publish: %w", k.Name(), err)
+			}
+		}
+	}
 	return done, nil
+}
+
+// run applies the ops of one kind that pass the filter, then reads the kind back: every op already run must now
+// plan as a no-op (deletes still to run are ignored).
+func (e *Engine) run(ctx context.Context, env *Env, k Kind, ops []plan.Op, filter func(plan.Action) bool) error {
+	touched := 0
+	for i := range ops {
+		if !filter(ops[i].Action) {
+			continue
+		}
+		if err := k.Apply(ctx, env, ops[i]); err != nil {
+			ops[i].Result = plan.Failed
+			return &OpError{Kind: k.Name(), Key: ops[i].Key, Err: err}
+		}
+		ops[i].Result = plan.Applied
+		touched++
+	}
+	if touched == 0 {
+		return nil
+	}
+	again, err := k.Plan(ctx, env)
+	if err != nil {
+		return fmt.Errorf("%s: read back: %w", k.Name(), err)
+	}
+	var pending []plan.Op
+	for _, op := range again {
+		if op.Action == plan.Delete && !filter(plan.Delete) {
+			continue
+		}
+		pending = append(pending, op)
+	}
+	return notKept(k.Name(), pending)
 }
 
 func notKept(kind string, ops []plan.Op) error {

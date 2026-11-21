@@ -46,7 +46,7 @@ type payload struct {
 	update       *updateResource
 	scopeCreates []createScope
 	scopeUpdates map[string]updateScope // by scope id
-	scopeDeletes []string               // scope ids
+	scopeDelete  string                 // a pruned scope's id: this op deletes only that scope
 	delete       bool
 	key          string
 }
@@ -68,14 +68,17 @@ func (Kind) Needs(env *engine.Env) ([]capability.Need, error) {
 			needs = append(needs, need)
 		}
 		for _, name := range kindkit.Keys(r.Scopes) {
-			need, err := kindkit.Need("CreateResourceScope", where+".scopes."+name, newScope(name, r.Scopes[name]))
-			if err != nil {
-				return nil, err
+			desc := r.Scopes[name].Description
+			for op, body := range map[string]any{"CreateResourceScope": newScope(name, r.Scopes[name]), "UpdateResourceScope": updateScope{Description: &desc}} {
+				need, err := kindkit.Need(op, where+".scopes."+name, body)
+				if err != nil {
+					return nil, err
+				}
+				needs = append(needs, need)
 			}
-			needs = append(needs, need)
 		}
 	}
-	return needs, nil
+	return append(needs, kindkit.Deletes(env.Spec.Prune.Resources, "spec.prune.resources", "DeleteResource", "DeleteResourceScope")...), nil
 }
 
 func listResources(ctx context.Context, env *engine.Env) ([]wireResource, error) {
@@ -116,7 +119,7 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 		if err != nil {
 			return nil, err
 		}
-		ops = append(ops, op)
+		ops = append(ops, op...)
 	}
 	if env.Spec.Prune.Resources {
 		for _, r := range observed {
@@ -146,12 +149,14 @@ func createOp(key string, d v1alpha1.Resource) plan.Op {
 	return plan.Op{Kind: Name, Key: key, Name: d.Name, Action: plan.Create, Changes: changes, Payload: p}
 }
 
-func updateOp(ctx context.Context, env *engine.Env, key string, d v1alpha1.Resource, have wireResource) (plan.Op, error) {
+// updateOp is the op of a declared resource that exists, then one delete op per scope pruned: deletes run last.
+func updateOp(ctx context.Context, env *engine.Env, key string, d v1alpha1.Resource, have wireResource) ([]plan.Op, error) {
 	env.Refs.Set(Name, key, RefID, have.ID)
 	scopes, err := listScopes(ctx, env, have.ID)
 	if err != nil {
-		return plan.Op{}, err
+		return nil, err
 	}
+	var pruned []plan.Op
 	p := payload{key: key, id: have.ID, scopeUpdates: map[string]updateScope{}}
 	var changes []plan.Change
 	changes = kindkit.Field(changes, "name", have.Name, d.Name)
@@ -184,19 +189,30 @@ func updateOp(ctx context.Context, env *engine.Env, key string, d v1alpha1.Resou
 			continue
 		}
 		if !env.Spec.Prune.Resources {
-			return plan.Op{}, fmt.Errorf("spec.resources.%s: Logto holds the scope %q that the document does not declare; "+
+			return nil, fmt.Errorf("spec.resources.%s: Logto holds the scope %q that the document does not declare; "+
 				"removing a scope revokes it from every token: declare it, or set spec.prune.resources to remove it", key, s.Name)
 		}
-		changes = append(changes, plan.Change{Field: "scopes." + s.Name, From: "present", To: "removed"})
-		p.scopeDeletes = append(p.scopeDeletes, s.ID)
+		pruned = append(pruned, plan.Op{
+			Kind: Name, Key: key + "/" + s.Name, Name: d.Name, Action: plan.Delete,
+			Changes: []plan.Change{{Field: "scope", From: s.Name}},
+			Payload: payload{id: have.ID, scopeDelete: s.ID},
+		})
 	}
-	return plan.Op{Kind: Name, Key: key, Name: d.Name, Action: kindkit.Action(changes), Changes: changes, Payload: p}, nil
+	op := plan.Op{Kind: Name, Key: key, Name: d.Name, Action: kindkit.Action(changes), Changes: changes, Payload: p}
+	return append([]plan.Op{op}, pruned...), nil
 }
 
 // Apply runs one op.
 func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 	p := op.Payload.(payload)
 	server := env.Client.Endpoint()
+	if p.scopeDelete != "" {
+		req, err := mgmt.NewDeleteResourceScopeRequest(server, p.id, p.scopeDelete)
+		if err != nil {
+			return err
+		}
+		return env.Client.Do(ctx, req, nil)
+	}
 	if p.delete {
 		req, err := mgmt.NewDeleteResourceRequest(server, p.id)
 		if err != nil {
@@ -234,15 +250,6 @@ func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 		if err := kindkit.Send(ctx, env, p.scopeUpdates[id], nil, func(s, ct string, b *bytes.Reader) (*http.Request, error) {
 			return mgmt.NewUpdateResourceScopeRequestWithBody(s, p.id, id, ct, b)
 		}); err != nil {
-			return err
-		}
-	}
-	for _, id := range p.scopeDeletes {
-		req, err := mgmt.NewDeleteResourceScopeRequest(server, p.id, id)
-		if err != nil {
-			return err
-		}
-		if err := env.Client.Do(ctx, req, nil); err != nil {
 			return err
 		}
 	}

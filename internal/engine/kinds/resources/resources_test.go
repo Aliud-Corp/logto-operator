@@ -87,7 +87,17 @@ func TestPruneRemovesUndeclaredScopesAndResourcesButNotTheManagementAPI(t *testi
 	createResource(t, c, `{"name":"Kept by name","indicator":"https://kept-name.example.test/api"}`)
 	createResource(t, c, `{"name":"Kept by indicator","indicator":"https://kept-indicator.example.test/api"}`)
 	fewer := "  prune: {resources: true, keep: [Kept by name, \"https://kept-indicator.example.test/api\"]}\n" + strings.Replace(declared, "        \"event:write\": {description: Write events}\n", "", 1)
-	kindtest.Apply(t, c, kindtest.Spec(t, fewer), resources.Kind{})
+	p := kindtest.Apply(t, c, kindtest.Spec(t, fewer), resources.Kind{})
+	var deletes []string
+	for _, op := range p.Ops {
+		if op.Action == plan.Delete {
+			deletes = append(deletes, op.Key)
+		}
+	}
+	// A pruned scope is a delete of its own, run with the other deletes (last), not inside its resource's update.
+	if got := strings.Join(deletes, ","); got != "app/event:write,https://stray.example.test/api" {
+		t.Fatalf("deletes = %s", got)
+	}
 
 	if got := fake.ResourceScopes("https://app.example.test/api"); strings.Join(got, ",") != "event:read" {
 		t.Fatalf("scopes = %v", got)

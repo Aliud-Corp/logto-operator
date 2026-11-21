@@ -37,13 +37,18 @@ func (Scopes) DependsOn() []string { return nil }
 func (Scopes) Needs(env *engine.Env) ([]capability.Need, error) {
 	var needs []capability.Need
 	for _, name := range kindkit.Keys(env.Spec.OrganizationScopes) {
-		need, err := kindkit.Need("CreateOrganizationScope", "spec.organizationScopes."+name, newScope(name, env.Spec.OrganizationScopes[name]))
-		if err != nil {
-			return nil, err
+		d := env.Spec.OrganizationScopes[name]
+		where := "spec.organizationScopes." + name
+		desc := d.Description
+		for op, body := range map[string]any{"CreateOrganizationScope": newScope(name, d), "UpdateOrganizationScope": updateScope{Description: &desc}} {
+			need, err := kindkit.Need(op, where, body)
+			if err != nil {
+				return nil, err
+			}
+			needs = append(needs, need)
 		}
-		needs = append(needs, need)
 	}
-	return needs, nil
+	return append(needs, kindkit.Deletes(env.Spec.Prune.OrganizationScopes, "spec.prune.organizationScopes", "DeleteOrganizationScope")...), nil
 }
 
 type scopePayload struct {
@@ -155,7 +160,7 @@ func (Roles) Needs(env *engine.Env) ([]capability.Need, error) {
 			needs = append(needs, need)
 		}
 	}
-	return needs, nil
+	return append(needs, kindkit.Deletes(env.Spec.Prune.OrganizationRoles, "spec.prune.organizationRoles", "DeleteOrganizationRole")...), nil
 }
 
 type rolePayload struct {

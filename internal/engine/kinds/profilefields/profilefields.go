@@ -42,7 +42,7 @@ func (Kind) Needs(env *engine.Env) ([]capability.Need, error) {
 			needs = append(needs, need)
 		}
 	}
-	return needs, nil
+	return append(needs, kindkit.Deletes(env.Spec.Prune.CustomProfileFields, "spec.prune.customProfileFields", "DeleteCustomProfileFieldByName")...), nil
 }
 
 type payload struct {

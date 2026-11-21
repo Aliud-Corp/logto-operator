@@ -36,3 +36,8 @@ CreateApplicationSecret
 ListApplicationRoles
 AssignApplicationRoles
 ListRoles
+ListUsers
+CreateUser
+UpdateUser
+ListUserRoles
+AssignUserRoles

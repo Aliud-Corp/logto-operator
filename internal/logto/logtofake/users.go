@@ -86,7 +86,8 @@ func userView(o object) object {
 	return v
 }
 
-// ListUsers is GET /api/users, paginated, with Logto's search: search.primaryEmail and mode.primaryEmail=exact.
+// ListUsers is GET /api/users, paginated, with Logto's search on primaryEmail: mode.primaryEmail=exact matches the
+// value as is, the default mode matches it as a case-insensitive substring.
 func (s *Server) ListUsers(w http.ResponseWriter, r *http.Request, _ mgmt.ListUsersParams) {
 	q := r.URL.Query()
 	want, exact := q.Get("search.primaryEmail"), q.Get("mode.primaryEmail") == "exact"
@@ -95,7 +96,7 @@ func (s *Server) ListUsers(w http.ResponseWriter, r *http.Request, _ mgmt.ListUs
 	items := []object{}
 	for _, o := range sorted(s.users) {
 		email := str(o, "primaryEmail")
-		if want != "" && (exact && email != want || !exact && !strings.Contains(email, want)) {
+		if want != "" && (exact && email != want || !exact && !strings.Contains(strings.ToLower(email), strings.ToLower(want))) {
 			continue
 		}
 		items = append(items, userView(o))

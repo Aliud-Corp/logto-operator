@@ -31,4 +31,6 @@
   `servers`: `task spec:refresh` always asks `localhost:3001`.
 - `m-default` gets its token at the admin endpoint for `https://default.logto.app/api`; the token is accepted by the
   tenant endpoint (measured on 1.44.0, 1.45.0, 1.46.0).
+- Users are found with `search.primaryEmail=<address>` (Logto's default search mode matches across case, measured)
+  and compared case-insensitively; they are created without a password.
 - Never call a deployed Logto from a test or a development session.

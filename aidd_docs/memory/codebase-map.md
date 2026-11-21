@@ -23,6 +23,10 @@ flowchart TD
 - `examples/reference.yaml`: every M1 kind, with example names; the acceptance tests apply it.
 - `tools/crd2schema/`: extracts the JSON Schema of the CLI file from the CRD.
 - `tools/specdiff/`: classifies the differences between two vendored specs; `used.txt` lists the operations used.
+- `internal/logto/client/`: token, retries, pagination, errors; `internal/logto/openapi`, `contract`, `capability`:
+  spec loading, wire-type validation per version, target capability check.
+- `internal/secrets/`: valueFrom resolution, the masked `Secret` type, the redactor.
+- `internal/engine/`: kind ordering, plan and apply; `internal/engine/plan/`: the plan and its rendering.
 - `internal/logto/mgmt/`: generated code plus its three `oapi-codegen` configs; `doc.go` is the only hand-written file.
 - `internal/logto/logtofake/`: in-process fake on the generated server; unmodelled routes answer 501.
 - `cmd/logtoctl/`: the CLI.

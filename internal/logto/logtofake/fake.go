@@ -39,6 +39,14 @@ type Server struct {
 	seq      int
 
 	applications []Application
+
+	resources             map[string]object
+	resourceScopes        map[string]map[string]object // resource id -> scope id -> scope
+	orgScopes             map[string]object
+	orgRoles              map[string]object
+	orgRoleScopes         map[string][]string // role id -> organization scope ids
+	orgRoleResourceScopes map[string][]string // role id -> resource scope ids
+	profileFields         map[string]object   // by name
 }
 
 // New returns a fake that issues Management API tokens to the given client credentials only.

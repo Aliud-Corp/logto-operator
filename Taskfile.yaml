@@ -126,7 +126,8 @@ tasks:
     cmds:
       - task: it:up
       - task: it:bootstrap
-      - LOGTO_IT_REQUIRED=1 go test -tags integration -count=1 ./...
+      # -p 1: packages share the throwaway Logto, and a prune in one must not see another's objects appear.
+      - LOGTO_IT_REQUIRED=1 go test -tags integration -count=1 -p 1 ./...
 
   it:all:
     desc: Integration tests on every version of the support window, one after the other (what CI runs on main).

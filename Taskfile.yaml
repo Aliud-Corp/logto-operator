@@ -14,7 +14,7 @@ vars:
   CODEGEN_SPEC: build/management.codegen.json
   MGMT_DIR: internal/logto/mgmt
   # Every directory `task generate` writes into; `generate:check` guards them all.
-  GENERATED_DIRS: internal/logto/mgmt api/v1alpha1 config/crd
+  GENERATED_DIRS: internal/logto/mgmt api/v1alpha1 config/crd api/logto internal/logto/version
   BIN_DIR: bin
   E2E_CLUSTER: logto-operator-e2e
   E2E_KUBECONFIG: build/e2e.kubeconfig
@@ -27,10 +27,13 @@ tasks:
       - task --list
 
   generate:
-    desc: Regenerate the Management API client and the LogtoConfig deepcopy, CRD and JSON Schema (commit the result).
+    desc: Regenerate the Management API client, the normalized specs and version fingerprints, and the LogtoConfig deepcopy, CRD and JSON Schema (commit the result).
     # No `sources:` fingerprint on purpose: the drift guard below must ALWAYS regenerate, never trust a checksum.
     cmds:
       - mkdir -p build
+      # Each vendored spec normalized for validation (what the tests load), and the fingerprints logtoctl recognises a
+      # target's version by: the binary carries no spec.
+      - go run ./tools/specwindow api/logto internal/logto/version/fingerprints.gen.go
       - go run ./tools/specnorm {{.SPEC}} {{.CODEGEN_SPEC}}
       - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.types.yaml {{.CODEGEN_SPEC}}
       - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.client.yaml {{.CODEGEN_SPEC}}
@@ -152,6 +155,7 @@ tasks:
       - jq -e '.paths | length > 0' build/spec-{{.VERSION}}.json > /dev/null
       - mv build/spec-{{.VERSION}}.json api/logto/{{.VERSION}}.openapi.json
       - task: it:down
+      - task: generate
 
   spec:diff:
     desc: Classify the differences between two vendored specs; fails on a breaking change of an operation the kinds use. Usage - task spec:diff FROM=1.44.0 TO=1.46.0

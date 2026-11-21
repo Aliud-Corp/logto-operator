@@ -23,11 +23,11 @@ import (
 	"strings"
 	"syscall"
 
-	logtospecs "github.com/Aliud-Corp/logto-operator/api/logto"
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/capability"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/version"
 	"github.com/Aliud-Corp/logto-operator/internal/secrets"
 )
 
@@ -186,7 +186,7 @@ func (e *Engine) checkCapabilities(env *Env) error {
 	}
 	if env.Capability.Version == "" && !env.AllowUntested {
 		return fmt.Errorf("%w: its API spec is none of the supported versions (%s), its behaviour is untested; "+
-			"run a supported Logto, or allow an untested one", ErrUntested, strings.Join(logtospecs.Versions(), ", "))
+			"run a supported Logto, or allow an untested one", ErrUntested, strings.Join(version.Versions(), ", "))
 	}
 	var needs []capability.Need
 	for _, k := range e.kinds {

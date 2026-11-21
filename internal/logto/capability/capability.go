@@ -13,10 +13,10 @@ import (
 	"strings"
 	"sync"
 
-	logtospecs "github.com/Aliud-Corp/logto-operator/api/logto"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/openapi"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/version"
 )
 
 // Spec is the target instance's own spec.
@@ -51,7 +51,7 @@ func Parse(raw []byte) (*Spec, error) {
 	if err != nil {
 		return nil, err
 	}
-	v, err := logtospecs.Match(raw)
+	v, err := version.Match(raw)
 	if err != nil {
 		return nil, err
 	}

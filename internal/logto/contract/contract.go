@@ -22,12 +22,12 @@ func window() (map[string]*openapi.Doc, error) {
 	once.Do(func() {
 		docs = map[string]*openapi.Doc{}
 		for _, v := range logtospecs.Versions() {
-			raw, err := logtospecs.Spec(v)
+			norm, err := logtospecs.Normalized(v)
 			if err != nil {
 				errAll = err
 				return
 			}
-			d, err := openapi.Load(raw)
+			d, err := openapi.LoadNormalized(norm)
 			if err != nil {
 				errAll = fmt.Errorf("vendored spec %s: %w", v, err)
 				return

@@ -38,8 +38,9 @@ flowchart LR
 - A sub-object Logto replaces whole is sent as the declared value over Logto's own (`kindkit.Overlay`): unmanaged
   fields survive. Deletes run after every create and update, kinds in reverse order; apply results are per op
   (`plan.Result`), failures `*engine.OpError`, `engine.Transient` says whether a retry may help.
-- The target's version is its spec: `api/logto.Match` fingerprints it (without `servers`) against the vendored ones;
-  an unknown one is refused unless `--allow-untested-logto`. The vendored specs are embedded in the binary.
+- The target's version is its spec: `internal/logto/version.Match` fingerprints it (without `servers`) against the
+  vendored ones; an unknown one is refused unless `--allow-untested-logto`. The binary carries only the fingerprints
+  (generated); the specs, raw and normalized (`<version>.normalized.json`, what tests load), stay test-only.
 - Secret values are read only during an apply (`engine.Publisher`); a plan never holds one, and a sensitive change
   is masked as it enters a plan.
 - A document is loaded strictly (`internal/config`): unknown keys fail with their path, `${name}` comes from

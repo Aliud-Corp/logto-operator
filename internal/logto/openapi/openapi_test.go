@@ -1,30 +1,58 @@
 package openapi_test
 
 import (
+	"bytes"
 	"strings"
+	"sync"
 	"testing"
 
 	logtospecs "github.com/Aliud-Corp/logto-operator/api/logto"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/openapi"
 )
 
+// load is a vendored spec, from its normalized form (task generate), loaded once per version.
 func load(t *testing.T, version string) *openapi.Doc {
 	t.Helper()
-	raw, err := logtospecs.Spec(version)
+	loaded.once.Do(func() { loaded.docs = map[string]*openapi.Doc{} })
+	if d, ok := loaded.docs[version]; ok {
+		return d
+	}
+	norm, err := logtospecs.Normalized(version)
 	if err != nil {
 		t.Fatal(err)
 	}
-	d, err := openapi.Load(raw)
+	d, err := openapi.LoadNormalized(norm)
 	if err != nil {
 		t.Fatal(err)
 	}
+	loaded.docs[version] = d
 	return d
 }
 
-func TestEveryVendoredSpecLoads(t *testing.T) {
+var loaded struct {
+	once sync.Once
+	docs map[string]*openapi.Doc
+}
+
+// Every vendored spec loads as Logto serves it, and its normalized form is exactly what Normalize makes of it now
+// (otherwise task generate was not run, and the tests would validate against a stale form).
+func TestEveryVendoredSpecLoadsAndItsNormalizedFormIsCurrent(t *testing.T) {
 	for _, v := range logtospecs.Versions() {
-		if d := load(t, v); !d.Has("UpdateSignInExp") {
-			t.Errorf("%s: no UpdateSignInExp", v)
+		raw, err := logtospecs.Spec(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d, err := openapi.Load(raw)
+		if err != nil || !d.Has("UpdateSignInExp") {
+			t.Fatalf("%s: %v", v, err)
+		}
+		norm, err := openapi.Normalize(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		stored, err := logtospecs.Normalized(v)
+		if err != nil || !bytes.Equal(norm, stored) {
+			t.Errorf("%s: api/logto/%s.normalized.json is stale: run task generate", v, v)
 		}
 	}
 }

@@ -18,6 +18,11 @@ Two things in them that look wrong and are not:
 Literal values are encoded as `"format": "\"Social\""` (zod literals). `tools/specnorm` rewrites them into one-value
 `enum`s, plus a short, self-checking list of overlays for generator limits, into `build/` before `oapi-codegen` runs.
 
+`task generate` also writes, from each vendored spec, `<version>.normalized.json` (the form the validation loader
+reads, which the tests load to skip that costly step) and the version fingerprints compiled into logtoctl
+(`internal/logto/version/fingerprints.gen.go`). Both are committed and guarded by `task generate:check`; the binary
+carries no spec, only those fingerprints.
+
 ## Adding a Logto version, dropping the oldest
 
 1. Vendor the new version (needs Docker; it restarts the throwaway Logto at that version):

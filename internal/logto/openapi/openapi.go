@@ -35,16 +35,29 @@ type route struct {
 
 var pathParam = regexp.MustCompile(`\\\{[^/]+?\\\}`)
 
-// Load normalizes (see specnorm) and loads a spec. It does not validate the document itself: Logto's documents use
-// formats and constructs a strict validation refuses, and only the schemas of the operations matter here.
+// Load normalizes (Normalize) and loads a spec as Logto serves it. It does not validate the document itself: Logto's
+// documents use formats and constructs a strict validation refuses, and only the schemas of the operations matter.
 func Load(raw []byte) (*Doc, error) {
+	norm, err := Normalize(raw)
+	if err != nil {
+		return nil, err
+	}
+	return LoadNormalized(norm)
+}
+
+// Normalize is what Load does to a spec before loading it: specnorm's rewrites, then JavaScript patterns turned into
+// Go ones and oneOf read as anyOf (goPatterns). The vendored specs are stored normalized (task generate), so that
+// tests skip this, the costly part of a load.
+func Normalize(raw []byte) ([]byte, error) {
 	norm, _, err := specnorm.Normalize(raw, nil)
 	if err != nil {
 		return nil, err
 	}
-	if norm, err = goPatterns(norm); err != nil {
-		return nil, err
-	}
+	return goPatterns(norm)
+}
+
+// LoadNormalized loads a spec that Normalize already produced.
+func LoadNormalized(norm []byte) (*Doc, error) {
 	loader := openapi3.NewLoader()
 	loader.Context = context.Background()
 	t, err := loader.LoadFromData(norm)

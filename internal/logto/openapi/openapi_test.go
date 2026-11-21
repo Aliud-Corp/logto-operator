@@ -56,3 +56,21 @@ func TestAKeyTheSchemaDoesNotDeclareIsReported(t *testing.T) {
 		t.Fatalf("problems = %v", p)
 	}
 }
+
+// A union (Logto's profile fields are one schema per type) accepts a value only through a branch that fits it whole:
+// the parts of a Fullname config are known to the Fullname branch, not to the Text one.
+func TestAUnionIsCheckedBranchByBranch(t *testing.T) {
+	s, err := load(t, "1.46.0").RequestSchema("CreateCustomProfileField")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parts := map[string]any{"parts": []any{map[string]any{"enabled": true, "name": "givenName", "type": "Text", "label": "Given", "required": true}}}
+	fullname := map[string]any{"name": "fullname", "type": "Fullname", "label": "Name", "required": true, "config": parts}
+	if p := openapi.Validate(s, fullname); len(p) > 0 {
+		t.Fatalf("a valid Fullname field is refused: %v", p)
+	}
+	text := map[string]any{"name": "company", "type": "Text", "label": "Company", "required": false, "config": parts}
+	if p := openapi.Validate(s, text); len(p) == 0 {
+		t.Fatal("a Text field carrying Fullname parts is accepted")
+	}
+}

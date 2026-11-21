@@ -182,6 +182,25 @@ func unknownKeys(s *openapi3.Schema, value any, path string) []string {
 	if s == nil {
 		return nil
 	}
+	// A union accepts the value when one of its branches does: report the problems of the branch that fits best.
+	if branches := append(append(openapi3.SchemaRefs{}, s.AnyOf...), s.OneOf...); len(branches) > 0 && len(s.Properties) == 0 {
+		var best []string
+		for i, ref := range branches {
+			problems := unknownKeys(ref.Value, value, path)
+			if ref.Value != nil {
+				if err := ref.Value.VisitJSON(value, openapi3.MultiErrors()); err != nil {
+					problems = append(problems, schemaErrors(err)...)
+				}
+			}
+			if len(problems) == 0 {
+				return nil
+			}
+			if i == 0 || len(problems) < len(best) {
+				best = problems
+			}
+		}
+		return best
+	}
 	switch v := value.(type) {
 	case map[string]any:
 		var out []string

@@ -15,6 +15,10 @@
 - Logto generates application ids, organization ids and M2M secret values; none can be chosen through the API.
 - An e-mail sign-up identifier with `verify: true` is refused while no e-mail connector exists.
 - Enabling an application's access control without a rule answers 422.
+- Custom profile fields: the body is one schema per type, `required` is mandatory (even `false`); Logto may add
+  defaults to `config`, so a field's config is compared as "what the document declares is there".
+- Prune in integration tests touches only the test's own objects (`kindtest.KeepAllBut`); integration packages run
+  one at a time (`go test -p 1`) against the shared throwaway Logto.
 - SMTP connector config: `port` must be a number, `auth` must be non-empty, and `Register`, `SignIn` and
   `ForgotPassword` templates are mandatory.
 - Support window: the latest Logto minor and the two before it (`api/logto/versions.txt`); a new minor is judged

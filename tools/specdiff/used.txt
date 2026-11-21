@@ -18,3 +18,7 @@ UpdateOrganizationRole
 DeleteOrganizationRole
 ReplaceOrganizationRoleScopes
 ReplaceOrganizationRoleResourceScopes
+ListCustomProfileFields
+CreateCustomProfileField
+UpdateCustomProfileFieldByName
+DeleteCustomProfileFieldByName

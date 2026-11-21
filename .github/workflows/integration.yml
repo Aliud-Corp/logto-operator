@@ -1,8 +1,10 @@
 ---
 # Integration tests against a real, throwaway Logto (test/integration/compose.yaml) on a GitHub-hosted runner.
-# Pull requests test the newest version of the support window (`task it`); pushes to main test every version of
-# api/logto/versions.txt one after the other (`task it:all`). One job either way: while the repository is private,
-# each job is billed rounded up to the minute (see ci.yml). Caches are restored here and saved by ci.yml on main.
+# Pushes to main, and pull requests that change how Logto is called (the engine, the kinds, the client, the specs,
+# the reference document the acceptance test applies, the harness itself),
+# test every version of api/logto/versions.txt one after the other (`task it:all`); other pull requests test the
+# newest (`task it`). One job either way: while the repository is private, each job is billed rounded up to the
+# minute (see ci.yml). Caches are restored here and saved by ci.yml on main.
 name: integration
 
 on:
@@ -15,6 +17,7 @@ on:
       - 'api/**'
       - 'tools/**'
       - 'test/integration/**'
+      - 'examples/**'
       - 'go.mod'
       - 'go.sum'
       - 'mise.toml'
@@ -28,6 +31,7 @@ on:
       - 'api/**'
       - 'tools/**'
       - 'test/integration/**'
+      - 'examples/**'
       - 'go.mod'
       - 'go.sum'
       - 'mise.toml'
@@ -55,6 +59,8 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           persist-credentials: false
+          # A pull request checks out its merge commit: its first parent is the base, to list what the PR changes.
+          fetch-depth: 2
       - name: Install the pinned toolchain (from mise.toml)
         uses: jdx/mise-action@dba19683ed58901619b14f395a24841710cb4925  # v4.1.0
         with:
@@ -68,11 +74,18 @@ jobs:
           restore-keys: |
             go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.toml') }}-
             go-${{ runner.os }}-
+      - name: Choose the versions to test
+        id: scope
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ] ||
+            git diff --name-only HEAD^1 HEAD | grep -qE '^(internal/engine/|internal/logto/|api/|examples/|test/integration/)'; then
+            echo "all=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: task it (newest version)
-        if: github.event_name == 'pull_request'
+        if: steps.scope.outputs.all != 'true'
         run: task it
       - name: task it:all (every version of the window)
-        if: github.event_name == 'push'
+        if: steps.scope.outputs.all == 'true'
         run: task it:all
       - name: task it:down
         if: always()

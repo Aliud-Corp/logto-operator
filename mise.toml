@@ -4,8 +4,9 @@
 #
 #   go             the language. Also the floor of `go.mod` (`go` directive), bump both in one commit.
 #   task           the only entry point to the repository: CI runs `task <target>`, never a raw command.
-#   oapi-codegen   generates internal/logto/mgmt from api/logto/management.openapi.json. Its output is committed and
-#                  guarded by `task generate:check`, so two versions would make that guard flap between machines.
+#   oapi-codegen   generates internal/logto/mgmt from the newest api/logto/<version>.openapi.json. Its output is
+#                  committed and guarded by `task generate:check`, so two versions would make that guard flap between
+#                  machines.
 #                  Installed through mise's `go` backend (`go install <module>@<version>`): the aqua registry entry
 #                  is a go_install package that mise's aqua backend refuses.
 #   golangci-lint  the gate of `task lint`.

@@ -1,3 +1,3 @@
 # Generated code: collapsed in GitHub diffs and excluded from language stats. Regenerate with `task generate`.
 *.gen.go linguist-generated=true
-api/logto/management.openapi.json linguist-generated=true
+api/logto/*.openapi.json linguist-generated=true

@@ -56,7 +56,8 @@ func (s *Server) validate(next http.Handler) http.Handler {
 		s.mu.Lock()
 		docs := s.docs
 		s.mu.Unlock()
-		if len(docs) == 0 || !strings.HasPrefix(r.URL.Path, "/api/") {
+		// The spec routes serve a vendored document as it is: validating it against itself only costs time.
+		if len(docs) == 0 || !strings.HasPrefix(r.URL.Path, "/api/") || public[r.URL.Path] {
 			next.ServeHTTP(w, r)
 			return
 		}

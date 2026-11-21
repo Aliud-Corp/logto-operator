@@ -6,10 +6,12 @@ package capability
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	logtospecs "github.com/Aliud-Corp/logto-operator/api/logto"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
@@ -38,8 +40,13 @@ func Fetch(ctx context.Context, c *client.Client) (*Spec, error) {
 	return Parse(raw)
 }
 
-// Parse loads a spec document and recognises its version.
+// Parse loads a spec document and recognises its version. A document already parsed in this process (same bytes)
+// is not parsed again: a Spec is read-only, and loading Logto's (some 800 KB) is the costly part of a run's setup.
 func Parse(raw []byte) (*Spec, error) {
+	key := sha256.Sum256(raw)
+	if s, ok := parsed.Load(key); ok {
+		return s.(*Spec), nil
+	}
 	d, err := openapi.Load(raw)
 	if err != nil {
 		return nil, err
@@ -48,8 +55,11 @@ func Parse(raw []byte) (*Spec, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Spec{doc: d, Version: v}, nil
+	s, _ := parsed.LoadOrStore(key, &Spec{doc: d, Version: v})
+	return s.(*Spec), nil
 }
+
+var parsed sync.Map // sha256 of a raw document -> *Spec
 
 // Need is what one declared object will send: an operation and the property paths of its body (a.b.c), with where
 // they come from in the document, for the message.

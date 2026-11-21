@@ -4,7 +4,8 @@
 // they are sources, and a source is never edited by hand. Logto's generator, however, encodes a zod literal as a JSON
 // string inside `format` (`{"type":"string","format":"\"Social\""}`), which is not OpenAPI and which kin-openapi (the
 // loader of oapi-codegen) rejects outright: "format ... may not contain a double quote". This program rewrites
-// exactly that construct into what it means, a one-value `enum`.
+// exactly that construct into what it means, a one-value `enum`. It also leaves unconstrained the fields Logto
+// exports as an empty object "Validator function" (custom zod checks on what is really a string).
 //
 // Second, a short list of OVERLAYS (see `Overlays`): extensions added at an exact JSON pointer to work around a
 // generator limitation, each with its reason. An overlay whose target no longer exists, or no longer looks like what
@@ -55,6 +56,13 @@ func walk(node any) (int, error) {
 	count := 0
 	switch v := node.(type) {
 	case map[string]any:
+		// A field checked by a custom zod function is exported as an empty object described "Validator function",
+		// though its value is a string (a redirect URI, a name...): real answers would not decode, valid bodies
+		// would be refused. It is left unconstrained.
+		if v["description"] == "Validator function" && v["type"] == "object" && v["properties"] == nil {
+			delete(v, "type")
+			delete(v, "additionalProperties")
+		}
 		if f, ok := v["format"].(string); ok && strings.HasPrefix(f, `"`) {
 			var literal string
 			if err := json.Unmarshal([]byte(f), &literal); err != nil {

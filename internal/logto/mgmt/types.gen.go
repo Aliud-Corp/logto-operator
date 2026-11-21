@@ -22599,11 +22599,11 @@ type CreateApplicationJSONBody struct {
 	IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 	Name               string                  `json:"name"`
 	OidcClientMetadata *struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata,omitempty"`
 
 	// ProtectedAppMetadata The data for protected app, this feature is not available for open source version.
@@ -22778,11 +22778,11 @@ type UpdateApplicationJSONBody struct {
 	IsAdmin            *bool   `json:"isAdmin,omitempty"`
 	Name               *string `json:"name,omitempty"`
 	OidcClientMetadata *struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata,omitempty"`
 	ProtectedAppMetadata *struct {
 		AdditionalScopes *[]UpdateApplicationJSONBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -22917,7 +22917,7 @@ type GetCaptchaProvider200JSONResponseBodyConfig1Type string
 // GetCaptchaProvider200JSONResponseBodyConfig2 defines parameters for GetCaptchaProvider.
 type GetCaptchaProvider200JSONResponseBodyConfig2 struct {
 	// Endpoint Validator function
-	Endpoint  map[string]interface{}                           `json:"endpoint"`
+	Endpoint  interface{}                                      `json:"endpoint"`
 	SecretKey string                                           `json:"secretKey"`
 	SiteKey   string                                           `json:"siteKey"`
 	Type      GetCaptchaProvider200JSONResponseBodyConfig2Type `json:"type"`
@@ -22977,7 +22977,7 @@ type UpdateCaptchaProviderJSONBodyConfig1Type string
 // UpdateCaptchaProviderJSONBodyConfig2 defines parameters for UpdateCaptchaProvider.
 type UpdateCaptchaProviderJSONBodyConfig2 struct {
 	// Endpoint Validator function
-	Endpoint  map[string]interface{}                   `json:"endpoint"`
+	Endpoint  interface{}                              `json:"endpoint"`
 	SecretKey string                                   `json:"secretKey"`
 	SiteKey   string                                   `json:"siteKey"`
 	Type      UpdateCaptchaProviderJSONBodyConfig2Type `json:"type"`
@@ -23031,7 +23031,7 @@ type UpdateCaptchaProvider200JSONResponseBodyConfig1Type string
 // UpdateCaptchaProvider200JSONResponseBodyConfig2 defines parameters for UpdateCaptchaProvider.
 type UpdateCaptchaProvider200JSONResponseBodyConfig2 struct {
 	// Endpoint Validator function
-	Endpoint  map[string]interface{}                              `json:"endpoint"`
+	Endpoint  interface{}                                         `json:"endpoint"`
 	SecretKey string                                              `json:"secretKey"`
 	SiteKey   string                                              `json:"siteKey"`
 	Type      UpdateCaptchaProvider200JSONResponseBodyConfig2Type `json:"type"`
@@ -23592,11 +23592,11 @@ type ListJwtCustomizers200JSONResponseBody0 struct {
 				IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 				Name               *string                 `json:"name,omitempty"`
 				OidcClientMetadata *struct {
-					BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-					BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-					LogoUri                          *string                  `json:"logoUri,omitempty"`
-					PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-					RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+					BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+					BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+					LogoUri                          *string       `json:"logoUri,omitempty"`
+					PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+					RedirectUris                     []interface{} `json:"redirectUris"`
 				} `json:"oidcClientMetadata,omitempty"`
 				ProtectedAppMetadata *struct {
 					AdditionalScopes *[]ListJwtCustomizers200JSONResponseBody0ValueContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -24133,11 +24133,11 @@ type ListJwtCustomizers200JSONResponseBody1 struct {
 				IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 				Name               *string                 `json:"name,omitempty"`
 				OidcClientMetadata *struct {
-					BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-					BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-					LogoUri                          *string                  `json:"logoUri,omitempty"`
-					PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-					RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+					BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+					BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+					LogoUri                          *string       `json:"logoUri,omitempty"`
+					PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+					RedirectUris                     []interface{} `json:"redirectUris"`
 				} `json:"oidcClientMetadata,omitempty"`
 				ProtectedAppMetadata *struct {
 					AdditionalScopes *[]ListJwtCustomizers200JSONResponseBody1ValueContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -24263,11 +24263,11 @@ type TestJwtCustomizerJSONBody0 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]TestJwtCustomizerJSONBody0ContextApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -24801,11 +24801,11 @@ type TestJwtCustomizerJSONBody1 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]TestJwtCustomizerJSONBody1ContextApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -24912,11 +24912,11 @@ type GetJwtCustomizer200JSONResponseBody0 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]GetJwtCustomizer200JSONResponseBody0ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -25447,11 +25447,11 @@ type GetJwtCustomizer200JSONResponseBody1 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]GetJwtCustomizer200JSONResponseBody1ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -25574,11 +25574,11 @@ type UpdateJwtCustomizer200JSONResponseBody0 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpdateJwtCustomizer200JSONResponseBody0ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -26109,11 +26109,11 @@ type UpdateJwtCustomizer200JSONResponseBody1 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpdateJwtCustomizer200JSONResponseBody1ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -26236,11 +26236,11 @@ type UpsertJwtCustomizer200JSONResponseBody0 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpsertJwtCustomizer200JSONResponseBody0ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -26771,11 +26771,11 @@ type UpsertJwtCustomizer200JSONResponseBody1 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpsertJwtCustomizer200JSONResponseBody1ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -26877,11 +26877,11 @@ type UpsertJwtCustomizer201JSONResponseBody0 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpsertJwtCustomizer201JSONResponseBody0ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -27412,11 +27412,11 @@ type UpsertJwtCustomizer201JSONResponseBody1 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpsertJwtCustomizer201JSONResponseBody1ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -27815,8 +27815,8 @@ type CreateConnectorJSONBody struct {
 		LogoDark *string `json:"logoDark,omitempty"`
 
 		// Name Validator function
-		Name   *map[string]interface{} `json:"name,omitempty"`
-		Target *string                 `json:"target,omitempty"`
+		Name   interface{} `json:"name,omitempty"`
+		Target *string     `json:"target,omitempty"`
 	} `json:"metadata,omitempty"`
 
 	// SyncProfile Whether to sync user profile from the identity provider to Logto at each sign-in. If `false`, the user profile will only be synced when the user is created.
@@ -28033,8 +28033,8 @@ type UpdateConnectorJSONBody struct {
 		LogoDark *string `json:"logoDark,omitempty"`
 
 		// Name Validator function
-		Name   *map[string]interface{} `json:"name,omitempty"`
-		Target *string                 `json:"target,omitempty"`
+		Name   interface{} `json:"name,omitempty"`
+		Target *string     `json:"target,omitempty"`
 	} `json:"metadata,omitempty"`
 
 	// SyncProfile Whether to sync user profile from the identity provider to Logto at each sign-in. If `false`, the user profile will only be synced when the user is created.
@@ -31656,8 +31656,8 @@ type CreateSamlApplicationJSONBody struct {
 	Description *string `json:"description,omitempty"`
 
 	// Encryption Validator function
-	Encryption *map[string]interface{} `json:"encryption,omitempty"`
-	EntityId   *string                 `json:"entityId,omitempty"`
+	Encryption interface{} `json:"encryption,omitempty"`
+	EntityId   *string     `json:"entityId,omitempty"`
 
 	// Name The name of the SAML application.
 	Name         string                                    `json:"name"`
@@ -31750,8 +31750,8 @@ type UpdateSamlApplicationJSONBody struct {
 	Description *string `json:"description,omitempty"`
 
 	// Encryption Validator function
-	Encryption *map[string]interface{} `json:"encryption,omitempty"`
-	EntityId   *string                 `json:"entityId,omitempty"`
+	Encryption interface{} `json:"encryption,omitempty"`
+	EntityId   *string     `json:"entityId,omitempty"`
 
 	// Name The name of the SAML application.
 	Name         *string                                    `json:"name,omitempty"`
@@ -32079,7 +32079,7 @@ type UpdateSignInExpJSONBody struct {
 	UnknownSessionRedirectUrl *UpdateSignInExpJSONBody_UnknownSessionRedirectUrl `json:"unknownSessionRedirectUrl,omitempty"`
 
 	// UsernamePolicy Validator function
-	UsernamePolicy         *map[string]interface{} `json:"usernamePolicy,omitempty"`
+	UsernamePolicy         interface{} `json:"usernamePolicy,omitempty"`
 	VerificationCodePolicy *struct {
 		ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 		MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`

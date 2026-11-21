@@ -74,3 +74,17 @@ func TestAUnionIsCheckedBranchByBranch(t *testing.T) {
 		t.Fatal("a Text field carrying Fullname parts is accepted")
 	}
 }
+
+// A redirect URI is exported by Logto as an object "Validator function"; it is a string, and must be accepted.
+func TestAValidatorFunctionFieldAcceptsAString(t *testing.T) {
+	s, err := load(t, "1.46.0").RequestSchema("CreateApplication")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := map[string]any{"name": "a", "type": "SPA", "oidcClientMetadata": map[string]any{
+		"redirectUris": []any{"https://app.example.test/callback"}, "postLogoutRedirectUris": []any{},
+	}}
+	if p := openapi.Validate(s, body); len(p) > 0 {
+		t.Fatalf("problems = %v", p)
+	}
+}

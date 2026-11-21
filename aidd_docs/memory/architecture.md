@@ -43,4 +43,6 @@ flowchart LR
 - The spec says `info.version: Cloud`: a route's presence does not prove it works on OSS.
 - Logto writes `pattern` as JavaScript literals (`/^#...$/i`) and zod unions as `oneOf` meaning `anyOf`: the
   validation loader (`internal/logto/openapi`) converts both, or valid values are refused.
+- Logto exports fields checked by a custom zod function (redirect URIs, names...) as empty objects "Validator
+  function": `specnorm` leaves them unconstrained, or the generated client cannot decode real answers.
 - YAML flow sequences break on `${...}`: quote such strings (`["https://app.${zone}"]`).

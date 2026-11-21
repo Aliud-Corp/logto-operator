@@ -36507,7 +36507,7 @@ type GetWellKnownExperienceResponse struct {
 			LogoDark                *string `json:"logoDark"`
 
 			// Name Validator function
-			Name     map[string]interface{}                                             `json:"name"`
+			Name     interface{}                                                        `json:"name"`
 			Platform *GetWellKnownExperience200JSONResponseBodySocialConnectorsPlatform `json:"platform"`
 			Target   string                                                             `json:"target"`
 		} `json:"socialConnectors"`
@@ -36533,7 +36533,7 @@ type GetWellKnownExperienceResponse struct {
 		UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 		// UsernamePolicy Validator function
-		UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+		UsernamePolicy         interface{} `json:"usernamePolicy"`
 		VerificationCodePolicy struct {
 			ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 			MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -36753,7 +36753,7 @@ func (r GetWellKnownExperienceResponse) GetJSON200() *struct {
 		LogoDark                *string `json:"logoDark"`
 
 		// Name Validator function
-		Name     map[string]interface{}                                             `json:"name"`
+		Name     interface{}                                                        `json:"name"`
 		Platform *GetWellKnownExperience200JSONResponseBodySocialConnectorsPlatform `json:"platform"`
 		Target   string                                                             `json:"target"`
 	} `json:"socialConnectors"`
@@ -36779,7 +36779,7 @@ func (r GetWellKnownExperienceResponse) GetJSON200() *struct {
 	UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 	// UsernamePolicy Validator function
-	UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+	UsernamePolicy         interface{} `json:"usernamePolicy"`
 	VerificationCodePolicy struct {
 		ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 		MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -37141,7 +37141,7 @@ type GetSignInExperienceConfigResponse struct {
 			LogoDark                *string `json:"logoDark"`
 
 			// Name Validator function
-			Name     map[string]interface{}                                                `json:"name"`
+			Name     interface{}                                                           `json:"name"`
 			Platform *GetSignInExperienceConfig200JSONResponseBodySocialConnectorsPlatform `json:"platform"`
 			Target   string                                                                `json:"target"`
 		} `json:"socialConnectors"`
@@ -37167,7 +37167,7 @@ type GetSignInExperienceConfigResponse struct {
 		UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 		// UsernamePolicy Validator function
-		UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+		UsernamePolicy         interface{} `json:"usernamePolicy"`
 		VerificationCodePolicy struct {
 			ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 			MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -37387,7 +37387,7 @@ func (r GetSignInExperienceConfigResponse) GetJSON200() *struct {
 		LogoDark                *string `json:"logoDark"`
 
 		// Name Validator function
-		Name     map[string]interface{}                                                `json:"name"`
+		Name     interface{}                                                           `json:"name"`
 		Platform *GetSignInExperienceConfig200JSONResponseBodySocialConnectorsPlatform `json:"platform"`
 		Target   string                                                                `json:"target"`
 	} `json:"socialConnectors"`
@@ -37413,7 +37413,7 @@ func (r GetSignInExperienceConfigResponse) GetJSON200() *struct {
 	UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 	// UsernamePolicy Validator function
-	UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+	UsernamePolicy         interface{} `json:"usernamePolicy"`
 	VerificationCodePolicy struct {
 		ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 		MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -37702,11 +37702,11 @@ type ListApplicationsResponse struct {
 		IsThirdParty       bool                   `json:"isThirdParty"`
 		Name               string                 `json:"name"`
 		OidcClientMetadata struct {
-			BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-			BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-			LogoUri                          *string                  `json:"logoUri,omitempty"`
-			PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-			RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+			BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+			BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+			LogoUri                          *string       `json:"logoUri,omitempty"`
+			PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+			RedirectUris                     []interface{} `json:"redirectUris"`
 		} `json:"oidcClientMetadata"`
 		ProtectedAppMetadata *struct {
 			AdditionalScopes *[]ListApplications200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -37771,11 +37771,11 @@ func (r ListApplicationsResponse) GetJSON200() *[]struct {
 	IsThirdParty       bool                   `json:"isThirdParty"`
 	Name               string                 `json:"name"`
 	OidcClientMetadata struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata"`
 	ProtectedAppMetadata *struct {
 		AdditionalScopes *[]ListApplications200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -37873,11 +37873,11 @@ type CreateApplicationResponse struct {
 		IsThirdParty       bool                   `json:"isThirdParty"`
 		Name               string                 `json:"name"`
 		OidcClientMetadata struct {
-			BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-			BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-			LogoUri                          *string                  `json:"logoUri,omitempty"`
-			PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-			RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+			BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+			BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+			LogoUri                          *string       `json:"logoUri,omitempty"`
+			PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+			RedirectUris                     []interface{} `json:"redirectUris"`
 		} `json:"oidcClientMetadata"`
 		ProtectedAppMetadata *struct {
 			AdditionalScopes *[]CreateApplication200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -37942,11 +37942,11 @@ func (r CreateApplicationResponse) GetJSON200() *struct {
 	IsThirdParty       bool                   `json:"isThirdParty"`
 	Name               string                 `json:"name"`
 	OidcClientMetadata struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata"`
 	ProtectedAppMetadata *struct {
 		AdditionalScopes *[]CreateApplication200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -38792,11 +38792,11 @@ type GetApplicationResponse struct {
 		IsThirdParty       bool                   `json:"isThirdParty"`
 		Name               string                 `json:"name"`
 		OidcClientMetadata struct {
-			BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-			BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-			LogoUri                          *string                  `json:"logoUri,omitempty"`
-			PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-			RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+			BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+			BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+			LogoUri                          *string       `json:"logoUri,omitempty"`
+			PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+			RedirectUris                     []interface{} `json:"redirectUris"`
 		} `json:"oidcClientMetadata"`
 		ProtectedAppMetadata *struct {
 			AdditionalScopes *[]GetApplication200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -38862,11 +38862,11 @@ func (r GetApplicationResponse) GetJSON200() *struct {
 	IsThirdParty       bool                   `json:"isThirdParty"`
 	Name               string                 `json:"name"`
 	OidcClientMetadata struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata"`
 	ProtectedAppMetadata *struct {
 		AdditionalScopes *[]GetApplication200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -38964,11 +38964,11 @@ type UpdateApplicationResponse struct {
 		IsThirdParty       bool                   `json:"isThirdParty"`
 		Name               string                 `json:"name"`
 		OidcClientMetadata struct {
-			BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-			BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-			LogoUri                          *string                  `json:"logoUri,omitempty"`
-			PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-			RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+			BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+			BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+			LogoUri                          *string       `json:"logoUri,omitempty"`
+			PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+			RedirectUris                     []interface{} `json:"redirectUris"`
 		} `json:"oidcClientMetadata"`
 		ProtectedAppMetadata *struct {
 			AdditionalScopes *[]UpdateApplication200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -39033,11 +39033,11 @@ func (r UpdateApplicationResponse) GetJSON200() *struct {
 	IsThirdParty       bool                   `json:"isThirdParty"`
 	Name               string                 `json:"name"`
 	OidcClientMetadata struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata"`
 	ProtectedAppMetadata *struct {
 		AdditionalScopes *[]UpdateApplication200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -39135,11 +39135,11 @@ type DeleteApplicationLegacySecretResponse struct {
 		IsThirdParty       bool                   `json:"isThirdParty"`
 		Name               string                 `json:"name"`
 		OidcClientMetadata struct {
-			BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-			BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-			LogoUri                          *string                  `json:"logoUri,omitempty"`
-			PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-			RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+			BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+			BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+			LogoUri                          *string       `json:"logoUri,omitempty"`
+			PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+			RedirectUris                     []interface{} `json:"redirectUris"`
 		} `json:"oidcClientMetadata"`
 		ProtectedAppMetadata *struct {
 			AdditionalScopes *[]DeleteApplicationLegacySecret200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -39201,11 +39201,11 @@ func (r DeleteApplicationLegacySecretResponse) GetJSON200() *struct {
 	IsThirdParty       bool                   `json:"isThirdParty"`
 	Name               string                 `json:"name"`
 	OidcClientMetadata struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata"`
 	ProtectedAppMetadata *struct {
 		AdditionalScopes *[]DeleteApplicationLegacySecret200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -41460,7 +41460,7 @@ type ListConnectorFactoriesResponse struct {
 		CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 		// Description Validator function
-		Description             map[string]interface{}                                      `json:"description"`
+		Description             interface{}                                                 `json:"description"`
 		FormItems               *[]ListConnectorFactories200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
 		FromEmail               *string                                                     `json:"fromEmail,omitempty"`
 		Id                      string                                                      `json:"id"`
@@ -41471,7 +41471,7 @@ type ListConnectorFactoriesResponse struct {
 		LogoDark                *string                                                     `json:"logoDark"`
 
 		// Name Validator function
-		Name     map[string]interface{}                             `json:"name"`
+		Name     interface{}                                        `json:"name"`
 		Platform *ListConnectorFactories200JSONResponseBodyPlatform `json:"platform"`
 		Readme   string                                             `json:"readme"`
 		Target   string                                             `json:"target"`
@@ -41485,7 +41485,7 @@ func (r ListConnectorFactoriesResponse) GetJSON200() *[]struct {
 	CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 	// Description Validator function
-	Description             map[string]interface{}                                      `json:"description"`
+	Description             interface{}                                                 `json:"description"`
 	FormItems               *[]ListConnectorFactories200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
 	FromEmail               *string                                                     `json:"fromEmail,omitempty"`
 	Id                      string                                                      `json:"id"`
@@ -41496,7 +41496,7 @@ func (r ListConnectorFactoriesResponse) GetJSON200() *[]struct {
 	LogoDark                *string                                                     `json:"logoDark"`
 
 	// Name Validator function
-	Name     map[string]interface{}                             `json:"name"`
+	Name     interface{}                                        `json:"name"`
 	Platform *ListConnectorFactories200JSONResponseBodyPlatform `json:"platform"`
 	Readme   string                                             `json:"readme"`
 	Target   string                                             `json:"target"`
@@ -41543,7 +41543,7 @@ type GetConnectorFactoryResponse struct {
 		CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 		// Description Validator function
-		Description             map[string]interface{}                                   `json:"description"`
+		Description             interface{}                                              `json:"description"`
 		FormItems               *[]GetConnectorFactory200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
 		FromEmail               *string                                                  `json:"fromEmail,omitempty"`
 		Id                      string                                                   `json:"id"`
@@ -41554,7 +41554,7 @@ type GetConnectorFactoryResponse struct {
 		LogoDark                *string                                                  `json:"logoDark"`
 
 		// Name Validator function
-		Name     map[string]interface{}                          `json:"name"`
+		Name     interface{}                                     `json:"name"`
 		Platform *GetConnectorFactory200JSONResponseBodyPlatform `json:"platform"`
 		Readme   string                                          `json:"readme"`
 		Target   string                                          `json:"target"`
@@ -41568,7 +41568,7 @@ func (r GetConnectorFactoryResponse) GetJSON200() *struct {
 	CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 	// Description Validator function
-	Description             map[string]interface{}                                   `json:"description"`
+	Description             interface{}                                              `json:"description"`
 	FormItems               *[]GetConnectorFactory200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
 	FromEmail               *string                                                  `json:"fromEmail,omitempty"`
 	Id                      string                                                   `json:"id"`
@@ -41579,7 +41579,7 @@ func (r GetConnectorFactoryResponse) GetJSON200() *struct {
 	LogoDark                *string                                                  `json:"logoDark"`
 
 	// Name Validator function
-	Name     map[string]interface{}                          `json:"name"`
+	Name     interface{}                                     `json:"name"`
 	Platform *GetConnectorFactory200JSONResponseBodyPlatform `json:"platform"`
 	Readme   string                                          `json:"readme"`
 	Target   string                                          `json:"target"`
@@ -41629,7 +41629,7 @@ type ListConnectorsResponse struct {
 		CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 		// Description Validator function
-		Description             map[string]interface{}                              `json:"description"`
+		Description             interface{}                                         `json:"description"`
 		EnableTokenStorage      bool                                                `json:"enableTokenStorage"`
 		ExtraInfo               *map[string]interface{}                             `json:"extraInfo,omitempty"`
 		FormItems               *[]ListConnectors200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -41645,12 +41645,12 @@ type ListConnectorsResponse struct {
 			LogoDark *string `json:"logoDark,omitempty"`
 
 			// Name Validator function
-			Name   *map[string]interface{} `json:"name,omitempty"`
-			Target *string                 `json:"target,omitempty"`
+			Name   interface{} `json:"name,omitempty"`
+			Target *string     `json:"target,omitempty"`
 		} `json:"metadata"`
 
 		// Name Validator function
-		Name        map[string]interface{}                     `json:"name"`
+		Name        interface{}                                `json:"name"`
 		Platform    *ListConnectors200JSONResponseBodyPlatform `json:"platform"`
 		Readme      string                                     `json:"readme"`
 		SyncProfile bool                                       `json:"syncProfile"`
@@ -41669,7 +41669,7 @@ func (r ListConnectorsResponse) GetJSON200() *[]struct {
 	CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 	// Description Validator function
-	Description             map[string]interface{}                              `json:"description"`
+	Description             interface{}                                         `json:"description"`
 	EnableTokenStorage      bool                                                `json:"enableTokenStorage"`
 	ExtraInfo               *map[string]interface{}                             `json:"extraInfo,omitempty"`
 	FormItems               *[]ListConnectors200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -41685,12 +41685,12 @@ func (r ListConnectorsResponse) GetJSON200() *[]struct {
 		LogoDark *string `json:"logoDark,omitempty"`
 
 		// Name Validator function
-		Name   *map[string]interface{} `json:"name,omitempty"`
-		Target *string                 `json:"target,omitempty"`
+		Name   interface{} `json:"name,omitempty"`
+		Target *string     `json:"target,omitempty"`
 	} `json:"metadata"`
 
 	// Name Validator function
-	Name        map[string]interface{}                     `json:"name"`
+	Name        interface{}                                `json:"name"`
 	Platform    *ListConnectors200JSONResponseBodyPlatform `json:"platform"`
 	Readme      string                                     `json:"readme"`
 	SyncProfile bool                                       `json:"syncProfile"`
@@ -41742,7 +41742,7 @@ type CreateConnectorResponse struct {
 		CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 		// Description Validator function
-		Description             map[string]interface{}                               `json:"description"`
+		Description             interface{}                                          `json:"description"`
 		EnableTokenStorage      bool                                                 `json:"enableTokenStorage"`
 		ExtraInfo               *map[string]interface{}                              `json:"extraInfo,omitempty"`
 		FormItems               *[]CreateConnector200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -41758,12 +41758,12 @@ type CreateConnectorResponse struct {
 			LogoDark *string `json:"logoDark,omitempty"`
 
 			// Name Validator function
-			Name   *map[string]interface{} `json:"name,omitempty"`
-			Target *string                 `json:"target,omitempty"`
+			Name   interface{} `json:"name,omitempty"`
+			Target *string     `json:"target,omitempty"`
 		} `json:"metadata"`
 
 		// Name Validator function
-		Name        map[string]interface{}                      `json:"name"`
+		Name        interface{}                                 `json:"name"`
 		Platform    *CreateConnector200JSONResponseBodyPlatform `json:"platform"`
 		Readme      string                                      `json:"readme"`
 		SyncProfile bool                                        `json:"syncProfile"`
@@ -41782,7 +41782,7 @@ func (r CreateConnectorResponse) GetJSON200() *struct {
 	CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 	// Description Validator function
-	Description             map[string]interface{}                               `json:"description"`
+	Description             interface{}                                          `json:"description"`
 	EnableTokenStorage      bool                                                 `json:"enableTokenStorage"`
 	ExtraInfo               *map[string]interface{}                              `json:"extraInfo,omitempty"`
 	FormItems               *[]CreateConnector200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -41798,12 +41798,12 @@ func (r CreateConnectorResponse) GetJSON200() *struct {
 		LogoDark *string `json:"logoDark,omitempty"`
 
 		// Name Validator function
-		Name   *map[string]interface{} `json:"name,omitempty"`
-		Target *string                 `json:"target,omitempty"`
+		Name   interface{} `json:"name,omitempty"`
+		Target *string     `json:"target,omitempty"`
 	} `json:"metadata"`
 
 	// Name Validator function
-	Name        map[string]interface{}                      `json:"name"`
+	Name        interface{}                                 `json:"name"`
 	Platform    *CreateConnector200JSONResponseBodyPlatform `json:"platform"`
 	Readme      string                                      `json:"readme"`
 	SyncProfile bool                                        `json:"syncProfile"`
@@ -41974,7 +41974,7 @@ type GetConnectorResponse struct {
 		CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 		// Description Validator function
-		Description             map[string]interface{}                            `json:"description"`
+		Description             interface{}                                       `json:"description"`
 		EnableTokenStorage      bool                                              `json:"enableTokenStorage"`
 		ExtraInfo               *map[string]interface{}                           `json:"extraInfo,omitempty"`
 		FormItems               *[]GetConnector200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -41990,12 +41990,12 @@ type GetConnectorResponse struct {
 			LogoDark *string `json:"logoDark,omitempty"`
 
 			// Name Validator function
-			Name   *map[string]interface{} `json:"name,omitempty"`
-			Target *string                 `json:"target,omitempty"`
+			Name   interface{} `json:"name,omitempty"`
+			Target *string     `json:"target,omitempty"`
 		} `json:"metadata"`
 
 		// Name Validator function
-		Name        map[string]interface{}                   `json:"name"`
+		Name        interface{}                              `json:"name"`
 		Platform    *GetConnector200JSONResponseBodyPlatform `json:"platform"`
 		Readme      string                                   `json:"readme"`
 		SyncProfile bool                                     `json:"syncProfile"`
@@ -42014,7 +42014,7 @@ func (r GetConnectorResponse) GetJSON200() *struct {
 	CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 	// Description Validator function
-	Description             map[string]interface{}                            `json:"description"`
+	Description             interface{}                                       `json:"description"`
 	EnableTokenStorage      bool                                              `json:"enableTokenStorage"`
 	ExtraInfo               *map[string]interface{}                           `json:"extraInfo,omitempty"`
 	FormItems               *[]GetConnector200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -42030,12 +42030,12 @@ func (r GetConnectorResponse) GetJSON200() *struct {
 		LogoDark *string `json:"logoDark,omitempty"`
 
 		// Name Validator function
-		Name   *map[string]interface{} `json:"name,omitempty"`
-		Target *string                 `json:"target,omitempty"`
+		Name   interface{} `json:"name,omitempty"`
+		Target *string     `json:"target,omitempty"`
 	} `json:"metadata"`
 
 	// Name Validator function
-	Name        map[string]interface{}                   `json:"name"`
+	Name        interface{}                              `json:"name"`
 	Platform    *GetConnector200JSONResponseBodyPlatform `json:"platform"`
 	Readme      string                                   `json:"readme"`
 	SyncProfile bool                                     `json:"syncProfile"`
@@ -42087,7 +42087,7 @@ type UpdateConnectorResponse struct {
 		CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 		// Description Validator function
-		Description             map[string]interface{}                               `json:"description"`
+		Description             interface{}                                          `json:"description"`
 		EnableTokenStorage      bool                                                 `json:"enableTokenStorage"`
 		ExtraInfo               *map[string]interface{}                              `json:"extraInfo,omitempty"`
 		FormItems               *[]UpdateConnector200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -42103,12 +42103,12 @@ type UpdateConnectorResponse struct {
 			LogoDark *string `json:"logoDark,omitempty"`
 
 			// Name Validator function
-			Name   *map[string]interface{} `json:"name,omitempty"`
-			Target *string                 `json:"target,omitempty"`
+			Name   interface{} `json:"name,omitempty"`
+			Target *string     `json:"target,omitempty"`
 		} `json:"metadata"`
 
 		// Name Validator function
-		Name        map[string]interface{}                      `json:"name"`
+		Name        interface{}                                 `json:"name"`
 		Platform    *UpdateConnector200JSONResponseBodyPlatform `json:"platform"`
 		Readme      string                                      `json:"readme"`
 		SyncProfile bool                                        `json:"syncProfile"`
@@ -42127,7 +42127,7 @@ func (r UpdateConnectorResponse) GetJSON200() *struct {
 	CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 	// Description Validator function
-	Description             map[string]interface{}                               `json:"description"`
+	Description             interface{}                                          `json:"description"`
 	EnableTokenStorage      bool                                                 `json:"enableTokenStorage"`
 	ExtraInfo               *map[string]interface{}                              `json:"extraInfo,omitempty"`
 	FormItems               *[]UpdateConnector200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -42143,12 +42143,12 @@ func (r UpdateConnectorResponse) GetJSON200() *struct {
 		LogoDark *string `json:"logoDark,omitempty"`
 
 		// Name Validator function
-		Name   *map[string]interface{} `json:"name,omitempty"`
-		Target *string                 `json:"target,omitempty"`
+		Name   interface{} `json:"name,omitempty"`
+		Target *string     `json:"target,omitempty"`
 	} `json:"metadata"`
 
 	// Name Validator function
-	Name        map[string]interface{}                      `json:"name"`
+	Name        interface{}                                 `json:"name"`
 	Platform    *UpdateConnector200JSONResponseBodyPlatform `json:"platform"`
 	Readme      string                                      `json:"readme"`
 	SyncProfile bool                                        `json:"syncProfile"`
@@ -43676,11 +43676,11 @@ type ListDomainVerificationFilesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *map[string]interface{}
+	JSON200 *interface{}
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ListDomainVerificationFilesResponse) GetJSON200() *map[string]interface{} {
+func (r ListDomainVerificationFilesResponse) GetJSON200() *interface{} {
 	return r.JSON200
 }
 
@@ -43717,11 +43717,11 @@ type ReplaceDomainVerificationFilesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *map[string]interface{}
+	JSON200 *interface{}
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ReplaceDomainVerificationFilesResponse) GetJSON200() *map[string]interface{} {
+func (r ReplaceDomainVerificationFilesResponse) GetJSON200() *interface{} {
 	return r.JSON200
 }
 
@@ -50950,11 +50950,11 @@ type ListOrganizationApplicationsResponse struct {
 		IsThirdParty       bool                   `json:"isThirdParty"`
 		Name               string                 `json:"name"`
 		OidcClientMetadata struct {
-			BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-			BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-			LogoUri                          *string                  `json:"logoUri,omitempty"`
-			PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-			RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+			BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+			BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+			LogoUri                          *string       `json:"logoUri,omitempty"`
+			PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+			RedirectUris                     []interface{} `json:"redirectUris"`
 		} `json:"oidcClientMetadata"`
 		OrganizationRoles []struct {
 			Id   string `json:"id"`
@@ -51023,11 +51023,11 @@ func (r ListOrganizationApplicationsResponse) GetJSON200() *[]struct {
 	IsThirdParty       bool                   `json:"isThirdParty"`
 	Name               string                 `json:"name"`
 	OidcClientMetadata struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata"`
 	OrganizationRoles []struct {
 		Id   string `json:"id"`
@@ -53247,11 +53247,11 @@ type ListRoleApplicationsResponse struct {
 		IsThirdParty       bool                   `json:"isThirdParty"`
 		Name               string                 `json:"name"`
 		OidcClientMetadata struct {
-			BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-			BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-			LogoUri                          *string                  `json:"logoUri,omitempty"`
-			PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-			RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+			BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+			BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+			LogoUri                          *string       `json:"logoUri,omitempty"`
+			PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+			RedirectUris                     []interface{} `json:"redirectUris"`
 		} `json:"oidcClientMetadata"`
 		ProtectedAppMetadata *struct {
 			AdditionalScopes *[]ListRoleApplications200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -53313,11 +53313,11 @@ func (r ListRoleApplicationsResponse) GetJSON200() *[]struct {
 	IsThirdParty       bool                   `json:"isThirdParty"`
 	Name               string                 `json:"name"`
 	OidcClientMetadata struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata"`
 	ProtectedAppMetadata *struct {
 		AdditionalScopes *[]ListRoleApplications200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -53887,15 +53887,15 @@ type CreateSamlApplicationResponse struct {
 		} `json:"attributeMapping"`
 
 		// AuthnRequestConfig Validator function
-		AuthnRequestConfig *map[string]interface{} `json:"authnRequestConfig"`
-		CreatedAt          float32                 `json:"createdAt"`
+		AuthnRequestConfig interface{} `json:"authnRequestConfig"`
+		CreatedAt          float32     `json:"createdAt"`
 
 		// CustomData arbitrary
 		CustomData  map[string]interface{} `json:"customData"`
 		Description *string                `json:"description"`
 
 		// Encryption Validator function
-		Encryption       *map[string]interface{}                              `json:"encryption"`
+		Encryption       interface{}                                          `json:"encryption"`
 		EntityId         *string                                              `json:"entityId"`
 		Id               string                                               `json:"id"`
 		IsThirdParty     bool                                                 `json:"isThirdParty"`
@@ -53947,15 +53947,15 @@ func (r CreateSamlApplicationResponse) GetJSON201() *struct {
 	} `json:"attributeMapping"`
 
 	// AuthnRequestConfig Validator function
-	AuthnRequestConfig *map[string]interface{} `json:"authnRequestConfig"`
-	CreatedAt          float32                 `json:"createdAt"`
+	AuthnRequestConfig interface{} `json:"authnRequestConfig"`
+	CreatedAt          float32     `json:"createdAt"`
 
 	// CustomData arbitrary
 	CustomData  map[string]interface{} `json:"customData"`
 	Description *string                `json:"description"`
 
 	// Encryption Validator function
-	Encryption       *map[string]interface{}                              `json:"encryption"`
+	Encryption       interface{}                                          `json:"encryption"`
 	EntityId         *string                                              `json:"entityId"`
 	Id               string                                               `json:"id"`
 	IsThirdParty     bool                                                 `json:"isThirdParty"`
@@ -54074,15 +54074,15 @@ type GetSamlApplicationResponse struct {
 		} `json:"attributeMapping"`
 
 		// AuthnRequestConfig Validator function
-		AuthnRequestConfig *map[string]interface{} `json:"authnRequestConfig"`
-		CreatedAt          float32                 `json:"createdAt"`
+		AuthnRequestConfig interface{} `json:"authnRequestConfig"`
+		CreatedAt          float32     `json:"createdAt"`
 
 		// CustomData arbitrary
 		CustomData  map[string]interface{} `json:"customData"`
 		Description *string                `json:"description"`
 
 		// Encryption Validator function
-		Encryption       *map[string]interface{}                           `json:"encryption"`
+		Encryption       interface{}                                       `json:"encryption"`
 		EntityId         *string                                           `json:"entityId"`
 		Id               string                                            `json:"id"`
 		IsThirdParty     bool                                              `json:"isThirdParty"`
@@ -54134,15 +54134,15 @@ func (r GetSamlApplicationResponse) GetJSON200() *struct {
 	} `json:"attributeMapping"`
 
 	// AuthnRequestConfig Validator function
-	AuthnRequestConfig *map[string]interface{} `json:"authnRequestConfig"`
-	CreatedAt          float32                 `json:"createdAt"`
+	AuthnRequestConfig interface{} `json:"authnRequestConfig"`
+	CreatedAt          float32     `json:"createdAt"`
 
 	// CustomData arbitrary
 	CustomData  map[string]interface{} `json:"customData"`
 	Description *string                `json:"description"`
 
 	// Encryption Validator function
-	Encryption       *map[string]interface{}                           `json:"encryption"`
+	Encryption       interface{}                                       `json:"encryption"`
 	EntityId         *string                                           `json:"entityId"`
 	Id               string                                            `json:"id"`
 	IsThirdParty     bool                                              `json:"isThirdParty"`
@@ -54227,15 +54227,15 @@ type UpdateSamlApplicationResponse struct {
 		} `json:"attributeMapping"`
 
 		// AuthnRequestConfig Validator function
-		AuthnRequestConfig *map[string]interface{} `json:"authnRequestConfig"`
-		CreatedAt          float32                 `json:"createdAt"`
+		AuthnRequestConfig interface{} `json:"authnRequestConfig"`
+		CreatedAt          float32     `json:"createdAt"`
 
 		// CustomData arbitrary
 		CustomData  map[string]interface{} `json:"customData"`
 		Description *string                `json:"description"`
 
 		// Encryption Validator function
-		Encryption       *map[string]interface{}                              `json:"encryption"`
+		Encryption       interface{}                                          `json:"encryption"`
 		EntityId         *string                                              `json:"entityId"`
 		Id               string                                               `json:"id"`
 		IsThirdParty     bool                                                 `json:"isThirdParty"`
@@ -54287,15 +54287,15 @@ func (r UpdateSamlApplicationResponse) GetJSON200() *struct {
 	} `json:"attributeMapping"`
 
 	// AuthnRequestConfig Validator function
-	AuthnRequestConfig *map[string]interface{} `json:"authnRequestConfig"`
-	CreatedAt          float32                 `json:"createdAt"`
+	AuthnRequestConfig interface{} `json:"authnRequestConfig"`
+	CreatedAt          float32     `json:"createdAt"`
 
 	// CustomData arbitrary
 	CustomData  map[string]interface{} `json:"customData"`
 	Description *string                `json:"description"`
 
 	// Encryption Validator function
-	Encryption       *map[string]interface{}                              `json:"encryption"`
+	Encryption       interface{}                                          `json:"encryption"`
 	EntityId         *string                                              `json:"entityId"`
 	Id               string                                               `json:"id"`
 	IsThirdParty     bool                                                 `json:"isThirdParty"`
@@ -54979,7 +54979,7 @@ type GetSignInExpResponse struct {
 		UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 		// UsernamePolicy Validator function
-		UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+		UsernamePolicy         interface{} `json:"usernamePolicy"`
 		VerificationCodePolicy struct {
 			ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 			MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -55155,7 +55155,7 @@ func (r GetSignInExpResponse) GetJSON200() *struct {
 	UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 	// UsernamePolicy Validator function
-	UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+	UsernamePolicy         interface{} `json:"usernamePolicy"`
 	VerificationCodePolicy struct {
 		ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 		MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -55310,7 +55310,7 @@ type UpdateSignInExpResponse struct {
 		UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 		// UsernamePolicy Validator function
-		UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+		UsernamePolicy         interface{} `json:"usernamePolicy"`
 		VerificationCodePolicy struct {
 			ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 			MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -55432,7 +55432,7 @@ func (r UpdateSignInExpResponse) GetJSON200() *struct {
 	UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 	// UsernamePolicy Validator function
-	UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+	UsernamePolicy         interface{} `json:"usernamePolicy"`
 	VerificationCodePolicy struct {
 		ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 		MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -68931,7 +68931,7 @@ func ParseGetWellKnownExperienceResponse(rsp *http.Response) (*GetWellKnownExper
 				LogoDark                *string `json:"logoDark"`
 
 				// Name Validator function
-				Name     map[string]interface{}                                             `json:"name"`
+				Name     interface{}                                                        `json:"name"`
 				Platform *GetWellKnownExperience200JSONResponseBodySocialConnectorsPlatform `json:"platform"`
 				Target   string                                                             `json:"target"`
 			} `json:"socialConnectors"`
@@ -68957,7 +68957,7 @@ func ParseGetWellKnownExperienceResponse(rsp *http.Response) (*GetWellKnownExper
 			UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 			// UsernamePolicy Validator function
-			UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+			UsernamePolicy         interface{} `json:"usernamePolicy"`
 			VerificationCodePolicy struct {
 				ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 				MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -69263,7 +69263,7 @@ func ParseGetSignInExperienceConfigResponse(rsp *http.Response) (*GetSignInExper
 				LogoDark                *string `json:"logoDark"`
 
 				// Name Validator function
-				Name     map[string]interface{}                                                `json:"name"`
+				Name     interface{}                                                           `json:"name"`
 				Platform *GetSignInExperienceConfig200JSONResponseBodySocialConnectorsPlatform `json:"platform"`
 				Target   string                                                                `json:"target"`
 			} `json:"socialConnectors"`
@@ -69289,7 +69289,7 @@ func ParseGetSignInExperienceConfigResponse(rsp *http.Response) (*GetSignInExper
 			UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 			// UsernamePolicy Validator function
-			UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+			UsernamePolicy         interface{} `json:"usernamePolicy"`
 			VerificationCodePolicy struct {
 				ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 				MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -69483,11 +69483,11 @@ func ParseListApplicationsResponse(rsp *http.Response) (*ListApplicationsRespons
 			IsThirdParty       bool                   `json:"isThirdParty"`
 			Name               string                 `json:"name"`
 			OidcClientMetadata struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]ListApplications200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -69583,11 +69583,11 @@ func ParseCreateApplicationResponse(rsp *http.Response) (*CreateApplicationRespo
 			IsThirdParty       bool                   `json:"isThirdParty"`
 			Name               string                 `json:"name"`
 			OidcClientMetadata struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]CreateApplication200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -70211,11 +70211,11 @@ func ParseGetApplicationResponse(rsp *http.Response) (*GetApplicationResponse, e
 			IsThirdParty       bool                   `json:"isThirdParty"`
 			Name               string                 `json:"name"`
 			OidcClientMetadata struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]GetApplication200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -70314,11 +70314,11 @@ func ParseUpdateApplicationResponse(rsp *http.Response) (*UpdateApplicationRespo
 			IsThirdParty       bool                   `json:"isThirdParty"`
 			Name               string                 `json:"name"`
 			OidcClientMetadata struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpdateApplication200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -70423,11 +70423,11 @@ func ParseDeleteApplicationLegacySecretResponse(rsp *http.Response) (*DeleteAppl
 			IsThirdParty       bool                   `json:"isThirdParty"`
 			Name               string                 `json:"name"`
 			OidcClientMetadata struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]DeleteApplicationLegacySecret200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -72067,7 +72067,7 @@ func ParseListConnectorFactoriesResponse(rsp *http.Response) (*ListConnectorFact
 			CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 			// Description Validator function
-			Description             map[string]interface{}                                      `json:"description"`
+			Description             interface{}                                                 `json:"description"`
 			FormItems               *[]ListConnectorFactories200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
 			FromEmail               *string                                                     `json:"fromEmail,omitempty"`
 			Id                      string                                                      `json:"id"`
@@ -72078,7 +72078,7 @@ func ParseListConnectorFactoriesResponse(rsp *http.Response) (*ListConnectorFact
 			LogoDark                *string                                                     `json:"logoDark"`
 
 			// Name Validator function
-			Name     map[string]interface{}                             `json:"name"`
+			Name     interface{}                                        `json:"name"`
 			Platform *ListConnectorFactories200JSONResponseBodyPlatform `json:"platform"`
 			Readme   string                                             `json:"readme"`
 			Target   string                                             `json:"target"`
@@ -72120,7 +72120,7 @@ func ParseGetConnectorFactoryResponse(rsp *http.Response) (*GetConnectorFactoryR
 			CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 			// Description Validator function
-			Description             map[string]interface{}                                   `json:"description"`
+			Description             interface{}                                              `json:"description"`
 			FormItems               *[]GetConnectorFactory200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
 			FromEmail               *string                                                  `json:"fromEmail,omitempty"`
 			Id                      string                                                   `json:"id"`
@@ -72131,7 +72131,7 @@ func ParseGetConnectorFactoryResponse(rsp *http.Response) (*GetConnectorFactoryR
 			LogoDark                *string                                                  `json:"logoDark"`
 
 			// Name Validator function
-			Name     map[string]interface{}                          `json:"name"`
+			Name     interface{}                                     `json:"name"`
 			Platform *GetConnectorFactory200JSONResponseBodyPlatform `json:"platform"`
 			Readme   string                                          `json:"readme"`
 			Target   string                                          `json:"target"`
@@ -72182,7 +72182,7 @@ func ParseListConnectorsResponse(rsp *http.Response) (*ListConnectorsResponse, e
 			CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 			// Description Validator function
-			Description             map[string]interface{}                              `json:"description"`
+			Description             interface{}                                         `json:"description"`
 			EnableTokenStorage      bool                                                `json:"enableTokenStorage"`
 			ExtraInfo               *map[string]interface{}                             `json:"extraInfo,omitempty"`
 			FormItems               *[]ListConnectors200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -72198,12 +72198,12 @@ func ParseListConnectorsResponse(rsp *http.Response) (*ListConnectorsResponse, e
 				LogoDark *string `json:"logoDark,omitempty"`
 
 				// Name Validator function
-				Name   *map[string]interface{} `json:"name,omitempty"`
-				Target *string                 `json:"target,omitempty"`
+				Name   interface{} `json:"name,omitempty"`
+				Target *string     `json:"target,omitempty"`
 			} `json:"metadata"`
 
 			// Name Validator function
-			Name        map[string]interface{}                     `json:"name"`
+			Name        interface{}                                `json:"name"`
 			Platform    *ListConnectors200JSONResponseBodyPlatform `json:"platform"`
 			Readme      string                                     `json:"readme"`
 			SyncProfile bool                                       `json:"syncProfile"`
@@ -72253,7 +72253,7 @@ func ParseCreateConnectorResponse(rsp *http.Response) (*CreateConnectorResponse,
 			CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 			// Description Validator function
-			Description             map[string]interface{}                               `json:"description"`
+			Description             interface{}                                          `json:"description"`
 			EnableTokenStorage      bool                                                 `json:"enableTokenStorage"`
 			ExtraInfo               *map[string]interface{}                              `json:"extraInfo,omitempty"`
 			FormItems               *[]CreateConnector200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -72269,12 +72269,12 @@ func ParseCreateConnectorResponse(rsp *http.Response) (*CreateConnectorResponse,
 				LogoDark *string `json:"logoDark,omitempty"`
 
 				// Name Validator function
-				Name   *map[string]interface{} `json:"name,omitempty"`
-				Target *string                 `json:"target,omitempty"`
+				Name   interface{} `json:"name,omitempty"`
+				Target *string     `json:"target,omitempty"`
 			} `json:"metadata"`
 
 			// Name Validator function
-			Name        map[string]interface{}                      `json:"name"`
+			Name        interface{}                                 `json:"name"`
 			Platform    *CreateConnector200JSONResponseBodyPlatform `json:"platform"`
 			Readme      string                                      `json:"readme"`
 			SyncProfile bool                                        `json:"syncProfile"`
@@ -72402,7 +72402,7 @@ func ParseGetConnectorResponse(rsp *http.Response) (*GetConnectorResponse, error
 			CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 			// Description Validator function
-			Description             map[string]interface{}                            `json:"description"`
+			Description             interface{}                                       `json:"description"`
 			EnableTokenStorage      bool                                              `json:"enableTokenStorage"`
 			ExtraInfo               *map[string]interface{}                           `json:"extraInfo,omitempty"`
 			FormItems               *[]GetConnector200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -72418,12 +72418,12 @@ func ParseGetConnectorResponse(rsp *http.Response) (*GetConnectorResponse, error
 				LogoDark *string `json:"logoDark,omitempty"`
 
 				// Name Validator function
-				Name   *map[string]interface{} `json:"name,omitempty"`
-				Target *string                 `json:"target,omitempty"`
+				Name   interface{} `json:"name,omitempty"`
+				Target *string     `json:"target,omitempty"`
 			} `json:"metadata"`
 
 			// Name Validator function
-			Name        map[string]interface{}                   `json:"name"`
+			Name        interface{}                              `json:"name"`
 			Platform    *GetConnector200JSONResponseBodyPlatform `json:"platform"`
 			Readme      string                                   `json:"readme"`
 			SyncProfile bool                                     `json:"syncProfile"`
@@ -72476,7 +72476,7 @@ func ParseUpdateConnectorResponse(rsp *http.Response) (*UpdateConnectorResponse,
 			CustomData     *map[string]interface{} `json:"customData,omitempty"`
 
 			// Description Validator function
-			Description             map[string]interface{}                               `json:"description"`
+			Description             interface{}                                          `json:"description"`
 			EnableTokenStorage      bool                                                 `json:"enableTokenStorage"`
 			ExtraInfo               *map[string]interface{}                              `json:"extraInfo,omitempty"`
 			FormItems               *[]UpdateConnector200JSONResponseBody_FormItems_Item `json:"formItems,omitempty"`
@@ -72492,12 +72492,12 @@ func ParseUpdateConnectorResponse(rsp *http.Response) (*UpdateConnectorResponse,
 				LogoDark *string `json:"logoDark,omitempty"`
 
 				// Name Validator function
-				Name   *map[string]interface{} `json:"name,omitempty"`
-				Target *string                 `json:"target,omitempty"`
+				Name   interface{} `json:"name,omitempty"`
+				Target *string     `json:"target,omitempty"`
 			} `json:"metadata"`
 
 			// Name Validator function
-			Name        map[string]interface{}                      `json:"name"`
+			Name        interface{}                                 `json:"name"`
 			Platform    *UpdateConnector200JSONResponseBodyPlatform `json:"platform"`
 			Readme      string                                      `json:"readme"`
 			SyncProfile bool                                        `json:"syncProfile"`
@@ -73519,7 +73519,7 @@ func ParseListDomainVerificationFilesResponse(rsp *http.Response) (*ListDomainVe
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest map[string]interface{}
+		var dest interface{}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -73557,7 +73557,7 @@ func ParseReplaceDomainVerificationFilesResponse(rsp *http.Response) (*ReplaceDo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest map[string]interface{}
+		var dest interface{}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -78526,11 +78526,11 @@ func ParseListOrganizationApplicationsResponse(rsp *http.Response) (*ListOrganiz
 			IsThirdParty       bool                   `json:"isThirdParty"`
 			Name               string                 `json:"name"`
 			OidcClientMetadata struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata"`
 			OrganizationRoles []struct {
 				Id   string `json:"id"`
@@ -80054,11 +80054,11 @@ func ParseListRoleApplicationsResponse(rsp *http.Response) (*ListRoleApplication
 			IsThirdParty       bool                   `json:"isThirdParty"`
 			Name               string                 `json:"name"`
 			OidcClientMetadata struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]ListRoleApplications200JSONResponseBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -80456,15 +80456,15 @@ func ParseCreateSamlApplicationResponse(rsp *http.Response) (*CreateSamlApplicat
 			} `json:"attributeMapping"`
 
 			// AuthnRequestConfig Validator function
-			AuthnRequestConfig *map[string]interface{} `json:"authnRequestConfig"`
-			CreatedAt          float32                 `json:"createdAt"`
+			AuthnRequestConfig interface{} `json:"authnRequestConfig"`
+			CreatedAt          float32     `json:"createdAt"`
 
 			// CustomData arbitrary
 			CustomData  map[string]interface{} `json:"customData"`
 			Description *string                `json:"description"`
 
 			// Encryption Validator function
-			Encryption       *map[string]interface{}                              `json:"encryption"`
+			Encryption       interface{}                                          `json:"encryption"`
 			EntityId         *string                                              `json:"entityId"`
 			Id               string                                               `json:"id"`
 			IsThirdParty     bool                                                 `json:"isThirdParty"`
@@ -80566,15 +80566,15 @@ func ParseGetSamlApplicationResponse(rsp *http.Response) (*GetSamlApplicationRes
 			} `json:"attributeMapping"`
 
 			// AuthnRequestConfig Validator function
-			AuthnRequestConfig *map[string]interface{} `json:"authnRequestConfig"`
-			CreatedAt          float32                 `json:"createdAt"`
+			AuthnRequestConfig interface{} `json:"authnRequestConfig"`
+			CreatedAt          float32     `json:"createdAt"`
 
 			// CustomData arbitrary
 			CustomData  map[string]interface{} `json:"customData"`
 			Description *string                `json:"description"`
 
 			// Encryption Validator function
-			Encryption       *map[string]interface{}                           `json:"encryption"`
+			Encryption       interface{}                                       `json:"encryption"`
 			EntityId         *string                                           `json:"entityId"`
 			Id               string                                            `json:"id"`
 			IsThirdParty     bool                                              `json:"isThirdParty"`
@@ -80663,15 +80663,15 @@ func ParseUpdateSamlApplicationResponse(rsp *http.Response) (*UpdateSamlApplicat
 			} `json:"attributeMapping"`
 
 			// AuthnRequestConfig Validator function
-			AuthnRequestConfig *map[string]interface{} `json:"authnRequestConfig"`
-			CreatedAt          float32                 `json:"createdAt"`
+			AuthnRequestConfig interface{} `json:"authnRequestConfig"`
+			CreatedAt          float32     `json:"createdAt"`
 
 			// CustomData arbitrary
 			CustomData  map[string]interface{} `json:"customData"`
 			Description *string                `json:"description"`
 
 			// Encryption Validator function
-			Encryption       *map[string]interface{}                              `json:"encryption"`
+			Encryption       interface{}                                          `json:"encryption"`
 			EntityId         *string                                              `json:"entityId"`
 			Id               string                                               `json:"id"`
 			IsThirdParty     bool                                                 `json:"isThirdParty"`
@@ -81185,7 +81185,7 @@ func ParseGetSignInExpResponse(rsp *http.Response) (*GetSignInExpResponse, error
 			UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 			// UsernamePolicy Validator function
-			UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+			UsernamePolicy         interface{} `json:"usernamePolicy"`
 			VerificationCodePolicy struct {
 				ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 				MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -81338,7 +81338,7 @@ func ParseUpdateSignInExpResponse(rsp *http.Response) (*UpdateSignInExpResponse,
 			UnknownSessionRedirectUrl *string `json:"unknownSessionRedirectUrl"`
 
 			// UsernamePolicy Validator function
-			UsernamePolicy         map[string]interface{} `json:"usernamePolicy"`
+			UsernamePolicy         interface{} `json:"usernamePolicy"`
 			VerificationCodePolicy struct {
 				ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 				MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`

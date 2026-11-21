@@ -21,6 +21,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/openapi"
 )
 
 // Server is the fake. Its zero value is not usable: call New.
@@ -37,6 +38,8 @@ type Server struct {
 	failures map[string][]int // path -> statuses to answer next, in order
 	spec     []byte
 	seq      int
+	docs     map[string]*openapi.Doc // ValidateAgainst
+	problems []string
 
 	apps       map[string]object
 	appSecrets map[string][]object // app id -> secrets
@@ -89,7 +92,8 @@ func (s *Server) Writes() int {
 	return s.writes
 }
 
-// FailNext makes the next calls to path answer the given statuses, in order, before serving normally again.
+// FailNext makes the next calls to path answer the given statuses, in order, before serving normally again. A path
+// prefixed with a method ("POST /api/applications") fails only calls of that method.
 func (s *Server) FailNext(path string, statuses ...int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -107,7 +111,7 @@ func (s *Server) ServeSpec(raw []byte) {
 // Handler serves the OIDC token endpoint and the Management API under /api, bearer-protected like Logto's.
 func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
-	r.Use(s.injectFailures, s.countWrites)
+	r.Use(s.injectFailures, s.validate, s.countWrites)
 	r.Post("/oidc/token", s.issueToken)
 	return mgmt.HandlerWithOptions(s, mgmt.ChiServerOptions{
 		BaseRouter:  r,
@@ -155,10 +159,12 @@ func (s *Server) requireBearer(next http.Handler) http.Handler {
 func (s *Server) injectFailures(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.mu.Lock()
-		queue := s.failures[r.URL.Path]
 		status := 0
-		if len(queue) > 0 {
-			status, s.failures[r.URL.Path] = queue[0], queue[1:]
+		for _, key := range []string{r.Method + " " + r.URL.Path, r.URL.Path} {
+			if queue := s.failures[key]; len(queue) > 0 {
+				status, s.failures[key] = queue[0], queue[1:]
+				break
+			}
 		}
 		s.mu.Unlock()
 		if status != 0 {

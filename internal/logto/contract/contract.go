@@ -51,11 +51,14 @@ func Response(operationID string, status int, body any) (Problems, error) {
 	return check(body, func(d *openapi.Doc) (any, error) { return d.ResponseSchema(operationID, status) })
 }
 
-// ResponseFields checks that every key of a partial response fixture (the fields a kind decodes) exists in the
-// response of every version; types and required fields of the full response are not checked.
+// ResponseFields checks a partial response fixture (the fields a kind decodes): every key exists in the response of
+// every version, with the type the kind decodes it as; the fields it leaves out are not asked for.
 func ResponseFields(operationID string, status int, body any) (Problems, error) {
-	return checkWith(body, func(d *openapi.Doc) (any, error) { return d.ResponseSchema(operationID, status) }, openapi.UnknownKeys)
+	return checkWith(body, func(d *openapi.Doc) (any, error) { return d.ResponseSchema(operationID, status) }, openapi.Fields)
 }
+
+// Docs are the loaded specs of the support window, by version.
+func Docs() (map[string]*openapi.Doc, error) { return window() }
 
 func check(body any, schemaOf func(*openapi.Doc) (any, error)) (Problems, error) {
 	return checkWith(body, schemaOf, openapi.ValidateSchema)

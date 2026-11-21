@@ -22,8 +22,18 @@ import (
 
 // Doc is one loaded spec, indexed by operationId.
 type Doc struct {
-	ops map[string]*openapi3.Operation
+	ops    map[string]*openapi3.Operation
+	routes []route
 }
+
+type route struct {
+	method      string
+	path        *regexp.Regexp
+	params      int // path parameters: fewer wins, a literal segment before a parameter
+	operationID string
+}
+
+var pathParam = regexp.MustCompile(`\\\{[^/]+?\\\}`)
 
 // Load normalizes (see specnorm) and loads a spec. It does not validate the document itself: Logto's documents use
 // formats and constructs a strict validation refuses, and only the schemas of the operations matter here.
@@ -42,14 +52,28 @@ func Load(raw []byte) (*Doc, error) {
 		return nil, fmt.Errorf("load spec: %w", err)
 	}
 	d := &Doc{ops: map[string]*openapi3.Operation{}}
-	for _, item := range t.Paths.Map() {
-		for _, op := range item.Operations() {
+	for path, item := range t.Paths.Map() {
+		re := regexp.MustCompile("^" + pathParam.ReplaceAllString(regexp.QuoteMeta(path), "[^/]+") + "$")
+		for method, op := range item.Operations() {
 			if op.OperationID != "" {
 				d.ops[op.OperationID] = op
+				d.routes = append(d.routes, route{method: method, path: re, params: strings.Count(path, "{"), operationID: op.OperationID})
 			}
 		}
 	}
+	// A literal segment wins over a parameter (/api/users/me before /api/users/{id}): fewest parameters first.
+	sort.SliceStable(d.routes, func(i, j int) bool { return d.routes[i].params < d.routes[j].params })
 	return d, nil
+}
+
+// Find returns the operation a request method and path (without query) belong to.
+func (d *Doc) Find(method, path string) (string, bool) {
+	for _, r := range d.routes {
+		if r.method == method && r.path.MatchString(path) {
+			return r.operationID, true
+		}
+	}
+	return "", false
 }
 
 // Has reports whether the operation exists.
@@ -231,6 +255,39 @@ func unknownKeys(s *openapi3.Schema, value any, path string) []string {
 func ValidateSchema(schema any, value any) []string {
 	s, _ := schema.(*openapi3.Schema)
 	return Validate(s, value)
+}
+
+// Fields checks the fields a value holds (their types and enums, and that each key is declared) without asking for
+// the required ones: for a partial fixture of a response, the fields a kind decodes, or an answer of the fake.
+func Fields(schema any, value any) []string {
+	s, _ := schema.(*openapi3.Schema)
+	if s == nil {
+		return []string{"no schema"}
+	}
+	var problems []string
+	if err := s.VisitJSON(value, openapi3.MultiErrors()); err != nil {
+		problems = append(problems, notRequired(err)...)
+	}
+	problems = append(problems, unknownKeys(s, value, "")...)
+	sort.Strings(problems)
+	return dedupe(problems)
+}
+
+// notRequired is schemaErrors without the missing-required-property ones.
+func notRequired(err error) []string {
+	var me openapi3.MultiError
+	if errors.As(err, &me) {
+		var out []string
+		for _, e := range me {
+			out = append(out, notRequired(e)...)
+		}
+		return out
+	}
+	var se *openapi3.SchemaError
+	if errors.As(err, &se) && se.SchemaField == "required" {
+		return nil
+	}
+	return schemaErrors(err)
 }
 
 // UnknownKeys reports only the keys of value the schema does not declare (no type or required check): for a partial

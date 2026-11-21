@@ -4,14 +4,18 @@ package kindtest
 
 import (
 	"context"
+	"encoding/json"
 	"net/http/httptest"
 	"testing"
 
+	logtospecs "github.com/Aliud-Corp/logto-operator/api/logto"
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
 	"github.com/Aliud-Corp/logto-operator/internal/config"
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/capability"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/contract"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/logtofake"
 	"github.com/Aliud-Corp/logto-operator/internal/secrets"
 )
@@ -40,18 +44,36 @@ func Spec(t *testing.T, body string) *v1alpha1.LogtoConfigSpec {
 	return &cfg.Spec
 }
 
-// Fake starts the fake and returns it with a client on it.
+// Fake starts the fake and returns it with a client on it. The fake serves the newest vendored spec as its own and
+// checks every request and answer against each spec of the support window: the test fails on any problem.
 func Fake(t *testing.T) (*logtofake.Server, *client.Client) {
 	t.Helper()
 	fake := logtofake.New("boot", "boot-secret")
+	raw, err := logtospecs.Spec(logtospecs.Versions()[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	fake.ServeSpec(raw)
+	docs, err := contract.Docs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fake.ValidateAgainst(docs)
+	t.Cleanup(func() {
+		for _, p := range fake.Problems() {
+			t.Errorf("not valid for every supported Logto: %s", p)
+		}
+	})
 	srv := httptest.NewServer(fake.Handler())
 	t.Cleanup(srv.Close)
 	return fake, client.New(client.Config{Endpoint: srv.URL, ClientID: "boot", ClientSecret: "boot-secret"})
 }
 
-// Env is a fresh environment for one run.
+// Env is a fresh environment for one run, with the target's own spec for the capability check (the fake serves the
+// newest vendored one). A target that serves none leaves Capability nil, which the engine refuses.
 func Env(c *client.Client, spec *v1alpha1.LogtoConfigSpec) *engine.Env {
-	return &engine.Env{Client: c, Spec: spec, Secrets: secrets.CLI(&secrets.Redactor{})}
+	target, _ := capability.Fetch(context.Background(), c)
+	return &engine.Env{Client: c, Spec: spec, Secrets: secrets.CLI(&secrets.Redactor{}), Capability: target}
 }
 
 // Apply runs the kinds on a fresh environment and fails the test on error.
@@ -95,3 +117,9 @@ type stringsBuilder struct{ b []byte }
 
 func (s *stringsBuilder) Write(p []byte) (int, error) { s.b = append(s.b, p...); return len(p), nil }
 func (s *stringsBuilder) String() string              { return string(s.b) }
+
+// JSON is v encoded, for comparisons in tests.
+func JSON(v any) string {
+	b, _ := json.Marshal(v)
+	return string(b)
+}

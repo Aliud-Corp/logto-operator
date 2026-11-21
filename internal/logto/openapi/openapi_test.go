@@ -88,3 +88,50 @@ func TestAValidatorFunctionFieldAcceptsAString(t *testing.T) {
 		t.Fatalf("problems = %v", p)
 	}
 }
+
+func TestARequestFindsItsOperationALiteralSegmentFirst(t *testing.T) {
+	d := load(t, logtospecs.Versions()[0])
+	for call, want := range map[string]string{
+		"GET /api/applications/abc":         "GetApplication",
+		"PATCH /api/sign-in-exp":            "UpdateSignInExp",
+		"GET /api/applications/abc/secrets": "ListApplicationSecrets",
+		"GET /api/configs/oidc/session":     "GetOidcSessionConfig",
+		"GET /api/configs/oidc/cookie":      "GetOidcKeys",
+	} {
+		method, path, _ := strings.Cut(call, " ")
+		if got, ok := d.Find(method, path); !ok || got != want {
+			t.Errorf("%s = %q, want %q", call, got, want)
+		}
+	}
+	if _, ok := d.Find("GET", "/api/no-such-route"); ok {
+		t.Error("an unknown route was found")
+	}
+}
+
+func TestFieldsReportsAWrongTypeButNotAMissingField(t *testing.T) {
+	d := load(t, logtospecs.Versions()[0])
+	s, err := d.ResponseSchema("GetApplication", 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := openapi.Fields(s, map[string]any{"name": "a"}); len(p) != 0 {
+		t.Fatalf("a partial answer is refused: %v", p)
+	}
+	if p := openapi.Fields(s, map[string]any{"name": 12}); len(p) == 0 || !strings.Contains(strings.Join(p, " "), "name") {
+		t.Fatalf("a wrong type passes: %v", p)
+	}
+}
+
+func TestAShortLiteralSegmentWinsOverAParameter(t *testing.T) {
+	d, err := openapi.Load([]byte(`{"openapi":"3.0.1","info":{"title":"t","version":"1"},"paths":{` +
+		`"/api/users/{userId}":{"get":{"operationId":"GetUser","responses":{"200":{"description":"ok"}}}},` +
+		`"/api/users/me":{"get":{"operationId":"GetMe","responses":{"200":{"description":"ok"}}}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range map[string]string{"/api/users/me": "GetMe", "/api/users/u1": "GetUser"} {
+		if got, _ := d.Find("GET", path); got != want {
+			t.Errorf("%s = %q, want %q", path, got, want)
+		}
+	}
+}

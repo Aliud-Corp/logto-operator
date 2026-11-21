@@ -8,3 +8,13 @@ ListResourceScopes
 CreateResourceScope
 UpdateResourceScope
 DeleteResourceScope
+ListOrganizationScopes
+CreateOrganizationScope
+UpdateOrganizationScope
+DeleteOrganizationScope
+ListOrganizationRoles
+CreateOrganizationRole
+UpdateOrganizationRole
+DeleteOrganizationRole
+ReplaceOrganizationRoleScopes
+ReplaceOrganizationRoleResourceScopes

@@ -11,6 +11,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -56,6 +57,8 @@ apply only:
   --secrets-out FILE write published secrets (JSON) to FILE, created with mode 0600
   --secrets-fd N     write published secrets (JSON) to inherited descriptor N (3 or above)
   --print-secrets    print published secrets on stdout too (avoid)
+plan, check, apply:
+  --allow-untested-logto  run against a Logto whose API spec is none of the supported versions
 
 exit codes: 0 done or in sync, 1 error, 2 drift (check) or usage error, 3 applied with warnings
 `
@@ -86,6 +89,7 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 	secretsOut := fs.String("secrets-out", "", "file for published secrets (0600)")
 	secretsFD := fs.Int("secrets-fd", -1, "inherited descriptor for published secrets")
 	printSecrets := fs.Bool("print-secrets", false, "print published secrets on stdout too")
+	untested := fs.Bool("allow-untested-logto", false, "run against a Logto outside the support window")
 	if err := fs.Parse(rest); err != nil {
 		return exitUsage
 	}
@@ -97,10 +101,23 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 		_, _ = fmt.Fprintln(stderr, "logtoctl: --secrets-out and --secrets-fd are exclusive")
 		return exitUsage
 	}
+	// Checked before any call: a wrong flag found after the writes would publish nothing.
+	if *format != "env" && *format != "json" {
+		_, _ = fmt.Fprintf(stderr, "logtoctl: --outputs is env or json, not %q\n", *format)
+		return exitUsage
+	}
+	if *secretsFD >= 0 && *secretsFD < 3 {
+		_, _ = fmt.Fprintln(stderr, "logtoctl: --secrets-fd is an inherited descriptor, 3 or above (0, 1 and 2 are the standard streams)")
+		return exitUsage
+	}
 
 	redactor := &secrets.Redactor{}
 	fail := func(err error) int {
-		_, _ = fmt.Fprintf(stderr, "logtoctl %s: %s\n", cmd, redactor.Redact(err.Error()))
+		msg := redactor.Redact(err.Error())
+		if errors.Is(err, engine.ErrUntested) {
+			msg += " (--allow-untested-logto)"
+		}
+		_, _ = fmt.Fprintf(stderr, "logtoctl %s: %s\n", cmd, msg)
 		return ExitError
 	}
 	doc, err := config.Load(*file)
@@ -118,6 +135,10 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 	env, err := environment(ctx, doc.Config, resolver)
 	if err != nil {
 		return fail(err)
+	}
+	env.AllowUntested = *untested
+	if env.Capability.Version == "" && *untested {
+		_, _ = fmt.Fprintln(stderr, "logtoctl: warning: this Logto is outside the support window (--allow-untested-logto)")
 	}
 	e, err := engine.New(kinds.All()...)
 	if err != nil {
@@ -143,6 +164,12 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 			_ = plan.Render(stderr, p)
 		}
 		if err != nil {
+			if p != nil {
+				_, _ = fmt.Fprintln(stderr, "logtoctl apply: "+results(p))
+			}
+			if engine.Transient(err) {
+				err = fmt.Errorf("%w (transient: a later apply may succeed)", err)
+			}
 			return fail(err)
 		}
 		if err := outputs.WriteIDs(stdout, env.Outputs, *format); err != nil {
@@ -204,6 +231,23 @@ func publishSecrets(o *engine.Outputs, path string, fd int, print bool, stdout, 
 		return ExitWarnings
 	}
 	return ExitOK
+}
+
+// results counts what an interrupted apply did: the ops applied, the one that failed, the writes never run.
+func results(p *plan.Plan) string {
+	applied, notRun := 0, 0
+	failed := ""
+	for _, op := range p.Ops {
+		switch {
+		case op.Result == plan.Applied:
+			applied++
+		case op.Result == plan.Failed:
+			failed = ", failed " + op.Kind + " " + op.Key
+		case op.Action != plan.Noop:
+			notRun++
+		}
+	}
+	return fmt.Sprintf("stopped: %d applied%s, %d not run (the plan above lists them all)", applied, failed, notRun)
 }
 
 func sortedKeys[V any](m map[string]V) []string {

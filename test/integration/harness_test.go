@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/Aliud-Corp/logto-operator/internal/logto/capability"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/integration"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
 )
@@ -32,4 +34,18 @@ func TestTheHarnessReachesTheManagementAPI(t *testing.T) {
 		t.Fatalf("Logto %s: GET /api/applications answered %d", env.Version, res.StatusCode())
 	}
 	t.Logf("Logto %s: %d application(s) listed through the generated client", env.Version, len(*res.JSON200))
+}
+
+// A real Logto of the window is recognised by its own spec, whatever host it is reached at: the vendored document is
+// what the instance serves.
+func TestARealLogtoIsRecognisedByItsSpec(t *testing.T) {
+	env := integration.Load(t)
+	c := client.New(client.Config{Endpoint: env.Endpoint, TokenEndpoint: env.AdminEndpoint, ClientID: env.ClientID, ClientSecret: env.ClientSecret})
+	spec, err := capability.Fetch(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if spec.Version != env.Version {
+		t.Fatalf("Logto %s recognised as %q", env.Version, spec.Version)
+	}
 }

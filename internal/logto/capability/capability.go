@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 
+	logtospecs "github.com/Aliud-Corp/logto-operator/api/logto"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/openapi"
@@ -19,6 +20,9 @@ import (
 // Spec is the target instance's own spec.
 type Spec struct {
 	doc *openapi.Doc
+	// Version is the supported Logto version whose vendored spec this one is, "" for a Logto outside the support
+	// window (or a modified one): its behaviour was never tested.
+	Version string
 }
 
 // Fetch reads the spec the target instance serves.
@@ -34,13 +38,17 @@ func Fetch(ctx context.Context, c *client.Client) (*Spec, error) {
 	return Parse(raw)
 }
 
-// Parse loads a spec document.
+// Parse loads a spec document and recognises its version.
 func Parse(raw []byte) (*Spec, error) {
 	d, err := openapi.Load(raw)
 	if err != nil {
 		return nil, err
 	}
-	return &Spec{doc: d}, nil
+	v, err := logtospecs.Match(raw)
+	if err != nil {
+		return nil, err
+	}
+	return &Spec{doc: d, Version: v}, nil
 }
 
 // Need is what one declared object will send: an operation and the property paths of its body (a.b.c), with where

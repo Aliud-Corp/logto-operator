@@ -13,6 +13,7 @@ import (
 	logtospecs "github.com/Aliud-Corp/logto-operator/api/logto"
 	"github.com/Aliud-Corp/logto-operator/internal/cli"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/contract"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/logtofake"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
 )
@@ -33,6 +34,18 @@ func setup(t *testing.T) (*logtofake.Server, *client.Client, string) {
 		t.Fatal(err)
 	}
 	fake.ServeSpec(raw)
+	docs, err := contract.Docs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fake.ValidateAgainst(docs)
+	t.Cleanup(func() {
+		for _, p := range fake.Problems() {
+			if !strings.Contains(p, "fake.injected") {
+				t.Errorf("not valid for every supported Logto: %s", p)
+			}
+		}
+	})
 	srv := httptest.NewServer(fake.Handler())
 	t.Cleanup(srv.Close)
 
@@ -180,12 +193,51 @@ func TestPublishedSecretsNotWrittenAreAWarning(t *testing.T) {
 }
 
 func TestUsageErrors(t *testing.T) {
-	for _, args := range [][]string{{}, {"nope"}, {"plan"}, {"apply", "-f", "x", "--secrets-out", "a", "--secrets-fd", "3"}} {
+	for _, args := range [][]string{
+		{},
+		{"nope"},
+		{"plan"},
+		{"apply", "-f", "x", "--secrets-out", "a", "--secrets-fd", "3"},
+		{"apply", "-f", "x", "--outputs", "yaml"},
+		{"apply", "-f", "x", "--secrets-fd", "1"},
+	} {
 		if r := run(args...); r.code != 2 {
 			t.Errorf("%v: exit %d, want 2", args, r.code)
 		}
 	}
 	if r := run("version"); r.code != 0 || strings.TrimSpace(r.stdout) != "test" {
 		t.Errorf("version: %d %q", r.code, r.stdout)
+	}
+}
+
+func TestAnInterruptedApplySaysWhatWasAppliedAndWhatWasNot(t *testing.T) {
+	fake, _, doc := setup(t)
+	fake.FailNext("POST /api/organization-roles", 422)
+	r := run("apply", "-f", doc)
+	if r.code != cli.ExitError || !strings.Contains(r.stderr, "stopped: ") || !strings.Contains(r.stderr, "failed organizationRoles ") ||
+		!strings.Contains(r.stderr, "not run") {
+		t.Fatalf("apply: %d\n%s", r.code, r.stderr)
+	}
+}
+
+func TestATransientFailureSaysARetryMaySucceed(t *testing.T) {
+	fake, _, doc := setup(t)
+	fake.FailNext("POST /api/organization-roles", 503)
+	if r := run("apply", "-f", doc); r.code != cli.ExitError || !strings.Contains(r.stderr, "transient: a later apply may succeed") {
+		t.Fatalf("apply: %d\n%s", r.code, r.stderr)
+	}
+}
+
+func TestAnUntestedLogtoIsRefusedUnlessAllowed(t *testing.T) {
+	fake, _, doc := setup(t)
+	raw, _ := logtospecs.Spec(logtospecs.Versions()[0])
+	fake.ServeSpec(bytes.Replace(raw, []byte(`"paths":{`), []byte(`"paths":{"/api/new-in-a-later-logto":{},`), 1))
+	r := run("plan", "-f", doc)
+	if r.code != cli.ExitError || !strings.Contains(r.stderr, "none of the supported versions") || !strings.Contains(r.stderr, "--allow-untested-logto") {
+		t.Fatalf("plan: %d\n%s", r.code, r.stderr)
+	}
+	r = run("plan", "-f", doc, "--allow-untested-logto")
+	if r.code != cli.ExitOK || !strings.Contains(r.stderr, "outside the support window") {
+		t.Fatalf("plan --allow-untested-logto: %d\n%s", r.code, r.stderr)
 	}
 }

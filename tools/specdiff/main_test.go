@@ -3,6 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -66,5 +70,55 @@ func TestTheVendoredWindowDiffMatchesTheMeasurement(t *testing.T) {
 	}
 	if counts[Breaking] != 7 || counts[Changed] != 3 || counts[Additive] != 82 {
 		t.Fatalf("counts = breaking %d, changed %d, additive %d; want 7, 3, 82", counts[Breaking], counts[Changed], counts[Additive])
+	}
+}
+
+// The code calls an operation by the name the older spec gives it (the generated mgmt.New<OperationId>Request): a
+// rename is breaking for it, and every other finding of that operation stays under that name.
+func TestARenamedUsedOperationIsBreakingAndKeepsItsFindingsUnderTheUsedName(t *testing.T) {
+	renamed := strings.Replace(nameRemoved, `"operationId":"ListThings"`, `"operationId":"ListAllThings"`, 1)
+	var out bytes.Buffer
+	if code := report(Diff(doc(t, before), doc(t, renamed)), map[string]bool{"ListThings": true}, &out); code != 1 {
+		t.Fatalf("exit %d, want 1:\n%s", code, out.String())
+	}
+	for _, want := range []string{"operationId ListThings -> ListAllThings", "200[].name: property removed  [USED]"} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("%q not reported:\n%s", want, out.String())
+		}
+	}
+}
+
+// used.txt is the list specdiff guards: it must be exactly the operations the code calls.
+func TestUsedListsExactlyTheOperationsTheCodeCalls(t *testing.T) {
+	call := regexp.MustCompile(`mgmt\.New([A-Za-z0-9]+?)Request(?:WithBody)?\(`)
+	inCode := map[string]bool{}
+	for _, root := range []string{"../../internal", "../../cmd"} {
+		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() || !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") || strings.Contains(p, "/mgmt/") {
+				return err
+			}
+			b, err := os.ReadFile(p)
+			for _, m := range call.FindAllSubmatch(b, -1) {
+				inCode[string(m[1])] = true
+			}
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	listed, err := loadUsed("used.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for op := range inCode {
+		if !listed[op] {
+			t.Errorf("used.txt misses %s, which the code calls", op)
+		}
+	}
+	for op := range listed {
+		if !inCode[op] {
+			t.Errorf("used.txt lists %s, which no code calls", op)
+		}
 	}
 }

@@ -26,7 +26,7 @@ func (l Level) String() string {
 // Finding is one difference, attached to the operation it was found in.
 type Finding struct {
 	Level       Level
-	OperationID string // of the operation in the newer spec, or the older one when the operation was removed
+	OperationID string // of the operation in the older spec (the name the code calls), in the newer one when added
 	Where       string
 	What        string
 }
@@ -69,9 +69,11 @@ func Diff(from, to map[string]any) []Finding {
 			continue
 		}
 		a := opsFrom[k]
-		d.op = opID(b.op)
+		// The code calls the operation by its older name (mgmt.New<OperationId>Request): findings stay under it, and
+		// a rename is breaking, since that generated method disappears.
+		d.op = opID(a.op)
 		if opID(a.op) != opID(b.op) {
-			d.add(Changed, k, fmt.Sprintf("operationId %s -> %s (generated method renamed)", opID(a.op), opID(b.op)))
+			d.add(Breaking, k, fmt.Sprintf("operationId %s -> %s (generated method renamed)", opID(a.op), opID(b.op)))
 		}
 		d.params(k, a, b)
 		d.body(k, a.op, b.op)

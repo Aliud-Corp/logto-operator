@@ -1,5 +1,6 @@
 # operationIds the kinds call, one per line. specdiff exits 1 when a breaking change touches one of them.
-# Each kind adds its operations here when it is written (docs: api/logto/README.md).
+# It lists exactly what the code calls (mgmt.New<OperationId>Request, tests aside): TestUsedListsExactlyTheOperationsTheCodeCalls
+# fails otherwise (docs: api/logto/README.md).
 ListResources
 CreateResource
 UpdateResource
@@ -41,3 +42,4 @@ CreateUser
 UpdateUser
 ListUserRoles
 AssignUserRoles
+GetSwaggerJson

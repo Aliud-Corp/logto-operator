@@ -14,10 +14,13 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"sigs.k8s.io/yaml"
 
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/openapi"
 )
 
 // Document is a loaded LogtoConfig and the directory its relative paths resolve against.
@@ -46,7 +49,9 @@ func Load(path string) (*Document, error) {
 	return &Document{Config: cfg, Dir: dir}, nil
 }
 
-// Parse turns YAML (or JSON) into a LogtoConfig: variables interpolated, unknown fields refused. Files are not read.
+// Parse turns YAML (or JSON) into a LogtoConfig: variables interpolated, unknown fields refused, then every rule of
+// the generated JSON Schema checked on the document as written (what the CRD refuses: required fields, patterns,
+// enums, minimums), all violations at once. Files are not read. The rules across fields are Validate's.
 func Parse(raw []byte) (*v1alpha1.LogtoConfig, error) {
 	js, err := yaml.YAMLToJSON(raw)
 	if err != nil {
@@ -64,6 +69,12 @@ func Parse(raw []byte) (*v1alpha1.LogtoConfig, error) {
 		return nil, err
 	}
 	if errs := unknownFields(root, typeOfConfig, ""); len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+	if root["apiVersion"] != v1alpha1.GroupVersion.String() || root["kind"] != v1alpha1.Kind {
+		return nil, fmt.Errorf("apiVersion/kind is %q/%q, want %q/%q", root["apiVersion"], root["kind"], v1alpha1.GroupVersion.String(), v1alpha1.Kind)
+	}
+	if errs := schemaRules(root); len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
 	js, err = json.Marshal(root)
@@ -239,4 +250,34 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+var docSchema = sync.OnceValues(func() (*openapi3.Schema, error) {
+	var raw map[string]any
+	if err := json.Unmarshal(v1alpha1.JSONSchema, &raw); err != nil {
+		return nil, err
+	}
+	delete(raw, "$schema")
+	b, err := json.Marshal(raw)
+	if err != nil {
+		return nil, err
+	}
+	var s openapi3.Schema
+	if err := json.Unmarshal(b, &s); err != nil {
+		return nil, err
+	}
+	return &s, nil
+})
+
+// schemaRules checks the document against the generated JSON Schema; each violation carries its path.
+func schemaRules(root map[string]any) []error {
+	s, err := docSchema()
+	if err != nil {
+		return []error{fmt.Errorf("the document schema: %w", err)}
+	}
+	var errs []error
+	for _, p := range openapi.Validate(s, root) {
+		errs = append(errs, errors.New(p))
+	}
+	return errs
 }

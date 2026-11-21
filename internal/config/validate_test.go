@@ -36,7 +36,7 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 		{
 			"application type",
 			"  applications:\n    a: {name: A, type: Desktop}\n",
-			"spec.applications.a.type: must be one of",
+			"spec.applications.a.type: value is not one of the allowed values",
 		},
 		{
 			"roles on a SPA",
@@ -72,7 +72,7 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 		{
 			"SMTP port out of range",
 			strings.Replace(smtpOK, "port: 587", "port: 0", 1),
-			"spec.connectors.smtp.smtp.port: must be a number between 1 and 65535",
+			"spec.connectors.smtp.smtp.port: number must be at least 1",
 		},
 		{
 			"SMTP template missing",
@@ -97,11 +97,7 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			cfg, err := config.Parse([]byte(minimal + c.body))
-			if err != nil {
-				t.Fatalf("parse: %v", err)
-			}
-			err = config.Validate(cfg)
+			err := check(minimal + c.body)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("got %v\nwant an error containing %q", err, c.want)
 			}
@@ -117,12 +113,55 @@ func TestAPortWrittenAsAStringIsRefusedAtDecode(t *testing.T) {
 }
 
 func TestAllViolationsAreReportedAtOnce(t *testing.T) {
-	cfg, err := config.Parse([]byte(minimal + "  applications:\n    a: {name: A, type: Desktop}\n  users:\n    u: {primaryEmail: nope}\n"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = config.Validate(cfg)
-	if err == nil || !strings.Contains(err.Error(), "spec.applications.a.type") || !strings.Contains(err.Error(), "spec.users.u.primaryEmail") {
+	// The schema rules, all at once, before anything else...
+	err := check(minimal + "  applications:\n    a: {name: A, type: Desktop}\n  resources:\n    r: {indicator: https://r.test/api}\n")
+	if err == nil || !strings.Contains(err.Error(), "spec.applications.a.type") || !strings.Contains(err.Error(), "spec.resources.r.name") {
 		t.Fatalf("err = %v", err)
 	}
+	// ...then the rules across fields, all at once.
+	err = check(minimal + "  applications:\n    a: {name: Same, type: SPA}\n    b: {name: Same, type: SPA}\n  users:\n    u: {primaryEmail: nope}\n")
+	if err == nil || !strings.Contains(err.Error(), "spec.applications.b") || !strings.Contains(err.Error(), "spec.users.u.primaryEmail") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// The rules of the generated JSON Schema (required, pattern, enum, minimum: what the CRD refuses) are checked by the
+// CLI too, before any call, together with the other rules.
+func TestTheJSONSchemaRulesAreEnforced(t *testing.T) {
+	for name, c := range map[string]struct{ body, want string }{
+		"resource without a name": {
+			"  resources:\n    app: {indicator: https://a.test/api}\n", "spec.resources.app.name",
+		},
+		"an endpoint that is no URL": {
+			"", "spec.endpoint",
+		},
+		"an unknown file conversion": {
+			"  signInExperience:\n    branding: {logoUrl: {fromFile: logo.png, as: datauri}}\n", "spec.signInExperience.branding.logoUrl.as",
+		},
+		"a token lifetime of zero": {
+			"  resources:\n    app: {name: A, indicator: https://a.test/api, accessTokenTtl: 0}\n", "spec.resources.app.accessTokenTtl",
+		},
+		"a colour that is no colour": {
+			"  signInExperience:\n    color: {primaryColor: blue}\n", "spec.signInExperience.color.primaryColor",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			doc := minimal + c.body
+			if name == "an endpoint that is no URL" {
+				doc = strings.Replace(minimal, "    endpoint: http://localhost:3001", "    endpoint: localhost:3001", 1)
+			}
+			if err := check(doc); err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("got %v\nwant an error naming %s", err, c.want)
+			}
+		})
+	}
+}
+
+// check is what a command does before any call: parse (with the schema rules), then the rules across fields.
+func check(doc string) error {
+	cfg, err := config.Parse([]byte(doc))
+	if err != nil {
+		return err
+	}
+	return config.Validate(cfg)
 }

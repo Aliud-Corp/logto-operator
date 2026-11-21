@@ -223,10 +223,12 @@ type SignInExperience struct {
 
 // Color of the sign-in pages.
 type Color struct {
+	// +kubebuilder:validation:Pattern=`^#([0-9A-Fa-f]{3}){1,2}$`
 	PrimaryColor string `json:"primaryColor"`
 	// +optional
 	IsDarkModeEnabled bool `json:"isDarkModeEnabled,omitempty"`
 	// +optional
+	// +kubebuilder:validation:Pattern=`^#([0-9A-Fa-f]{3}){1,2}$`
 	DarkPrimaryColor string `json:"darkPrimaryColor,omitempty"`
 }
 

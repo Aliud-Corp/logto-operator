@@ -645,12 +645,14 @@
               "description": "Color of the sign-in pages.",
               "properties": {
                 "darkPrimaryColor": {
+                  "pattern": "^#([0-9A-Fa-f]{3}){1,2}$",
                   "type": "string"
                 },
                 "isDarkModeEnabled": {
                   "type": "boolean"
                 },
                 "primaryColor": {
+                  "pattern": "^#([0-9A-Fa-f]{3}){1,2}$",
                   "type": "string"
                 }
               },

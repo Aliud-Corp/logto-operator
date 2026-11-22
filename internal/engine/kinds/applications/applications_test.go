@@ -8,6 +8,8 @@ import (
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/applications"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/kindtest"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/resources"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/roles"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/logtofake"
 )
 
@@ -32,7 +34,7 @@ const declared = `  applications:
 
 func apply(t *testing.T, fake *logtofake.Server, env *engine.Env) {
 	t.Helper()
-	e, err := engine.New(applications.Kind{})
+	e, err := engine.New(resources.Kind{}, roles.Kind{}, applications.Kind{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +99,7 @@ func TestAnExistingApplicationIsAdoptedByName(t *testing.T) {
 func TestATypeChangeIsRefused(t *testing.T) {
 	fake, c := kindtest.Fake(t)
 	fake.SeedApplication(logtofake.Application{Name: "Example App", Type: "Traditional"})
-	_, err := kindtest.Plan(c, kindtest.Spec(t, declared), applications.Kind{})
+	_, err := kindtest.Plan(c, kindtest.Spec(t, declared), resources.Kind{}, roles.Kind{}, applications.Kind{})
 	if err == nil || !strings.Contains(err.Error(), "Logto cannot change an application's type") {
 		t.Fatalf("err = %v", err)
 	}
@@ -107,7 +109,7 @@ func TestADuplicateNameIsRefused(t *testing.T) {
 	fake, c := kindtest.Fake(t)
 	fake.SeedApplication(logtofake.Application{Name: "Example App", Type: "SPA"})
 	fake.SeedApplication(logtofake.Application{Name: "Example App", Type: "SPA"})
-	_, err := kindtest.Plan(c, kindtest.Spec(t, declared), applications.Kind{})
+	_, err := kindtest.Plan(c, kindtest.Spec(t, declared), resources.Kind{}, roles.Kind{}, applications.Kind{})
 	if err == nil || !strings.Contains(err.Error(), `2 Logto objects match "Example App"`) {
 		t.Fatalf("err = %v", err)
 	}
@@ -116,8 +118,8 @@ func TestADuplicateNameIsRefused(t *testing.T) {
 func TestAMissingRoleIsRefused(t *testing.T) {
 	_, c := kindtest.Fake(t)
 	doc := strings.Replace(declared, "Logto Management API access", "No such role", 1)
-	_, err := kindtest.Plan(c, kindtest.Spec(t, doc), applications.Kind{})
-	if err == nil || !strings.Contains(err.Error(), `Logto has no role named "No such role"`) {
+	_, err := kindtest.Plan(c, kindtest.Spec(t, doc), resources.Kind{}, roles.Kind{}, applications.Kind{})
+	if err == nil || !strings.Contains(err.Error(), `Logto has no MachineToMachine role named "No such role"`) {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -128,11 +130,59 @@ func TestAPlanPublishesNoSecret(t *testing.T) {
 	spec := kindtest.Spec(t, declared)
 	apply(t, fake, kindtest.Env(c, spec))
 	env := kindtest.Env(c, spec)
-	e, _ := engine.New(applications.Kind{})
+	e, _ := engine.New(resources.Kind{}, roles.Kind{}, applications.Kind{})
 	if _, err := e.Plan(context.Background(), env); err != nil {
 		t.Fatal(err)
 	}
 	if len(env.Outputs.Secrets) != 0 {
 		t.Fatalf("a plan published %d secret(s)", len(env.Outputs.Secrets))
+	}
+}
+
+// A role declared in spec.roles is created and granted by one run, plan included: the plan cannot know its id yet.
+func TestARoleCreatedByTheSameDocumentIsGranted(t *testing.T) {
+	fake, c := kindtest.Fake(t)
+	doc := strings.Replace(declared, "        - {name: Logto Management API access}\n", "        - {name: Logto Management API access}\n        - {name: event_sync}\n", 1) +
+		"  roles:\n    sync: {name: event_sync, description: Syncs events, type: MachineToMachine}\n"
+	spec := kindtest.Spec(t, doc)
+	p, err := kindtest.Plan(c, spec, resources.Kind{}, roles.Kind{}, applications.Kind{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	granted := false
+	for _, op := range p.Ops {
+		for _, ch := range op.Changes {
+			granted = granted || (op.Key == "backend" && ch.Field == "roles.event_sync")
+		}
+	}
+	if !granted {
+		t.Fatalf("the plan does not grant event_sync: %v", p.Ops)
+	}
+	apply(t, fake, kindtest.Env(c, spec))
+	var backendID string
+	for _, a := range fake.Applications() {
+		if a["name"] == "Example Backend" {
+			backendID = a["id"].(string)
+		}
+	}
+	if got := strings.Join(fake.ApplicationRoleNames(backendID), ","); got != logtofake.ManagementRole+",event_sync" {
+		t.Fatalf("roles = %q", got)
+	}
+	writes := fake.Writes()
+	apply(t, fake, kindtest.Env(c, spec))
+	if fake.Writes() != writes {
+		t.Fatalf("the replay wrote %d times", fake.Writes()-writes)
+	}
+}
+
+// Prune never deletes a role the document grants, declared in spec.roles or not.
+func TestPruneSparesARoleTheDocumentGrants(t *testing.T) {
+	fake, c := kindtest.Fake(t)
+	fake.SeedRole("ops_sync", "MachineToMachine")
+	doc := strings.Replace(declared, "        - {name: Logto Management API access}\n", "        - {name: Logto Management API access}\n        - {name: ops_sync}\n", 1) +
+		"  prune: {roles: true}\n"
+	apply(t, fake, kindtest.Env(c, kindtest.Spec(t, doc)))
+	if _, ok := fake.Roles()["ops_sync"]; !ok {
+		t.Fatal("prune deleted ops_sync, which the document grants")
 	}
 }

@@ -85,6 +85,21 @@ spec:
       resourceScopes:
         - {resource: app, scope: "event:read"}
 
+  roles:
+    admin:
+      name: platform_admin
+      description: Administers the example platform
+      type: User
+      scopes:
+        - {resource: admin, scope: all}
+    sync:
+      name: event_sync
+      description: Reads and writes events for the example backend
+      type: MachineToMachine
+      scopes:
+        - {resource: app, scope: "event:read"}
+        - {resource: app, scope: "event:write"}
+
   applications:
     app:
       name: Example App
@@ -102,9 +117,12 @@ spec:
       description: The example backend, reading user profiles
       roles:
         - {name: Logto Management API access}
+        - {name: event_sync}
       secret: {publish: true}
 
   users:
     admin:
       primaryEmail: admin@${zone}
       name: Example Admin
+      roles:
+        - {name: platform_admin}

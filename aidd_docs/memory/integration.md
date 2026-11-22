@@ -35,3 +35,7 @@
 - Users are found with `search.primaryEmail=<address>` (Logto's default search mode matches across case, measured)
   and compared case-insensitively; they are created without a password.
 - Never call a deployed Logto from a test or a development session.
+- Global roles: `POST /api/roles` answers 200 (not 201), `description` is mandatory and `type` cannot change;
+  `POST /api/roles/{id}/scopes` adds scopes and answers 201 with the role's scopes, without their resource.
+- Logto's "Logto Management API access" role holds the `all` scope of `https://default.logto.app/api`: prune never
+  deletes a role holding a scope of that resource.

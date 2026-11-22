@@ -59,6 +59,9 @@ type LogtoConfigSpec struct {
 	OrganizationScopes map[string]OrganizationScope `json:"organizationScopes,omitempty"`
 	// +optional
 	OrganizationRoles map[string]OrganizationRole `json:"organizationRoles,omitempty"`
+	// Roles are global roles (role-based access control of the tenant), granted to applications and users.
+	// +optional
+	Roles map[string]Role `json:"roles,omitempty"`
 	// +optional
 	Applications map[string]Application `json:"applications,omitempty"`
 	// Users are application-level administrators only; users from sign-up are never declared, never pruned.
@@ -131,8 +134,11 @@ type Prune struct {
 	OrganizationScopes bool `json:"organizationScopes,omitempty"`
 	// +optional
 	OrganizationRoles bool `json:"organizationRoles,omitempty"`
-	// Keep lists objects never pruned, whatever the switches say: by name (organization scope and role, custom
-	// profile field), by name or indicator (resource), by id (connector, which has no name of its own).
+	// Roles prunes global roles; a role holding a scope of Logto's Management API is never pruned.
+	// +optional
+	Roles bool `json:"roles,omitempty"`
+	// Keep lists objects never pruned, whatever the switches say: by name (organization scope and role, global role,
+	// custom profile field), by name or indicator (resource), by id (connector, which has no name of its own).
 	// +optional
 	Keep []string `json:"keep,omitempty"`
 }
@@ -308,6 +314,26 @@ type OrganizationRole struct {
 	// ResourceScopes are scopes of declared resources; the role holds exactly these.
 	// +optional
 	ResourceScopes []ResourceScopeRef `json:"resourceScopes,omitempty"`
+}
+
+// Role is a global role, matched by its name. Its type cannot change once it exists in Logto.
+type Role struct {
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	Name string `json:"name"`
+	// Description is required by Logto.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	Description string `json:"description"`
+	// +kubebuilder:validation:Enum=User;MachineToMachine
+	Type string `json:"type"`
+	// IsDefault makes Logto grant the role to every new user (User roles only).
+	// +optional
+	IsDefault *bool `json:"isDefault,omitempty"`
+	// Scopes are scopes of declared resources. When set, the role holds exactly these (an empty list removes them
+	// all); when omitted, the scopes Logto holds are left as they are.
+	// +optional
+	Scopes *[]ResourceScopeRef `json:"scopes,omitempty"`
 }
 
 // ResourceScopeRef names a scope of a resource declared in spec.resources, by local key and scope name.

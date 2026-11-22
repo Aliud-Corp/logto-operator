@@ -174,6 +174,20 @@ func assertObjects(t *testing.T, c *client.Client) {
 		t.Errorf("organization roles = %v", found)
 	}
 
+	var global []struct{ ID, Name, Type string }
+	req, err = mgmt.NewListRolesRequest(c.Endpoint(), &mgmt.ListRolesParams{Page: &page, PageSize: &size})
+	get(req, err, &global)
+	held := map[string]string{}
+	for _, r := range global {
+		var scopes []struct{ Name string }
+		req, err = mgmt.NewListRoleScopesRequest(c.Endpoint(), r.ID, &mgmt.ListRoleScopesParams{Page: &page, PageSize: &size})
+		get(req, err, &scopes)
+		held[r.Name] = r.Type + "|" + names(scopes)
+	}
+	if held["platform_admin"] != "User|all" || held["event_sync"] != "MachineToMachine|event:read,event:write" {
+		t.Errorf("global roles = %v", held)
+	}
+
 	var fields []struct{ Name, Type string }
 	req, err = mgmt.NewListCustomProfileFieldsRequest(c.Endpoint())
 	get(req, err, &fields)
@@ -213,22 +227,35 @@ func assertObjects(t *testing.T, c *client.Client) {
 	var apps []struct{ ID, Name, Type string }
 	req, err = mgmt.NewListApplicationsRequest(c.Endpoint(), &mgmt.ListApplicationsParams{Page: &page, PageSize: &size})
 	get(req, err, &apps)
-	types := map[string]string{}
+	types, ids := map[string]string{}, map[string]string{}
 	for _, a := range apps {
-		types[a.Name] = a.Type
+		types[a.Name], ids[a.Name] = a.Type, a.ID
 	}
 	if types["Example App"] != "SPA" || types["Example Backend"] != "MachineToMachine" {
 		t.Errorf("applications = %v", types)
 	}
+	var granted []struct{ Name string }
+	req, err = mgmt.NewListApplicationRolesRequest(c.Endpoint(), ids["Example Backend"], &mgmt.ListApplicationRolesParams{Page: &page, PageSize: &size})
+	get(req, err, &granted)
+	if got := names(granted); got != "Logto Management API access,event_sync" {
+		t.Errorf("roles of Example Backend = %s", got)
+	}
 
 	var users []struct {
+		ID           string `json:"id"`
 		PrimaryEmail string `json:"primaryEmail"`
 	}
 	search := map[string]string{"search.primaryEmail": "admin@example.test"}
 	req, err = mgmt.NewListUsersRequest(c.Endpoint(), &mgmt.ListUsersParams{Page: &page, PageSize: &size, SearchParams: &search})
 	get(req, err, &users)
 	if len(users) != 1 {
-		t.Errorf("users admin@example.test = %v", users)
+		t.Fatalf("users admin@example.test = %v", users)
+	}
+	var userRoles []struct{ Name string }
+	req, err = mgmt.NewListUserRolesRequest(c.Endpoint(), users[0].ID, &mgmt.ListUserRolesParams{Page: &page, PageSize: &size})
+	get(req, err, &userRoles)
+	if got := names(userRoles); got != "platform_admin" {
+		t.Errorf("roles of admin@example.test = %s", got)
 	}
 }
 

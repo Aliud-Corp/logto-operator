@@ -7,48 +7,6 @@ import (
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
 )
 
-// ManagementRole is the built-in role that grants Management API access to a machine-to-machine application.
-const ManagementRole = "Logto Management API access"
-
-func (s *Server) initRoles() {
-	if s.roles != nil {
-		return
-	}
-	s.roles = map[string]object{}
-	s.roles["role-mgmt"] = object{
-		"tenantId": "default", "id": "role-mgmt", "name": ManagementRole, "description": "This default role grants access to the Logto management API.",
-		"type": "MachineToMachine", "isDefault": false,
-	}
-}
-
-// SeedRole stores a global role.
-func (s *Server) SeedRole(name, typ string) string {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.initRoles()
-	id := s.nextID("role")
-	s.roles[id] = object{"tenantId": "default", "id": id, "name": name, "description": name, "type": typ, "isDefault": false}
-	return id
-}
-
-func roleView(o object) object {
-	v := copyObject(o)
-	v["usersCount"], v["featuredUsers"], v["applicationsCount"], v["featuredApplications"] = 0, []any{}, 0, []any{}
-	return v
-}
-
-// ListRoles is GET /api/roles, paginated.
-func (s *Server) ListRoles(w http.ResponseWriter, r *http.Request, _ mgmt.ListRolesParams) {
-	s.mu.Lock()
-	s.initRoles()
-	items := []object{}
-	for _, o := range sorted(s.roles) {
-		items = append(items, roleView(o))
-	}
-	s.mu.Unlock()
-	paginate(w, r, items)
-}
-
 func (s *Server) initUsers() {
 	if s.users == nil {
 		s.users = map[string]object{}
@@ -73,7 +31,7 @@ func (s *Server) Users() map[string]User {
 	for id, o := range s.users {
 		u := User{ID: id, PrimaryEmail: str(o, "primaryEmail"), Name: str(o, "name"), HasPassword: o["passwordSet"] == true}
 		for _, rid := range s.userRoles[id] {
-			u.Roles = append(u.Roles, str(s.roles[rid], "name"))
+			u.Roles = append(u.Roles, str(s.roles.rows[rid], "name"))
 		}
 		out[u.PrimaryEmail] = u
 	}
@@ -155,7 +113,7 @@ func (s *Server) ListUserRoles(w http.ResponseWriter, r *http.Request, id mgmt.U
 	s.initRoles()
 	items := []object{}
 	for _, rid := range s.userRoles[id] {
-		items = append(items, s.roles[rid])
+		items = append(items, s.roles.rows[rid])
 	}
 	s.mu.Unlock()
 	paginate(w, r, items)

@@ -24,7 +24,7 @@ func TestEveryWriteAKindMakesIsInItsNeeds(t *testing.T) {
 	}
 	spec := &doc.Config.Spec
 	p := &spec.Prune
-	p.Connectors, p.CustomProfileFields, p.Resources, p.OrganizationScopes, p.OrganizationRoles = true, true, true, true, true
+	p.Connectors, p.CustomProfileFields, p.Resources, p.OrganizationScopes, p.OrganizationRoles, p.Roles = true, true, true, true, true, true
 	env := &engine.Env{Spec: spec}
 
 	needs := map[string]map[string]bool{} // package dir -> operations

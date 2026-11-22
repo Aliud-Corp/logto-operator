@@ -131,7 +131,7 @@ spec:
       accessTokenTtl: 3600
       scopes: {"event:read": {description: ...}}
   roles:                                            # global roles (User and MachineToMachine)
-    platformAdmin: {name: platform_admin, type: User, scopes: [{resource: admin, scope: all}]}
+    platformAdmin: {name: platform_admin, description: ..., type: User, scopes: [{resource: admin, scope: all}]}
   organizationScopes: {"members:read": {description: ...}}
   organizationRoles:
     owner:
@@ -147,7 +147,7 @@ spec:
     backend:
       name: Example Backend
       type: MachineToMachine
-      roles: [{builtin: "Logto Management API access"}]   # granted through /api/roles/{id}/applications
+      roles: [{name: "Logto Management API access"}]      # by Logto name: declared in roles, or held by Logto
       secret: {publish: true}                       # ensure one usable secret exists, publish it, never rotate
     admin:
       name: Example Admin
@@ -158,7 +158,7 @@ spec:
   jwtCustomizer:
     accessToken: {script: {fromFile: jwt/access-token.js}, keepEnvironmentVariables: [SSO_DOMAINS]}
   users:                                            # application-level admins only; matched by primaryEmail
-    teamAdmin: {primaryEmail: admin@example.com, roles: [platformAdmin]}   # never a password in the file
+    teamAdmin: {primaryEmail: admin@example.com, roles: [{name: platform_admin}]}   # never a password in the file
   outputs:                                          # what to publish, by local key
     configMap: {name: example-logto-ids}            # operator only
     secret: {name: example-logto-secrets}
@@ -200,7 +200,7 @@ Order of one apply (prune runs afterwards, in the reverse order, only for kinds 
 Dependency rules:
 
 - Identity (how an observed object is matched to a declared one): resources by `indicator`; scopes by `name` within
-  their resource; roles by `name` + `type`; organization scopes/roles by `name`; applications by `name` (two Logto
+  their resource; roles by `name` (a different `type` = plan error, Logto cannot change it); organization scopes/roles by `name`; applications by `name` (two Logto
   applications with the same name = plan error, never a guess); connectors by declared `id`, else by factory
   `connectorId` when exactly one exists (adoption); webhooks by `name`; profile fields by `name`;
   users by `primaryEmail`.
@@ -210,9 +210,12 @@ Dependency rules:
   (sign-in methods) as lists. Server defaults are normalized away before diffing so a field Logto fills in does
   not look like drift.
 - Ownership is per declared field: an undeclared field of an owned object is left as Logto has it, except where a
-  sub-resource is declared as a whole (an organization role's scope set IS the declaration).
-- Refusals are early: an immutable change (application `type`), an ambiguous match, a reference to nothing, or a
-  scope removal that would revoke tokens without `prune` stop the plan before any write.
+  sub-resource is declared as a whole (an organization role's scope set IS the declaration; so are a global role's
+  `scopes` when declared, never removing a scope of Logto's Management API).
+- Refusals are early: an immutable change (application or role `type`), an ambiguous match, a reference to nothing,
+  a resource scope removal that would revoke tokens without `prune`, or a role losing a Management API scope stop
+  the plan before any write. A role's declared `scopes` are its exact set: the scopes it loses stay defined on
+  their resource, so no `prune` switch is needed.
 
 ## 5. Drift, plan and prune
 
@@ -364,7 +367,8 @@ default-tenant users and are in scope from milestone 2.
     or factory and by case-insensitive e-mail). That every write is in `Needs` stays guarded by a test that scans
     each kind's request builders;
   - global roles publish their ids as Refs; applications and users depend on them and read Refs, so that a role
-    created and granted by the same document plans (today they resolve roles by reading Logto).
+    created and granted by the same document plans (done: `spec.roles`, `roles.Resolve`; a role the document does
+    not declare is still resolved by reading Logto).
 - **M3 — operator.** CRD generated from `api/v1alpha1` (controller-gen, committed, drift-guarded), controller-runtime
   manager, Secret watch, resync (`RequeueAfter`, default 10 min, no CronJob), conditions, outputs Secret/ConfigMap,
   `spec.mode: Observe|Apply` (Observe = plan only, status `Drifted`), narrow RBAC, manifests (kustomize, committed,

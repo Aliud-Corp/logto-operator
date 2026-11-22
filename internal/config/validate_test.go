@@ -44,6 +44,56 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 			"spec.applications.a: roles and secret apply to a MachineToMachine application only",
 		},
 		{
+			"duplicate role name",
+			"  roles:\n    a: {name: Same, description: d, type: User}\n    b: {name: Same, description: d, type: User}\n",
+			`spec.roles.b: name "Same" is already declared by spec.roles.a`,
+		},
+		{
+			"role type",
+			"  roles:\n    a: {name: A, description: d, type: Admin}\n",
+			"spec.roles.a.type: value is not one of the allowed values",
+		},
+		{
+			"role without a description",
+			"  roles:\n    a: {name: A, type: User}\n",
+			"spec.roles.a.description",
+		},
+		{
+			"default machine role",
+			"  roles:\n    a: {name: A, description: d, type: MachineToMachine, isDefault: true}\n",
+			"spec.roles.a.isDefault: applies to a User role only",
+		},
+		{
+			"dangling role scope",
+			"  resources:\n    app: {name: A, indicator: https://a.test/api, scopes: {read: {}}}\n" +
+				"  roles:\n    a: {name: A, description: d, type: User, scopes: [{resource: app, scope: write}]}\n",
+			`spec.roles.a.scopes[0]: scope "write" is not declared in spec.resources.app.scopes`,
+		},
+		{
+			"duplicate role scope",
+			"  resources:\n    app: {name: A, indicator: https://a.test/api, scopes: {read: {}}}\n" +
+				"  roles:\n    a: {name: A, description: d, type: User, scopes: [{resource: app, scope: read}, {resource: app, scope: read}]}\n",
+			`spec.roles.a.scopes[1]: scope "read" of resource "app" is already listed`,
+		},
+		{
+			"duplicate organization role resource scope",
+			"  resources:\n    app: {name: A, indicator: https://a.test/api, scopes: {read: {}}}\n" +
+				"  organizationRoles:\n    o: {name: o, resourceScopes: [{resource: app, scope: read}, {resource: app, scope: read}]}\n",
+			`spec.organizationRoles.o.resourceScopes[1]: scope "read" of resource "app" is already listed`,
+		},
+		{
+			"a User role granted to an application",
+			"  roles:\n    viewer: {name: Viewer, description: d, type: User}\n" +
+				"  applications:\n    a: {name: A, type: MachineToMachine, roles: [{name: Viewer}]}\n",
+			`spec.applications.a.roles[0]: "Viewer" is a User role (spec.roles.viewer); an application takes MachineToMachine roles`,
+		},
+		{
+			"a machine role granted to a user",
+			"  roles:\n    sync: {name: Sync, description: d, type: MachineToMachine}\n" +
+				"  users:\n    u: {primaryEmail: u@example.test, roles: [{name: Sync}]}\n",
+			`spec.users.u.roles[0]: "Sync" is a MachineToMachine role (spec.roles.sync); a user takes User roles`,
+		},
+		{
 			"dangling organization scope",
 			"  organizationRoles:\n    owner: {name: owner, organizationScopes: [ghost]}\n",
 			`spec.organizationRoles.owner.organizationScopes[0]: "ghost" is not declared in spec.organizationScopes`,

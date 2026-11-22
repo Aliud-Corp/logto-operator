@@ -240,23 +240,6 @@ func assertObjects(t *testing.T, c *client.Client) {
 	if got := names(granted); got != "Logto Management API access,event_sync" {
 		t.Errorf("roles of Example Backend = %s", got)
 	}
-
-	var users []struct {
-		ID           string `json:"id"`
-		PrimaryEmail string `json:"primaryEmail"`
-	}
-	search := map[string]string{"search.primaryEmail": "admin@example.test"}
-	req, err = mgmt.NewListUsersRequest(c.Endpoint(), &mgmt.ListUsersParams{Page: &page, PageSize: &size, SearchParams: &search})
-	get(req, err, &users)
-	if len(users) != 1 {
-		t.Fatalf("users admin@example.test = %v", users)
-	}
-	var userRoles []struct{ Name string }
-	req, err = mgmt.NewListUserRolesRequest(c.Endpoint(), users[0].ID, &mgmt.ListUserRolesParams{Page: &page, PageSize: &size})
-	get(req, err, &userRoles)
-	if got := names(userRoles); got != "platform_admin" {
-		t.Errorf("roles of admin@example.test = %s", got)
-	}
 }
 
 func names[T interface{ ~struct{ Name string } }](l []T) string {

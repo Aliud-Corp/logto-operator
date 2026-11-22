@@ -466,8 +466,7 @@ spec:
                         description: |-
                           Keys, when set, publishes only these outputs, each under the key it is mapped from (LOGTO_APP_ID:
                           applications.organizer.id), so that a Pod can take the object whole with envFrom. Without keys, every output
-                          is published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator,
-                          users.<key>.id).
+                          is published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator).
                         type: object
                       name:
                         maxLength: 253
@@ -486,8 +485,7 @@ spec:
                         description: |-
                           Keys, when set, publishes only these outputs, each under the key it is mapped from (LOGTO_APP_ID:
                           applications.organizer.id), so that a Pod can take the object whole with envFrom. Without keys, every output
-                          is published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator,
-                          users.<key>.id).
+                          is published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator).
                         type: object
                       name:
                         maxLength: 253
@@ -601,7 +599,7 @@ spec:
                   - type
                   type: object
                 description: Roles are global roles (role-based access control of
-                  the tenant), granted to applications and users.
+                  the tenant), granted to applications.
                 type: object
               signInExperience:
                 description: SignInExperience lists the owned keys of the sign-in
@@ -736,32 +734,6 @@ spec:
                     type: object
                   unknownSessionRedirectUrl:
                     type: string
-                type: object
-              users:
-                additionalProperties:
-                  description: User is an application-level administrator, matched
-                    by its primary e-mail. Never a password.
-                  properties:
-                    name:
-                      type: string
-                    primaryEmail:
-                      type: string
-                    roles:
-                      items:
-                        description: RoleRef names an existing Logto global role by
-                          name.
-                        properties:
-                          name:
-                            type: string
-                        required:
-                        - name
-                        type: object
-                      type: array
-                  required:
-                  - primaryEmail
-                  type: object
-                description: Users are application-level administrators only; users
-                  from sign-up are never declared, never pruned.
                 type: object
               variables:
                 additionalProperties:

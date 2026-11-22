@@ -121,7 +121,7 @@ func (s *Server) UpdateRole(w http.ResponseWriter, r *http.Request, id mgmt.Role
 	}
 }
 
-// DeleteRole is DELETE /api/roles/{id}; applications and users lose it.
+// DeleteRole is DELETE /api/roles/{id}; applications lose it.
 func (s *Server) DeleteRole(w http.ResponseWriter, _ *http.Request, id mgmt.RoleIdRoot) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -132,9 +132,6 @@ func (s *Server) DeleteRole(w http.ResponseWriter, _ *http.Request, id mgmt.Role
 	delete(s.roleScopes, id)
 	for app, list := range s.appRoles {
 		s.appRoles[app] = without(list, id)
-	}
-	for user, list := range s.userRoles {
-		s.userRoles[user] = without(list, id)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

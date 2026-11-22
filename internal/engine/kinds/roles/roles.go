@@ -144,16 +144,11 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	}.Plan(observed)
 }
 
-// grantedNames are the roles the document grants to applications and users, by Logto name.
+// grantedNames are the roles the document grants to applications, by Logto name.
 func grantedNames(spec *v1alpha1.LogtoConfigSpec) map[string]bool {
 	out := map[string]bool{}
 	for _, a := range spec.Applications {
 		for _, r := range a.Roles {
-			out[r.Name] = true
-		}
-	}
-	for _, u := range spec.Users {
-		for _, r := range u.Roles {
 			out[r.Name] = true
 		}
 	}

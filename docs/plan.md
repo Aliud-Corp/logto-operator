@@ -14,10 +14,12 @@ drift, tests first, guards that can fail).
 The tool owns the **configuration** of one Logto tenant (the `default` tenant of a self-hosted Logto OSS 1.44.0):
 sign-in experience, SMTP connector and e-mail templates, custom profile fields, API resources and scopes, global
 roles, organization scopes and roles, applications (SPA, M2M, Traditional, ...), webhooks, JWT customizer (if it
-works on OSS, see 10), account center, captcha, and the application-level admin users (`platform_admin`-style).
+works on OSS, see 10), account center, captcha.
 
-Non-goals: organizations and users coming from sign-up (never created, never pruned); demo/fixture data (it stays with
-each consuming project); anything that needs a database write (bootstrap of the first M2M application, declared
+Non-goals: users and organizations, whoever creates them (sign-up, invitations, the product itself, a fixture): they
+are data, never created, updated or pruned, and neither are memberships or passwords (decided 2026-11-22, the `users`
+kind of M1 is removed: a declared user's name was set back over the user's own edit at every run); demo/fixture data
+(it stays with each consuming project); admin console users (section 8, manual for now); anything that needs a database write (bootstrap of the first M2M application, declared
 ids); the Logto deployment itself (the deployment repository owns it).
 
 Decisions already taken (not reopened here): Go; one engine, a static CLI and an operator; generated typed client from
@@ -157,8 +159,6 @@ spec:
     passwordReset: {name: ..., events: [PostResetPassword], url: https://app.${zone}/internal/logto/hooks, publishSigningKey: true}
   jwtCustomizer:
     accessToken: {script: {fromFile: jwt/access-token.js}, keepEnvironmentVariables: [SSO_DOMAINS]}
-  users:                                            # application-level admins only; matched by primaryEmail
-    teamAdmin: {primaryEmail: admin@example.com, roles: [{name: platform_admin}]}   # never a password in the file
   outputs:                                          # what to publish, by local key
     configMap: {name: example-logto-ids}            # operator only
     secret: {name: example-logto-secrets}
@@ -194,16 +194,14 @@ Order of one apply (prune runs afterwards, in the reverse order, only for kinds 
 7. **applications** — adopt by name or create; then M2M **secrets**, **role grants**, **access control** (needs 5).
 8. **webhooks** (signing key read back, never rotated by a replay).
 9. **jwtCustomizer**, **idToken** extended claims, **accountCenter**, **captcha**.
-10. **users** (application-level admins): matched by `primaryEmail`, roles granted; never a password, never pruned.
-11. **outputs** published (ids first, then secrets).
+10. **outputs** published (ids first, then secrets).
 
 Dependency rules:
 
 - Identity (how an observed object is matched to a declared one): resources by `indicator`; scopes by `name` within
   their resource; roles by `name` (a different `type` = plan error, Logto cannot change it); organization scopes/roles by `name`; applications by `name` (two Logto
   applications with the same name = plan error, never a guess); connectors by declared `id`, else by factory
-  `connectorId` when exactly one exists (adoption); webhooks by `name`; profile fields by `name`;
-  users by `primaryEmail`.
+  `connectorId` when exactly one exists (adoption); webhooks by `name`; profile fields by `name`.
 - Ids are **only** read from the observed state or from an op's response, never declared. A reference to an object
   that the same plan creates is resolved at apply time (the plan shows `(known after apply)`).
 - Set-valued fields (redirect URIs, scope lists, role scopes, hook events) are compared as sets; ordered ones
@@ -290,8 +288,13 @@ documented calls (`POST /api/users`, `POST /api/users/{id}/roles`, `POST
 /api/organizations/t-default/users`,
 `PUT .../users/{id}/roles`). It needs a second credential (`m-admin`, read once from the database, same class as the
 `m-default` bootstrap) whose blast radius is every tenant's console. Not scheduled before a spike on a local Logto
-proves the route (milestone 5, or dropped: open question 9). Application-level admins (`platform_admin`) are ordinary
-default-tenant users and are in scope from milestone 2.
+proves the route (milestone 5, or dropped: open question 9). Until then, console users are created by hand: the first
+visitor of a new console creates its admin account, so that step comes before the console is reachable by anyone
+else.
+
+Application-level admins (`platform_admin`-style) are ordinary default-tenant users, out of scope like every user
+(section 1). Whether a product grants that right through a global role (declared here, granted by the product or by
+hand) or keeps it in its own database is the product's choice.
 
 ## 9. Test strategy
 
@@ -352,7 +355,7 @@ default-tenant users and are in scope from milestone 2.
 - **M1 — core kinds through the CLI, on a local Logto (done 2026-11-21).** `api/v1alpha1` types (generated JSON Schema), loader with
   the schema rules of section 3, `internal/logto/client`, kinds: connectors, customProfileFields, signInExperience,
   resources + scopes, organizationScopes, organizationRoles, applications (+ M2M secret, role grants), users
-  (application admins, no passwords); `plan` / `apply` / `check` / `render`; `examples/reference.yaml` covering
+  (application admins, no passwords; removed 2026-11-22, see section 1); `plan` / `apply` / `check` / `render`; `examples/reference.yaml` covering
   those kinds. Acceptance: on an empty local Logto 1.44.0, `apply` of the reference configuration creates every
   declared object (asserted object by object through the API), a second `apply` writes nothing, `check` exits 0
   then 2 after a console edit, `render` shows no secret. Integration test harness (`task it`) run locally and by a
@@ -367,10 +370,9 @@ default-tenant users and are in scope from milestone 2.
   - a generic "collection by natural key" in `kindkit` (adopt, refuse an ambiguous match, create, update, prune
     with `keep`), and the matching helper in the fake, so that twenty kinds do not each rewrite Logto (done:
     `kindkit.Collection`, used by applications, resources, organization scopes and roles, custom profile fields;
-    the fake's `table`, used by organization scopes and roles; connectors and users keep their own matching, by id
-    or factory and by case-insensitive e-mail). That every write is in `Needs` stays guarded by a test that scans
+    the fake's `table`, used by organization scopes and roles; connectors keep their own matching, by id or factory). That every write is in `Needs` stays guarded by a test that scans
     each kind's request builders;
-  - global roles publish their ids as Refs; applications and users depend on them and read Refs, so that a role
+  - global roles publish their ids as Refs; applications depend on them and read Refs, so that a role
     created and granted by the same document plans (done: `spec.roles`, `roles.Resolve`; a role the document does
     not declare is still resolved by reading Logto).
 - **M3 — operator.** CRD generated from `api/v1alpha1` (controller-gen, committed, drift-guarded), controller-runtime

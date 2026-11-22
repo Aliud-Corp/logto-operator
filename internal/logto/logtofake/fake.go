@@ -46,8 +46,6 @@ type Server struct {
 	appRoles   map[string][]string // app id -> role ids
 	roles      *table
 	roleScopes map[string][]string // role id -> resource scope ids
-	users      map[string]object
-	userRoles  map[string][]string // user id -> role ids
 
 	resources             map[string]object
 	resourceScopes        map[string]map[string]object // resource id -> scope id -> scope

@@ -133,12 +133,6 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 			`spec.applications.a.roles[0]: "Viewer" is a User role (spec.roles.viewer); an application takes MachineToMachine roles`,
 		},
 		{
-			"a machine role granted to a user",
-			"  roles:\n    sync: {name: Sync, description: d, type: MachineToMachine}\n" +
-				"  users:\n    u: {primaryEmail: u@example.test, roles: [{name: Sync}]}\n",
-			`spec.users.u.roles[0]: "Sync" is a MachineToMachine role (spec.roles.sync); a user takes User roles`,
-		},
-		{
 			"dangling organization scope",
 			"  organizationRoles:\n    owner: {name: owner, organizationScopes: [ghost]}\n",
 			`spec.organizationRoles.owner.organizationScopes[0]: "ghost" is not declared in spec.organizationScopes`,
@@ -184,11 +178,6 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 			strings.Replace(smtpOK, "pass: {valueFrom: {env: P}}", "pass: {valueFrom: {env: P, file: /p}}", 1),
 			"spec.connectors.smtp.smtp.auth.pass.valueFrom: must name exactly one of env, file, secretKeyRef",
 		},
-		{
-			"duplicate user",
-			"  users:\n    a: {primaryEmail: Admin@example.test}\n    b: {primaryEmail: admin@example.test}\n",
-			`spec.users.b: primaryEmail "admin@example.test" is already declared by spec.users.a`,
-		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -214,8 +203,8 @@ func TestAllViolationsAreReportedAtOnce(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 	// ...then the rules across fields, all at once.
-	err = check(minimal + "  applications:\n    a: {name: Same, type: SPA}\n    b: {name: Same, type: SPA}\n  users:\n    u: {primaryEmail: nope}\n")
-	if err == nil || !strings.Contains(err.Error(), "spec.applications.b") || !strings.Contains(err.Error(), "spec.users.u.primaryEmail") {
+	err = check(minimal + "  applications:\n    a: {name: Same, type: SPA}\n    b: {name: Same, type: SPA}\n  roles:\n    a: {name: Same, description: d, type: User}\n    b: {name: Same, description: d, type: User}\n")
+	if err == nil || !strings.Contains(err.Error(), "spec.applications.b") || !strings.Contains(err.Error(), "spec.roles.b") {
 		t.Fatalf("err = %v", err)
 	}
 }

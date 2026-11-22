@@ -120,9 +120,3 @@ spec:
         - {name: event_sync}
       secret: {publish: true}
 
-  users:
-    admin:
-      primaryEmail: admin@${zone}
-      name: Example Admin
-      roles:
-        - {name: platform_admin}

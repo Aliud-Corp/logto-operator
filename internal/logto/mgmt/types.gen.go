@@ -158,6 +158,27 @@ func (e GetWellKnownAccountCenter200JSONResponseBodyFieldsPassword) Valid() bool
 	}
 }
 
+// Defines values for GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken.
+const (
+	GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessTokenEdit     GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken = "Edit"
+	GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessTokenOff      GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken = "Off"
+	GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessTokenReadOnly GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken = "ReadOnly"
+)
+
+// Valid indicates whether the value is a known member of the GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken enum.
+func (e GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken) Valid() bool {
+	switch e {
+	case GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessTokenEdit:
+		return true
+	case GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessTokenOff:
+		return true
+	case GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessTokenReadOnly:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetWellKnownAccountCenter200JSONResponseBodyFieldsPhone.
 const (
 	GetWellKnownAccountCenter200JSONResponseBodyFieldsPhoneEdit     GetWellKnownAccountCenter200JSONResponseBodyFieldsPhone = "Edit"
@@ -326,6 +347,7 @@ func (e GetWellKnownExperience200JSONResponseBodyCaptchaConfigMode) Valid() bool
 // Defines values for GetWellKnownExperience200JSONResponseBodyCaptchaConfigType.
 const (
 	GetWellKnownExperience200JSONResponseBodyCaptchaConfigTypeCap                 GetWellKnownExperience200JSONResponseBodyCaptchaConfigType = "Cap"
+	GetWellKnownExperience200JSONResponseBodyCaptchaConfigTypeGeetest             GetWellKnownExperience200JSONResponseBodyCaptchaConfigType = "Geetest"
 	GetWellKnownExperience200JSONResponseBodyCaptchaConfigTypeRecaptchaEnterprise GetWellKnownExperience200JSONResponseBodyCaptchaConfigType = "RecaptchaEnterprise"
 	GetWellKnownExperience200JSONResponseBodyCaptchaConfigTypeTurnstile           GetWellKnownExperience200JSONResponseBodyCaptchaConfigType = "Turnstile"
 )
@@ -334,6 +356,8 @@ const (
 func (e GetWellKnownExperience200JSONResponseBodyCaptchaConfigType) Valid() bool {
 	switch e {
 	case GetWellKnownExperience200JSONResponseBodyCaptchaConfigTypeCap:
+		return true
+	case GetWellKnownExperience200JSONResponseBodyCaptchaConfigTypeGeetest:
 		return true
 	case GetWellKnownExperience200JSONResponseBodyCaptchaConfigTypeRecaptchaEnterprise:
 		return true
@@ -1142,6 +1166,7 @@ func (e GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigMode) Valid() b
 // Defines values for GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigType.
 const (
 	GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigTypeCap                 GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigType = "Cap"
+	GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigTypeGeetest             GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigType = "Geetest"
 	GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigTypeRecaptchaEnterprise GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigType = "RecaptchaEnterprise"
 	GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigTypeTurnstile           GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigType = "Turnstile"
 )
@@ -1150,6 +1175,8 @@ const (
 func (e GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigType) Valid() bool {
 	switch e {
 	case GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigTypeCap:
+		return true
+	case GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigTypeGeetest:
 		return true
 	case GetSignInExperienceConfig200JSONResponseBodyCaptchaConfigTypeRecaptchaEnterprise:
 		return true
@@ -2063,6 +2090,27 @@ func (e GetAccountCenterSettings200JSONResponseBodyFieldsPassword) Valid() bool 
 	}
 }
 
+// Defines values for GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken.
+const (
+	GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenEdit     GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken = "Edit"
+	GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenOff      GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken = "Off"
+	GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenReadOnly GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken = "ReadOnly"
+)
+
+// Valid indicates whether the value is a known member of the GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken enum.
+func (e GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken) Valid() bool {
+	switch e {
+	case GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenEdit:
+		return true
+	case GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenOff:
+		return true
+	case GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenReadOnly:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetAccountCenterSettings200JSONResponseBodyFieldsPhone.
 const (
 	GetAccountCenterSettings200JSONResponseBodyFieldsPhoneEdit     GetAccountCenterSettings200JSONResponseBodyFieldsPhone = "Edit"
@@ -2336,6 +2384,27 @@ func (e UpdateAccountCenterSettingsJSONBodyFieldsPassword) Valid() bool {
 	}
 }
 
+// Defines values for UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessToken.
+const (
+	UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessTokenEdit     UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessToken = "Edit"
+	UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessTokenOff      UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessToken = "Off"
+	UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessTokenReadOnly UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessToken = "ReadOnly"
+)
+
+// Valid indicates whether the value is a known member of the UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessToken enum.
+func (e UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessToken) Valid() bool {
+	switch e {
+	case UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessTokenEdit:
+		return true
+	case UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessTokenOff:
+		return true
+	case UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessTokenReadOnly:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateAccountCenterSettingsJSONBodyFieldsPhone.
 const (
 	UpdateAccountCenterSettingsJSONBodyFieldsPhoneEdit     UpdateAccountCenterSettingsJSONBodyFieldsPhone = "Edit"
@@ -2603,6 +2672,27 @@ func (e UpdateAccountCenterSettings200JSONResponseBodyFieldsPassword) Valid() bo
 	case UpdateAccountCenterSettings200JSONResponseBodyFieldsPasswordOff:
 		return true
 	case UpdateAccountCenterSettings200JSONResponseBodyFieldsPasswordReadOnly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken.
+const (
+	UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenEdit     UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken = "Edit"
+	UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenOff      UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken = "Off"
+	UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenReadOnly UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken = "ReadOnly"
+)
+
+// Valid indicates whether the value is a known member of the UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken enum.
+func (e UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken) Valid() bool {
+	switch e {
+	case UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenEdit:
+		return true
+	case UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenOff:
+		return true
+	case UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessTokenReadOnly:
 		return true
 	default:
 		return false
@@ -3037,17 +3127,18 @@ func (e ListApplicationRoles200JSONResponseBodyType) Valid() bool {
 
 // Defines values for ListApplicationUserConsentScopes200JSONResponseBodyUserScopes.
 const (
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesAddress                        ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "address"
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesCustomData                     ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "custom_data"
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesEmail                          ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "email"
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesIdentities                     ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "identities"
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesPhone                          ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "phone"
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesProfile                        ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "profile"
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesRoles                          ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "roles"
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeOrganizationRoles ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:organization_roles"
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeOrganizations     ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:organizations"
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeSessions          ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:sessions"
-	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeTrustedDevices    ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:trusted_devices"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesAddress                           ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "address"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesCustomData                        ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "custom_data"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesEmail                             ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "email"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesIdentities                        ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "identities"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesPhone                             ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "phone"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesProfile                           ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "profile"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesRoles                             ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "roles"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeOrganizationRoles    ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:organization_roles"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeOrganizations        ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:organizations"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopePersonalAccessTokens ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:personal_access_tokens"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeSessions             ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:sessions"
+	ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeTrustedDevices       ListApplicationUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:trusted_devices"
 )
 
 // Valid indicates whether the value is a known member of the ListApplicationUserConsentScopes200JSONResponseBodyUserScopes enum.
@@ -3071,6 +3162,8 @@ func (e ListApplicationUserConsentScopes200JSONResponseBodyUserScopes) Valid() b
 		return true
 	case ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeOrganizations:
 		return true
+	case ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopePersonalAccessTokens:
+		return true
 	case ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeSessions:
 		return true
 	case ListApplicationUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeTrustedDevices:
@@ -3082,17 +3175,18 @@ func (e ListApplicationUserConsentScopes200JSONResponseBodyUserScopes) Valid() b
 
 // Defines values for CreateApplicationUserConsentScopeJSONBodyUserScopes.
 const (
-	CreateApplicationUserConsentScopeJSONBodyUserScopesAddress                        CreateApplicationUserConsentScopeJSONBodyUserScopes = "address"
-	CreateApplicationUserConsentScopeJSONBodyUserScopesCustomData                     CreateApplicationUserConsentScopeJSONBodyUserScopes = "custom_data"
-	CreateApplicationUserConsentScopeJSONBodyUserScopesEmail                          CreateApplicationUserConsentScopeJSONBodyUserScopes = "email"
-	CreateApplicationUserConsentScopeJSONBodyUserScopesIdentities                     CreateApplicationUserConsentScopeJSONBodyUserScopes = "identities"
-	CreateApplicationUserConsentScopeJSONBodyUserScopesPhone                          CreateApplicationUserConsentScopeJSONBodyUserScopes = "phone"
-	CreateApplicationUserConsentScopeJSONBodyUserScopesProfile                        CreateApplicationUserConsentScopeJSONBodyUserScopes = "profile"
-	CreateApplicationUserConsentScopeJSONBodyUserScopesRoles                          CreateApplicationUserConsentScopeJSONBodyUserScopes = "roles"
-	CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeOrganizationRoles CreateApplicationUserConsentScopeJSONBodyUserScopes = "urn:logto:scope:organization_roles"
-	CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeOrganizations     CreateApplicationUserConsentScopeJSONBodyUserScopes = "urn:logto:scope:organizations"
-	CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeSessions          CreateApplicationUserConsentScopeJSONBodyUserScopes = "urn:logto:scope:sessions"
-	CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeTrustedDevices    CreateApplicationUserConsentScopeJSONBodyUserScopes = "urn:logto:scope:trusted_devices"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesAddress                           CreateApplicationUserConsentScopeJSONBodyUserScopes = "address"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesCustomData                        CreateApplicationUserConsentScopeJSONBodyUserScopes = "custom_data"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesEmail                             CreateApplicationUserConsentScopeJSONBodyUserScopes = "email"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesIdentities                        CreateApplicationUserConsentScopeJSONBodyUserScopes = "identities"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesPhone                             CreateApplicationUserConsentScopeJSONBodyUserScopes = "phone"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesProfile                           CreateApplicationUserConsentScopeJSONBodyUserScopes = "profile"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesRoles                             CreateApplicationUserConsentScopeJSONBodyUserScopes = "roles"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeOrganizationRoles    CreateApplicationUserConsentScopeJSONBodyUserScopes = "urn:logto:scope:organization_roles"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeOrganizations        CreateApplicationUserConsentScopeJSONBodyUserScopes = "urn:logto:scope:organizations"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopePersonalAccessTokens CreateApplicationUserConsentScopeJSONBodyUserScopes = "urn:logto:scope:personal_access_tokens"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeSessions             CreateApplicationUserConsentScopeJSONBodyUserScopes = "urn:logto:scope:sessions"
+	CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeTrustedDevices       CreateApplicationUserConsentScopeJSONBodyUserScopes = "urn:logto:scope:trusted_devices"
 )
 
 // Valid indicates whether the value is a known member of the CreateApplicationUserConsentScopeJSONBodyUserScopes enum.
@@ -3115,6 +3209,8 @@ func (e CreateApplicationUserConsentScopeJSONBodyUserScopes) Valid() bool {
 	case CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeOrganizationRoles:
 		return true
 	case CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeOrganizations:
+		return true
+	case CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopePersonalAccessTokens:
 		return true
 	case CreateApplicationUserConsentScopeJSONBodyUserScopesUrnLogtoScopeSessions:
 		return true
@@ -3506,6 +3602,21 @@ func (e GetCaptchaProvider200JSONResponseBodyConfig2Type) Valid() bool {
 	}
 }
 
+// Defines values for GetCaptchaProvider200JSONResponseBodyConfig3Type.
+const (
+	GetCaptchaProvider200JSONResponseBodyConfig3TypeGeetest GetCaptchaProvider200JSONResponseBodyConfig3Type = "Geetest"
+)
+
+// Valid indicates whether the value is a known member of the GetCaptchaProvider200JSONResponseBodyConfig3Type enum.
+func (e GetCaptchaProvider200JSONResponseBodyConfig3Type) Valid() bool {
+	switch e {
+	case GetCaptchaProvider200JSONResponseBodyConfig3TypeGeetest:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateCaptchaProviderJSONBodyConfig0Type.
 const (
 	UpdateCaptchaProviderJSONBodyConfig0TypeTurnstile UpdateCaptchaProviderJSONBodyConfig0Type = "Turnstile"
@@ -3563,6 +3674,21 @@ const (
 func (e UpdateCaptchaProviderJSONBodyConfig2Type) Valid() bool {
 	switch e {
 	case UpdateCaptchaProviderJSONBodyConfig2TypeCap:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateCaptchaProviderJSONBodyConfig3Type.
+const (
+	UpdateCaptchaProviderJSONBodyConfig3TypeGeetest UpdateCaptchaProviderJSONBodyConfig3Type = "Geetest"
+)
+
+// Valid indicates whether the value is a known member of the UpdateCaptchaProviderJSONBodyConfig3Type enum.
+func (e UpdateCaptchaProviderJSONBodyConfig3Type) Valid() bool {
+	switch e {
+	case UpdateCaptchaProviderJSONBodyConfig3TypeGeetest:
 		return true
 	default:
 		return false
@@ -3632,19 +3758,35 @@ func (e UpdateCaptchaProvider200JSONResponseBodyConfig2Type) Valid() bool {
 	}
 }
 
+// Defines values for UpdateCaptchaProvider200JSONResponseBodyConfig3Type.
+const (
+	UpdateCaptchaProvider200JSONResponseBodyConfig3TypeGeetest UpdateCaptchaProvider200JSONResponseBodyConfig3Type = "Geetest"
+)
+
+// Valid indicates whether the value is a known member of the UpdateCaptchaProvider200JSONResponseBodyConfig3Type enum.
+func (e UpdateCaptchaProvider200JSONResponseBodyConfig3Type) Valid() bool {
+	switch e {
+	case UpdateCaptchaProvider200JSONResponseBodyConfig3TypeGeetest:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListCimdUserConsentScopes200JSONResponseBodyUserScopes.
 const (
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesAddress                        ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "address"
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesCustomData                     ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "custom_data"
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesEmail                          ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "email"
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesIdentities                     ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "identities"
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesPhone                          ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "phone"
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesProfile                        ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "profile"
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesRoles                          ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "roles"
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeOrganizationRoles ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:organization_roles"
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeOrganizations     ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:organizations"
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeSessions          ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:sessions"
-	ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeTrustedDevices    ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:trusted_devices"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesAddress                           ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "address"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesCustomData                        ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "custom_data"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesEmail                             ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "email"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesIdentities                        ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "identities"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesPhone                             ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "phone"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesProfile                           ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "profile"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesRoles                             ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "roles"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeOrganizationRoles    ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:organization_roles"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeOrganizations        ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:organizations"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopePersonalAccessTokens ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:personal_access_tokens"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeSessions             ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:sessions"
+	ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeTrustedDevices       ListCimdUserConsentScopes200JSONResponseBodyUserScopes = "urn:logto:scope:trusted_devices"
 )
 
 // Valid indicates whether the value is a known member of the ListCimdUserConsentScopes200JSONResponseBodyUserScopes enum.
@@ -3668,6 +3810,8 @@ func (e ListCimdUserConsentScopes200JSONResponseBodyUserScopes) Valid() bool {
 		return true
 	case ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeOrganizations:
 		return true
+	case ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopePersonalAccessTokens:
+		return true
 	case ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeSessions:
 		return true
 	case ListCimdUserConsentScopes200JSONResponseBodyUserScopesUrnLogtoScopeTrustedDevices:
@@ -3679,17 +3823,18 @@ func (e ListCimdUserConsentScopes200JSONResponseBodyUserScopes) Valid() bool {
 
 // Defines values for AssignCimdUserConsentScopesJSONBodyUserScopes.
 const (
-	AssignCimdUserConsentScopesJSONBodyUserScopesAddress                        AssignCimdUserConsentScopesJSONBodyUserScopes = "address"
-	AssignCimdUserConsentScopesJSONBodyUserScopesCustomData                     AssignCimdUserConsentScopesJSONBodyUserScopes = "custom_data"
-	AssignCimdUserConsentScopesJSONBodyUserScopesEmail                          AssignCimdUserConsentScopesJSONBodyUserScopes = "email"
-	AssignCimdUserConsentScopesJSONBodyUserScopesIdentities                     AssignCimdUserConsentScopesJSONBodyUserScopes = "identities"
-	AssignCimdUserConsentScopesJSONBodyUserScopesPhone                          AssignCimdUserConsentScopesJSONBodyUserScopes = "phone"
-	AssignCimdUserConsentScopesJSONBodyUserScopesProfile                        AssignCimdUserConsentScopesJSONBodyUserScopes = "profile"
-	AssignCimdUserConsentScopesJSONBodyUserScopesRoles                          AssignCimdUserConsentScopesJSONBodyUserScopes = "roles"
-	AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeOrganizationRoles AssignCimdUserConsentScopesJSONBodyUserScopes = "urn:logto:scope:organization_roles"
-	AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeOrganizations     AssignCimdUserConsentScopesJSONBodyUserScopes = "urn:logto:scope:organizations"
-	AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeSessions          AssignCimdUserConsentScopesJSONBodyUserScopes = "urn:logto:scope:sessions"
-	AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeTrustedDevices    AssignCimdUserConsentScopesJSONBodyUserScopes = "urn:logto:scope:trusted_devices"
+	AssignCimdUserConsentScopesJSONBodyUserScopesAddress                           AssignCimdUserConsentScopesJSONBodyUserScopes = "address"
+	AssignCimdUserConsentScopesJSONBodyUserScopesCustomData                        AssignCimdUserConsentScopesJSONBodyUserScopes = "custom_data"
+	AssignCimdUserConsentScopesJSONBodyUserScopesEmail                             AssignCimdUserConsentScopesJSONBodyUserScopes = "email"
+	AssignCimdUserConsentScopesJSONBodyUserScopesIdentities                        AssignCimdUserConsentScopesJSONBodyUserScopes = "identities"
+	AssignCimdUserConsentScopesJSONBodyUserScopesPhone                             AssignCimdUserConsentScopesJSONBodyUserScopes = "phone"
+	AssignCimdUserConsentScopesJSONBodyUserScopesProfile                           AssignCimdUserConsentScopesJSONBodyUserScopes = "profile"
+	AssignCimdUserConsentScopesJSONBodyUserScopesRoles                             AssignCimdUserConsentScopesJSONBodyUserScopes = "roles"
+	AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeOrganizationRoles    AssignCimdUserConsentScopesJSONBodyUserScopes = "urn:logto:scope:organization_roles"
+	AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeOrganizations        AssignCimdUserConsentScopesJSONBodyUserScopes = "urn:logto:scope:organizations"
+	AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopePersonalAccessTokens AssignCimdUserConsentScopesJSONBodyUserScopes = "urn:logto:scope:personal_access_tokens"
+	AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeSessions             AssignCimdUserConsentScopesJSONBodyUserScopes = "urn:logto:scope:sessions"
+	AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeTrustedDevices       AssignCimdUserConsentScopesJSONBodyUserScopes = "urn:logto:scope:trusted_devices"
 )
 
 // Valid indicates whether the value is a known member of the AssignCimdUserConsentScopesJSONBodyUserScopes enum.
@@ -3712,6 +3857,8 @@ func (e AssignCimdUserConsentScopesJSONBodyUserScopes) Valid() bool {
 	case AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeOrganizationRoles:
 		return true
 	case AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeOrganizations:
+		return true
+	case AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopePersonalAccessTokens:
 		return true
 	case AssignCimdUserConsentScopesJSONBodyUserScopesUrnLogtoScopeSessions:
 		return true
@@ -13676,21 +13823,21 @@ func (e VerifyOneTimeTokenVerificationJSONBodyIdentifierType) Valid() bool {
 	}
 }
 
-// Defines values for CreatePasswordVerificationJSONBodyIdentifierType.
+// Defines values for CreatePasswordVerificationJSONBody0IdentifierType.
 const (
-	CreatePasswordVerificationJSONBodyIdentifierTypeEmail    CreatePasswordVerificationJSONBodyIdentifierType = "email"
-	CreatePasswordVerificationJSONBodyIdentifierTypePhone    CreatePasswordVerificationJSONBodyIdentifierType = "phone"
-	CreatePasswordVerificationJSONBodyIdentifierTypeUsername CreatePasswordVerificationJSONBodyIdentifierType = "username"
+	CreatePasswordVerificationJSONBody0IdentifierTypeEmail    CreatePasswordVerificationJSONBody0IdentifierType = "email"
+	CreatePasswordVerificationJSONBody0IdentifierTypePhone    CreatePasswordVerificationJSONBody0IdentifierType = "phone"
+	CreatePasswordVerificationJSONBody0IdentifierTypeUsername CreatePasswordVerificationJSONBody0IdentifierType = "username"
 )
 
-// Valid indicates whether the value is a known member of the CreatePasswordVerificationJSONBodyIdentifierType enum.
-func (e CreatePasswordVerificationJSONBodyIdentifierType) Valid() bool {
+// Valid indicates whether the value is a known member of the CreatePasswordVerificationJSONBody0IdentifierType enum.
+func (e CreatePasswordVerificationJSONBody0IdentifierType) Valid() bool {
 	switch e {
-	case CreatePasswordVerificationJSONBodyIdentifierTypeEmail:
+	case CreatePasswordVerificationJSONBody0IdentifierTypeEmail:
 		return true
-	case CreatePasswordVerificationJSONBodyIdentifierTypePhone:
+	case CreatePasswordVerificationJSONBody0IdentifierTypePhone:
 		return true
-	case CreatePasswordVerificationJSONBodyIdentifierTypeUsername:
+	case CreatePasswordVerificationJSONBody0IdentifierTypeUsername:
 		return true
 	default:
 		return false
@@ -13820,66 +13967,114 @@ func (e VerifySignInPasskeyAuthenticationJSONBodyPayloadType) Valid() bool {
 	}
 }
 
-// Defines values for CreateAndSendVerificationCodeJSONBodyIdentifier0Type.
+// Defines values for CreateAndSendVerificationCodeJSONBody0Identifier0Type.
 const (
-	CreateAndSendVerificationCodeJSONBodyIdentifier0TypeEmail CreateAndSendVerificationCodeJSONBodyIdentifier0Type = "email"
+	CreateAndSendVerificationCodeJSONBody0Identifier0TypeEmail CreateAndSendVerificationCodeJSONBody0Identifier0Type = "email"
 )
 
-// Valid indicates whether the value is a known member of the CreateAndSendVerificationCodeJSONBodyIdentifier0Type enum.
-func (e CreateAndSendVerificationCodeJSONBodyIdentifier0Type) Valid() bool {
+// Valid indicates whether the value is a known member of the CreateAndSendVerificationCodeJSONBody0Identifier0Type enum.
+func (e CreateAndSendVerificationCodeJSONBody0Identifier0Type) Valid() bool {
 	switch e {
-	case CreateAndSendVerificationCodeJSONBodyIdentifier0TypeEmail:
+	case CreateAndSendVerificationCodeJSONBody0Identifier0TypeEmail:
 		return true
 	default:
 		return false
 	}
 }
 
-// Defines values for CreateAndSendVerificationCodeJSONBodyIdentifier1Type.
+// Defines values for CreateAndSendVerificationCodeJSONBody0Identifier1Type.
 const (
-	CreateAndSendVerificationCodeJSONBodyIdentifier1TypePhone CreateAndSendVerificationCodeJSONBodyIdentifier1Type = "phone"
+	CreateAndSendVerificationCodeJSONBody0Identifier1TypePhone CreateAndSendVerificationCodeJSONBody0Identifier1Type = "phone"
 )
 
-// Valid indicates whether the value is a known member of the CreateAndSendVerificationCodeJSONBodyIdentifier1Type enum.
-func (e CreateAndSendVerificationCodeJSONBodyIdentifier1Type) Valid() bool {
+// Valid indicates whether the value is a known member of the CreateAndSendVerificationCodeJSONBody0Identifier1Type enum.
+func (e CreateAndSendVerificationCodeJSONBody0Identifier1Type) Valid() bool {
 	switch e {
-	case CreateAndSendVerificationCodeJSONBodyIdentifier1TypePhone:
+	case CreateAndSendVerificationCodeJSONBody0Identifier1TypePhone:
 		return true
 	default:
 		return false
 	}
 }
 
-// Defines values for CreateAndSendVerificationCodeJSONBodyInteractionEvent.
+// Defines values for CreateAndSendVerificationCodeJSONBody0InteractionEvent.
 const (
-	CreateAndSendVerificationCodeJSONBodyInteractionEventForgotPassword CreateAndSendVerificationCodeJSONBodyInteractionEvent = "ForgotPassword"
-	CreateAndSendVerificationCodeJSONBodyInteractionEventRegister       CreateAndSendVerificationCodeJSONBodyInteractionEvent = "Register"
-	CreateAndSendVerificationCodeJSONBodyInteractionEventSignIn         CreateAndSendVerificationCodeJSONBodyInteractionEvent = "SignIn"
+	CreateAndSendVerificationCodeJSONBody0InteractionEventForgotPassword CreateAndSendVerificationCodeJSONBody0InteractionEvent = "ForgotPassword"
+	CreateAndSendVerificationCodeJSONBody0InteractionEventRegister       CreateAndSendVerificationCodeJSONBody0InteractionEvent = "Register"
+	CreateAndSendVerificationCodeJSONBody0InteractionEventSignIn         CreateAndSendVerificationCodeJSONBody0InteractionEvent = "SignIn"
 )
 
-// Valid indicates whether the value is a known member of the CreateAndSendVerificationCodeJSONBodyInteractionEvent enum.
-func (e CreateAndSendVerificationCodeJSONBodyInteractionEvent) Valid() bool {
+// Valid indicates whether the value is a known member of the CreateAndSendVerificationCodeJSONBody0InteractionEvent enum.
+func (e CreateAndSendVerificationCodeJSONBody0InteractionEvent) Valid() bool {
 	switch e {
-	case CreateAndSendVerificationCodeJSONBodyInteractionEventForgotPassword:
+	case CreateAndSendVerificationCodeJSONBody0InteractionEventForgotPassword:
 		return true
-	case CreateAndSendVerificationCodeJSONBodyInteractionEventRegister:
+	case CreateAndSendVerificationCodeJSONBody0InteractionEventRegister:
 		return true
-	case CreateAndSendVerificationCodeJSONBodyInteractionEventSignIn:
+	case CreateAndSendVerificationCodeJSONBody0InteractionEventSignIn:
 		return true
 	default:
 		return false
 	}
 }
 
-// Defines values for VerifyVerificationCodeVerificationJSONBodyIdentifier0Type.
+// Defines values for CreateAndSendVerificationCodeJSONBody1IdentifierType.
 const (
-	VerifyVerificationCodeVerificationJSONBodyIdentifier0TypeEmail VerifyVerificationCodeVerificationJSONBodyIdentifier0Type = "email"
+	CreateAndSendVerificationCodeJSONBody1IdentifierTypeEmail CreateAndSendVerificationCodeJSONBody1IdentifierType = "email"
+	CreateAndSendVerificationCodeJSONBody1IdentifierTypePhone CreateAndSendVerificationCodeJSONBody1IdentifierType = "phone"
 )
 
-// Valid indicates whether the value is a known member of the VerifyVerificationCodeVerificationJSONBodyIdentifier0Type enum.
-func (e VerifyVerificationCodeVerificationJSONBodyIdentifier0Type) Valid() bool {
+// Valid indicates whether the value is a known member of the CreateAndSendVerificationCodeJSONBody1IdentifierType enum.
+func (e CreateAndSendVerificationCodeJSONBody1IdentifierType) Valid() bool {
 	switch e {
-	case VerifyVerificationCodeVerificationJSONBodyIdentifier0TypeEmail:
+	case CreateAndSendVerificationCodeJSONBody1IdentifierTypeEmail:
+		return true
+	case CreateAndSendVerificationCodeJSONBody1IdentifierTypePhone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreateAndSendVerificationCodeJSONBody1InteractionEvent.
+const (
+	CreateAndSendVerificationCodeJSONBody1InteractionEventSignIn CreateAndSendVerificationCodeJSONBody1InteractionEvent = "SignIn"
+)
+
+// Valid indicates whether the value is a known member of the CreateAndSendVerificationCodeJSONBody1InteractionEvent enum.
+func (e CreateAndSendVerificationCodeJSONBody1InteractionEvent) Valid() bool {
+	switch e {
+	case CreateAndSendVerificationCodeJSONBody1InteractionEventSignIn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VerifyVerificationCodeVerificationJSONBodyIdentifier00Type.
+const (
+	VerifyVerificationCodeVerificationJSONBodyIdentifier00TypeEmail VerifyVerificationCodeVerificationJSONBodyIdentifier00Type = "email"
+)
+
+// Valid indicates whether the value is a known member of the VerifyVerificationCodeVerificationJSONBodyIdentifier00Type enum.
+func (e VerifyVerificationCodeVerificationJSONBodyIdentifier00Type) Valid() bool {
+	switch e {
+	case VerifyVerificationCodeVerificationJSONBodyIdentifier00TypeEmail:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VerifyVerificationCodeVerificationJSONBodyIdentifier01Type.
+const (
+	VerifyVerificationCodeVerificationJSONBodyIdentifier01TypePhone VerifyVerificationCodeVerificationJSONBodyIdentifier01Type = "phone"
+)
+
+// Valid indicates whether the value is a known member of the VerifyVerificationCodeVerificationJSONBodyIdentifier01Type enum.
+func (e VerifyVerificationCodeVerificationJSONBodyIdentifier01Type) Valid() bool {
+	switch e {
+	case VerifyVerificationCodeVerificationJSONBodyIdentifier01TypePhone:
 		return true
 	default:
 		return false
@@ -13888,12 +14083,15 @@ func (e VerifyVerificationCodeVerificationJSONBodyIdentifier0Type) Valid() bool 
 
 // Defines values for VerifyVerificationCodeVerificationJSONBodyIdentifier1Type.
 const (
+	VerifyVerificationCodeVerificationJSONBodyIdentifier1TypeEmail VerifyVerificationCodeVerificationJSONBodyIdentifier1Type = "email"
 	VerifyVerificationCodeVerificationJSONBodyIdentifier1TypePhone VerifyVerificationCodeVerificationJSONBodyIdentifier1Type = "phone"
 )
 
 // Valid indicates whether the value is a known member of the VerifyVerificationCodeVerificationJSONBodyIdentifier1Type enum.
 func (e VerifyVerificationCodeVerificationJSONBodyIdentifier1Type) Valid() bool {
 	switch e {
+	case VerifyVerificationCodeVerificationJSONBodyIdentifier1TypeEmail:
+		return true
 	case VerifyVerificationCodeVerificationJSONBodyIdentifier1TypePhone:
 		return true
 	default:
@@ -17726,6 +17924,27 @@ func (e GetSignInExp200JSONResponseBodyAgreeToTermsPolicy) Valid() bool {
 	}
 }
 
+// Defines values for GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy.
+const (
+	GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicySameOrigin            GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy = "same-origin"
+	GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicySameOriginAllowPopups GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy = "same-origin-allow-popups"
+	GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicyUnsafeNone            GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy = "unsafe-none"
+)
+
+// Valid indicates whether the value is a known member of the GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy enum.
+func (e GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy) Valid() bool {
+	switch e {
+	case GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicySameOrigin:
+		return true
+	case GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicySameOriginAllowPopups:
+		return true
+	case GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicyUnsafeNone:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetSignInExp200JSONResponseBodyForgotPasswordMethods.
 const (
 	GetSignInExp200JSONResponseBodyForgotPasswordMethodsEmailVerificationCode GetSignInExp200JSONResponseBodyForgotPasswordMethods = "EmailVerificationCode"
@@ -18344,6 +18563,27 @@ func (e UpdateSignInExpJSONBodyAgreeToTermsPolicy) Valid() bool {
 	}
 }
 
+// Defines values for UpdateSignInExpJSONBodyCrossOriginOpenerPolicy.
+const (
+	UpdateSignInExpJSONBodyCrossOriginOpenerPolicySameOrigin            UpdateSignInExpJSONBodyCrossOriginOpenerPolicy = "same-origin"
+	UpdateSignInExpJSONBodyCrossOriginOpenerPolicySameOriginAllowPopups UpdateSignInExpJSONBodyCrossOriginOpenerPolicy = "same-origin-allow-popups"
+	UpdateSignInExpJSONBodyCrossOriginOpenerPolicyUnsafeNone            UpdateSignInExpJSONBodyCrossOriginOpenerPolicy = "unsafe-none"
+)
+
+// Valid indicates whether the value is a known member of the UpdateSignInExpJSONBodyCrossOriginOpenerPolicy enum.
+func (e UpdateSignInExpJSONBodyCrossOriginOpenerPolicy) Valid() bool {
+	switch e {
+	case UpdateSignInExpJSONBodyCrossOriginOpenerPolicySameOrigin:
+		return true
+	case UpdateSignInExpJSONBodyCrossOriginOpenerPolicySameOriginAllowPopups:
+		return true
+	case UpdateSignInExpJSONBodyCrossOriginOpenerPolicyUnsafeNone:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateSignInExpJSONBodyForgotPasswordMethods.
 const (
 	UpdateSignInExpJSONBodyForgotPasswordMethodsEmailVerificationCode UpdateSignInExpJSONBodyForgotPasswordMethods = "EmailVerificationCode"
@@ -18956,6 +19196,27 @@ func (e UpdateSignInExp200JSONResponseBodyAgreeToTermsPolicy) Valid() bool {
 	case UpdateSignInExp200JSONResponseBodyAgreeToTermsPolicyManual:
 		return true
 	case UpdateSignInExp200JSONResponseBodyAgreeToTermsPolicyManualRegistrationOnly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy.
+const (
+	UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicySameOrigin            UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy = "same-origin"
+	UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicySameOriginAllowPopups UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy = "same-origin-allow-popups"
+	UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicyUnsafeNone            UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy = "unsafe-none"
+)
+
+// Valid indicates whether the value is a known member of the UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy enum.
+func (e UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy) Valid() bool {
+	switch e {
+	case UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicySameOrigin:
+		return true
+	case UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicySameOriginAllowPopups:
+		return true
+	case UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicyUnsafeNone:
 		return true
 	default:
 		return false
@@ -19745,6 +20006,42 @@ func (e UpdateSsoConnector200JSONResponseBodyProviderType) Valid() bool {
 	case UpdateSsoConnector200JSONResponseBodyProviderTypeOidc:
 		return true
 	case UpdateSsoConnector200JSONResponseBodyProviderTypeSaml:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetSystemLicense200JSONResponseBodyEnv.
+const (
+	NonProduction GetSystemLicense200JSONResponseBodyEnv = "non-production"
+	Production    GetSystemLicense200JSONResponseBodyEnv = "production"
+)
+
+// Valid indicates whether the value is a known member of the GetSystemLicense200JSONResponseBodyEnv enum.
+func (e GetSystemLicense200JSONResponseBodyEnv) Valid() bool {
+	switch e {
+	case NonProduction:
+		return true
+	case Production:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetSystemLicense200JSONResponseBodyPlan.
+const (
+	SelfHostedEnterprise GetSystemLicense200JSONResponseBodyPlan = "self-hosted-enterprise"
+	SelfHostedPro        GetSystemLicense200JSONResponseBodyPlan = "self-hosted-pro"
+)
+
+// Valid indicates whether the value is a known member of the GetSystemLicense200JSONResponseBodyPlan enum.
+func (e GetSystemLicense200JSONResponseBodyPlan) Valid() bool {
+	switch e {
+	case SelfHostedEnterprise:
+		return true
+	case SelfHostedPro:
 		return true
 	default:
 		return false
@@ -21872,6 +22169,9 @@ type GetWellKnownAccountCenter200JSONResponseBodyFieldsPasskey string
 // GetWellKnownAccountCenter200JSONResponseBodyFieldsPassword defines parameters for GetWellKnownAccountCenter.
 type GetWellKnownAccountCenter200JSONResponseBodyFieldsPassword string
 
+// GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken defines parameters for GetWellKnownAccountCenter.
+type GetWellKnownAccountCenter200JSONResponseBodyFieldsPersonalAccessToken string
+
 // GetWellKnownAccountCenter200JSONResponseBodyFieldsPhone defines parameters for GetWellKnownAccountCenter.
 type GetWellKnownAccountCenter200JSONResponseBodyFieldsPhone string
 
@@ -22086,6 +22386,9 @@ type GetAccountCenterSettings200JSONResponseBodyFieldsPasskey string
 // GetAccountCenterSettings200JSONResponseBodyFieldsPassword defines parameters for GetAccountCenterSettings.
 type GetAccountCenterSettings200JSONResponseBodyFieldsPassword string
 
+// GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken defines parameters for GetAccountCenterSettings.
+type GetAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken string
+
 // GetAccountCenterSettings200JSONResponseBodyFieldsPhone defines parameters for GetAccountCenterSettings.
 type GetAccountCenterSettings200JSONResponseBodyFieldsPhone string
 
@@ -22116,20 +22419,24 @@ type UpdateAccountCenterSettingsJSONBody struct {
 
 	// Fields The fields settings for the account API.
 	Fields *struct {
-		Avatar        *UpdateAccountCenterSettingsJSONBodyFieldsAvatar        `json:"avatar,omitempty"`
-		CustomData    *UpdateAccountCenterSettingsJSONBodyFieldsCustomData    `json:"customData,omitempty"`
-		Email         *UpdateAccountCenterSettingsJSONBodyFieldsEmail         `json:"email,omitempty"`
-		Mfa           *UpdateAccountCenterSettingsJSONBodyFieldsMfa           `json:"mfa,omitempty"`
-		Name          *UpdateAccountCenterSettingsJSONBodyFieldsName          `json:"name,omitempty"`
-		Passkey       *UpdateAccountCenterSettingsJSONBodyFieldsPasskey       `json:"passkey,omitempty"`
-		Password      *UpdateAccountCenterSettingsJSONBodyFieldsPassword      `json:"password,omitempty"`
-		Phone         *UpdateAccountCenterSettingsJSONBodyFieldsPhone         `json:"phone,omitempty"`
-		Profile       *UpdateAccountCenterSettingsJSONBodyFieldsProfile       `json:"profile,omitempty"`
-		Session       *UpdateAccountCenterSettingsJSONBodyFieldsSession       `json:"session,omitempty"`
-		Social        *UpdateAccountCenterSettingsJSONBodyFieldsSocial        `json:"social,omitempty"`
-		TrustedDevice *UpdateAccountCenterSettingsJSONBodyFieldsTrustedDevice `json:"trustedDevice,omitempty"`
-		Username      *UpdateAccountCenterSettingsJSONBodyFieldsUsername      `json:"username,omitempty"`
+		Avatar              *UpdateAccountCenterSettingsJSONBodyFieldsAvatar              `json:"avatar,omitempty"`
+		CustomData          *UpdateAccountCenterSettingsJSONBodyFieldsCustomData          `json:"customData,omitempty"`
+		Email               *UpdateAccountCenterSettingsJSONBodyFieldsEmail               `json:"email,omitempty"`
+		Mfa                 *UpdateAccountCenterSettingsJSONBodyFieldsMfa                 `json:"mfa,omitempty"`
+		Name                *UpdateAccountCenterSettingsJSONBodyFieldsName                `json:"name,omitempty"`
+		Passkey             *UpdateAccountCenterSettingsJSONBodyFieldsPasskey             `json:"passkey,omitempty"`
+		Password            *UpdateAccountCenterSettingsJSONBodyFieldsPassword            `json:"password,omitempty"`
+		PersonalAccessToken *UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessToken `json:"personalAccessToken,omitempty"`
+		Phone               *UpdateAccountCenterSettingsJSONBodyFieldsPhone               `json:"phone,omitempty"`
+		Profile             *UpdateAccountCenterSettingsJSONBodyFieldsProfile             `json:"profile,omitempty"`
+		Session             *UpdateAccountCenterSettingsJSONBodyFieldsSession             `json:"session,omitempty"`
+		Social              *UpdateAccountCenterSettingsJSONBodyFieldsSocial              `json:"social,omitempty"`
+		TrustedDevice       *UpdateAccountCenterSettingsJSONBodyFieldsTrustedDevice       `json:"trustedDevice,omitempty"`
+		Username            *UpdateAccountCenterSettingsJSONBodyFieldsUsername            `json:"username,omitempty"`
 	} `json:"fields,omitempty"`
+
+	// MaximumAuthenticationAgeInSeconds How recent a user's authentication must be for the Account API to allow sensitive operations, in seconds.
+	MaximumAuthenticationAgeInSeconds *float32 `json:"maximumAuthenticationAgeInSeconds,omitempty"`
 
 	// ProfileFields Ordered list of custom profile fields to show in the prebuilt account center. Each entry references an existing field by name in the custom profile fields catalog.
 	ProfileFields *[]struct {
@@ -22160,6 +22467,9 @@ type UpdateAccountCenterSettingsJSONBodyFieldsPasskey string
 
 // UpdateAccountCenterSettingsJSONBodyFieldsPassword defines parameters for UpdateAccountCenterSettings.
 type UpdateAccountCenterSettingsJSONBodyFieldsPassword string
+
+// UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessToken defines parameters for UpdateAccountCenterSettings.
+type UpdateAccountCenterSettingsJSONBodyFieldsPersonalAccessToken string
 
 // UpdateAccountCenterSettingsJSONBodyFieldsPhone defines parameters for UpdateAccountCenterSettings.
 type UpdateAccountCenterSettingsJSONBodyFieldsPhone string
@@ -22199,6 +22509,9 @@ type UpdateAccountCenterSettings200JSONResponseBodyFieldsPasskey string
 
 // UpdateAccountCenterSettings200JSONResponseBodyFieldsPassword defines parameters for UpdateAccountCenterSettings.
 type UpdateAccountCenterSettings200JSONResponseBodyFieldsPassword string
+
+// UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken defines parameters for UpdateAccountCenterSettings.
+type UpdateAccountCenterSettings200JSONResponseBodyFieldsPersonalAccessToken string
 
 // UpdateAccountCenterSettings200JSONResponseBodyFieldsPhone defines parameters for UpdateAccountCenterSettings.
 type UpdateAccountCenterSettings200JSONResponseBodyFieldsPhone string
@@ -22266,6 +22579,7 @@ type ListApplications200JSONResponseBodyType string
 
 // CreateApplicationJSONBody defines parameters for CreateApplication.
 type CreateApplicationJSONBody struct {
+	// CustomClientMetadata Custom client metadata of the application. Unknown keys are rejected with a 400 `guard.invalid_input` error whose `data` lists the key.
 	CustomClientMetadata *struct {
 		AllowTokenExchange      *bool     `json:"allowTokenExchange,omitempty"`
 		AlwaysIssueRefreshToken *bool     `json:"alwaysIssueRefreshToken,omitempty"`
@@ -22285,11 +22599,11 @@ type CreateApplicationJSONBody struct {
 	IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 	Name               string                  `json:"name"`
 	OidcClientMetadata *struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata,omitempty"`
 
 	// ProtectedAppMetadata The data for protected app, this feature is not available for open source version.
@@ -22441,7 +22755,9 @@ type GetApplication200JSONResponseBodyType string
 type UpdateApplicationJSONBody struct {
 	// AppLevelAccessControlEnabled Whether app-level access control is enabled for this application.
 	AppLevelAccessControlEnabled *bool `json:"appLevelAccessControlEnabled,omitempty"`
-	CustomClientMetadata         *struct {
+
+	// CustomClientMetadata Custom client metadata of the application. Unknown keys are rejected with a 400 `guard.invalid_input` error whose `data` lists the key.
+	CustomClientMetadata *struct {
 		AllowTokenExchange      *bool     `json:"allowTokenExchange,omitempty"`
 		AlwaysIssueRefreshToken *bool     `json:"alwaysIssueRefreshToken,omitempty"`
 		CorsAllowedOrigins      *[]string `json:"corsAllowedOrigins,omitempty"`
@@ -22462,11 +22778,11 @@ type UpdateApplicationJSONBody struct {
 	IsAdmin            *bool   `json:"isAdmin,omitempty"`
 	Name               *string `json:"name,omitempty"`
 	OidcClientMetadata *struct {
-		BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-		BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-		LogoUri                          *string                  `json:"logoUri,omitempty"`
-		PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-		RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+		BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+		BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+		LogoUri                          *string       `json:"logoUri,omitempty"`
+		PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+		RedirectUris                     []interface{} `json:"redirectUris"`
 	} `json:"oidcClientMetadata,omitempty"`
 	ProtectedAppMetadata *struct {
 		AdditionalScopes *[]UpdateApplicationJSONBodyProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -22601,7 +22917,7 @@ type GetCaptchaProvider200JSONResponseBodyConfig1Type string
 // GetCaptchaProvider200JSONResponseBodyConfig2 defines parameters for GetCaptchaProvider.
 type GetCaptchaProvider200JSONResponseBodyConfig2 struct {
 	// Endpoint Validator function
-	Endpoint  map[string]interface{}                           `json:"endpoint"`
+	Endpoint  interface{}                                      `json:"endpoint"`
 	SecretKey string                                           `json:"secretKey"`
 	SiteKey   string                                           `json:"siteKey"`
 	Type      GetCaptchaProvider200JSONResponseBodyConfig2Type `json:"type"`
@@ -22610,6 +22926,16 @@ type GetCaptchaProvider200JSONResponseBodyConfig2 struct {
 // GetCaptchaProvider200JSONResponseBodyConfig2Type defines parameters for GetCaptchaProvider.
 type GetCaptchaProvider200JSONResponseBodyConfig2Type string
 
+// GetCaptchaProvider200JSONResponseBodyConfig3 defines parameters for GetCaptchaProvider.
+type GetCaptchaProvider200JSONResponseBodyConfig3 struct {
+	SecretKey string                                           `json:"secretKey"`
+	SiteKey   string                                           `json:"siteKey"`
+	Type      GetCaptchaProvider200JSONResponseBodyConfig3Type `json:"type"`
+}
+
+// GetCaptchaProvider200JSONResponseBodyConfig3Type defines parameters for GetCaptchaProvider.
+type GetCaptchaProvider200JSONResponseBodyConfig3Type string
+
 // GetCaptchaProvider200JSONResponseBody_Config defines parameters for GetCaptchaProvider.
 type GetCaptchaProvider200JSONResponseBody_Config struct {
 	union json.RawMessage
@@ -22617,7 +22943,7 @@ type GetCaptchaProvider200JSONResponseBody_Config struct {
 
 // UpdateCaptchaProviderJSONBody defines parameters for UpdateCaptchaProvider.
 type UpdateCaptchaProviderJSONBody struct {
-	// Config The captcha provider config.
+	// Config The captcha provider config. The `type` must be `RecaptchaEnterprise`, `Turnstile`, `Cap`, or `Geetest`, together with the provider-specific fields.
 	Config UpdateCaptchaProviderJSONBody_Config `json:"config"`
 }
 
@@ -22651,7 +22977,7 @@ type UpdateCaptchaProviderJSONBodyConfig1Type string
 // UpdateCaptchaProviderJSONBodyConfig2 defines parameters for UpdateCaptchaProvider.
 type UpdateCaptchaProviderJSONBodyConfig2 struct {
 	// Endpoint Validator function
-	Endpoint  map[string]interface{}                   `json:"endpoint"`
+	Endpoint  interface{}                              `json:"endpoint"`
 	SecretKey string                                   `json:"secretKey"`
 	SiteKey   string                                   `json:"siteKey"`
 	Type      UpdateCaptchaProviderJSONBodyConfig2Type `json:"type"`
@@ -22659,6 +22985,16 @@ type UpdateCaptchaProviderJSONBodyConfig2 struct {
 
 // UpdateCaptchaProviderJSONBodyConfig2Type defines parameters for UpdateCaptchaProvider.
 type UpdateCaptchaProviderJSONBodyConfig2Type string
+
+// UpdateCaptchaProviderJSONBodyConfig3 defines parameters for UpdateCaptchaProvider.
+type UpdateCaptchaProviderJSONBodyConfig3 struct {
+	SecretKey string                                   `json:"secretKey"`
+	SiteKey   string                                   `json:"siteKey"`
+	Type      UpdateCaptchaProviderJSONBodyConfig3Type `json:"type"`
+}
+
+// UpdateCaptchaProviderJSONBodyConfig3Type defines parameters for UpdateCaptchaProvider.
+type UpdateCaptchaProviderJSONBodyConfig3Type string
 
 // UpdateCaptchaProviderJSONBody_Config defines parameters for UpdateCaptchaProvider.
 type UpdateCaptchaProviderJSONBody_Config struct {
@@ -22695,7 +23031,7 @@ type UpdateCaptchaProvider200JSONResponseBodyConfig1Type string
 // UpdateCaptchaProvider200JSONResponseBodyConfig2 defines parameters for UpdateCaptchaProvider.
 type UpdateCaptchaProvider200JSONResponseBodyConfig2 struct {
 	// Endpoint Validator function
-	Endpoint  map[string]interface{}                              `json:"endpoint"`
+	Endpoint  interface{}                                         `json:"endpoint"`
 	SecretKey string                                              `json:"secretKey"`
 	SiteKey   string                                              `json:"siteKey"`
 	Type      UpdateCaptchaProvider200JSONResponseBodyConfig2Type `json:"type"`
@@ -22703,6 +23039,16 @@ type UpdateCaptchaProvider200JSONResponseBodyConfig2 struct {
 
 // UpdateCaptchaProvider200JSONResponseBodyConfig2Type defines parameters for UpdateCaptchaProvider.
 type UpdateCaptchaProvider200JSONResponseBodyConfig2Type string
+
+// UpdateCaptchaProvider200JSONResponseBodyConfig3 defines parameters for UpdateCaptchaProvider.
+type UpdateCaptchaProvider200JSONResponseBodyConfig3 struct {
+	SecretKey string                                              `json:"secretKey"`
+	SiteKey   string                                              `json:"siteKey"`
+	Type      UpdateCaptchaProvider200JSONResponseBodyConfig3Type `json:"type"`
+}
+
+// UpdateCaptchaProvider200JSONResponseBodyConfig3Type defines parameters for UpdateCaptchaProvider.
+type UpdateCaptchaProvider200JSONResponseBodyConfig3Type string
 
 // UpdateCaptchaProvider200JSONResponseBody_Config defines parameters for UpdateCaptchaProvider.
 type UpdateCaptchaProvider200JSONResponseBody_Config struct {
@@ -23246,11 +23592,11 @@ type ListJwtCustomizers200JSONResponseBody0 struct {
 				IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 				Name               *string                 `json:"name,omitempty"`
 				OidcClientMetadata *struct {
-					BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-					BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-					LogoUri                          *string                  `json:"logoUri,omitempty"`
-					PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-					RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+					BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+					BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+					LogoUri                          *string       `json:"logoUri,omitempty"`
+					PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+					RedirectUris                     []interface{} `json:"redirectUris"`
 				} `json:"oidcClientMetadata,omitempty"`
 				ProtectedAppMetadata *struct {
 					AdditionalScopes *[]ListJwtCustomizers200JSONResponseBody0ValueContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -23787,11 +24133,11 @@ type ListJwtCustomizers200JSONResponseBody1 struct {
 				IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 				Name               *string                 `json:"name,omitempty"`
 				OidcClientMetadata *struct {
-					BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-					BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-					LogoUri                          *string                  `json:"logoUri,omitempty"`
-					PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-					RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+					BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+					BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+					LogoUri                          *string       `json:"logoUri,omitempty"`
+					PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+					RedirectUris                     []interface{} `json:"redirectUris"`
 				} `json:"oidcClientMetadata,omitempty"`
 				ProtectedAppMetadata *struct {
 					AdditionalScopes *[]ListJwtCustomizers200JSONResponseBody1ValueContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -23917,11 +24263,11 @@ type TestJwtCustomizerJSONBody0 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]TestJwtCustomizerJSONBody0ContextApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -24455,11 +24801,11 @@ type TestJwtCustomizerJSONBody1 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]TestJwtCustomizerJSONBody1ContextApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -24566,11 +24912,11 @@ type GetJwtCustomizer200JSONResponseBody0 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]GetJwtCustomizer200JSONResponseBody0ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -25101,11 +25447,11 @@ type GetJwtCustomizer200JSONResponseBody1 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]GetJwtCustomizer200JSONResponseBody1ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -25228,11 +25574,11 @@ type UpdateJwtCustomizer200JSONResponseBody0 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpdateJwtCustomizer200JSONResponseBody0ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -25763,11 +26109,11 @@ type UpdateJwtCustomizer200JSONResponseBody1 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpdateJwtCustomizer200JSONResponseBody1ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -25890,11 +26236,11 @@ type UpsertJwtCustomizer200JSONResponseBody0 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpsertJwtCustomizer200JSONResponseBody0ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -26425,11 +26771,11 @@ type UpsertJwtCustomizer200JSONResponseBody1 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpsertJwtCustomizer200JSONResponseBody1ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -26531,11 +26877,11 @@ type UpsertJwtCustomizer201JSONResponseBody0 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpsertJwtCustomizer201JSONResponseBody0ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -27066,11 +27412,11 @@ type UpsertJwtCustomizer201JSONResponseBody1 struct {
 			IsThirdParty       *bool                   `json:"isThirdParty,omitempty"`
 			Name               *string                 `json:"name,omitempty"`
 			OidcClientMetadata *struct {
-				BackchannelLogoutSessionRequired *bool                    `json:"backchannelLogoutSessionRequired,omitempty"`
-				BackchannelLogoutUri             *string                  `json:"backchannelLogoutUri,omitempty"`
-				LogoUri                          *string                  `json:"logoUri,omitempty"`
-				PostLogoutRedirectUris           []map[string]interface{} `json:"postLogoutRedirectUris"`
-				RedirectUris                     []map[string]interface{} `json:"redirectUris"`
+				BackchannelLogoutSessionRequired *bool         `json:"backchannelLogoutSessionRequired,omitempty"`
+				BackchannelLogoutUri             *string       `json:"backchannelLogoutUri,omitempty"`
+				LogoUri                          *string       `json:"logoUri,omitempty"`
+				PostLogoutRedirectUris           []interface{} `json:"postLogoutRedirectUris"`
+				RedirectUris                     []interface{} `json:"redirectUris"`
 			} `json:"oidcClientMetadata,omitempty"`
 			ProtectedAppMetadata *struct {
 				AdditionalScopes *[]UpsertJwtCustomizer201JSONResponseBody1ContextSampleApplicationProtectedAppMetadataAdditionalScopes `json:"additionalScopes,omitempty"`
@@ -27469,8 +27815,8 @@ type CreateConnectorJSONBody struct {
 		LogoDark *string `json:"logoDark,omitempty"`
 
 		// Name Validator function
-		Name   *map[string]interface{} `json:"name,omitempty"`
-		Target *string                 `json:"target,omitempty"`
+		Name   interface{} `json:"name,omitempty"`
+		Target *string     `json:"target,omitempty"`
 	} `json:"metadata,omitempty"`
 
 	// SyncProfile Whether to sync user profile from the identity provider to Logto at each sign-in. If `false`, the user profile will only be synced when the user is created.
@@ -27687,8 +28033,8 @@ type UpdateConnectorJSONBody struct {
 		LogoDark *string `json:"logoDark,omitempty"`
 
 		// Name Validator function
-		Name   *map[string]interface{} `json:"name,omitempty"`
-		Target *string                 `json:"target,omitempty"`
+		Name   interface{} `json:"name,omitempty"`
+		Target *string     `json:"target,omitempty"`
 	} `json:"metadata,omitempty"`
 
 	// SyncProfile Whether to sync user profile from the identity provider to Logto at each sign-in. If `false`, the user profile will only be synced when the user is created.
@@ -28668,6 +29014,12 @@ type InitInteractionJSONBody struct {
 // InitInteractionJSONBodyInteractionEvent defines parameters for InitInteraction.
 type InitInteractionJSONBodyInteractionEvent string
 
+// AbortInteractionJSONBody defines parameters for AbortInteraction.
+type AbortInteractionJSONBody struct {
+	// Reason Optional human-readable reason, forwarded to the client as the `error_description` parameter. Must be at most 256 characters and may only contain the characters RFC 6749 §4.1.2.1 allows in `error_description`: `%x20-21 / %x23-5B / %x5D-7E`, i.e. printable ASCII except `"` and `\`.
+	Reason *string `json:"reason,omitempty"`
+}
+
 // IdentifyUserJSONBody defines parameters for IdentifyUser.
 type IdentifyUserJSONBody struct {
 	// LinkSocialIdentity Applies only to the SignIn interaction and is used when a SocialVerification type verification ID is provided. <br/>- If `true`, the user is identified using the verified email or phone number from the social identity provider, and the social identity is linked to the user's account. <br/>- If `false` or not provided, the API identifies the user solely through the social identity. <br/>This parameter is used to link a non-existing social identity to a related user account identified by the verified email or phone number.
@@ -29264,18 +29616,30 @@ type VerifyOneTimeTokenVerificationJSONBodyIdentifierType string
 
 // CreatePasswordVerificationJSONBody defines parameters for CreatePasswordVerification.
 type CreatePasswordVerificationJSONBody struct {
-	// Identifier The unique identifier of the user that will be used to identify the user along with the provided password.
-	Identifier struct {
-		Type  CreatePasswordVerificationJSONBodyIdentifierType `json:"type"`
-		Value string                                           `json:"value"`
-	} `json:"identifier"`
+	// Identifier The unique identifier of the user that will be used to identify the user along with the provided password. Optional once the interaction carries a subject: the password is then verified against the subject the interaction storage carries.
+	Identifier interface{} `json:"identifier,omitempty"`
 
 	// Password The user password.
+	Password interface{} `json:"password,omitempty"`
+	union    json.RawMessage
+}
+
+// CreatePasswordVerificationJSONBody0 defines parameters for CreatePasswordVerification.
+type CreatePasswordVerificationJSONBody0 struct {
+	Identifier struct {
+		Type  CreatePasswordVerificationJSONBody0IdentifierType `json:"type"`
+		Value string                                            `json:"value"`
+	} `json:"identifier"`
 	Password string `json:"password"`
 }
 
-// CreatePasswordVerificationJSONBodyIdentifierType defines parameters for CreatePasswordVerification.
-type CreatePasswordVerificationJSONBodyIdentifierType string
+// CreatePasswordVerificationJSONBody0IdentifierType defines parameters for CreatePasswordVerification.
+type CreatePasswordVerificationJSONBody0IdentifierType string
+
+// CreatePasswordVerificationJSONBody1 defines parameters for CreatePasswordVerification.
+type CreatePasswordVerificationJSONBody1 struct {
+	Password string `json:"password"`
+}
 
 // CreateSignInPasskeyAuthenticationWithIdentifierJSONBody defines parameters for CreateSignInPasskeyAuthenticationWithIdentifier.
 type CreateSignInPasskeyAuthenticationWithIdentifierJSONBody struct {
@@ -29378,45 +29742,66 @@ type VerifyTotpVerificationJSONBody struct {
 
 // CreateAndSendVerificationCodeJSONBody defines parameters for CreateAndSendVerificationCode.
 type CreateAndSendVerificationCodeJSONBody struct {
-	// Identifier The identifier (email address or phone number) to send the verification code to.
-	Identifier CreateAndSendVerificationCodeJSONBody_Identifier `json:"identifier"`
+	// Identifier The identifier (email address or phone number) to send the verification code to. Once the interaction carries a subject, `{ "type": "email" }` or `{ "type": "phone" }` without a `value` sends the code to that user's primary email or phone.
+	Identifier interface{} `json:"identifier,omitempty"`
 
 	// InteractionEvent The interaction event for which the verification code will be used. Supported values are `SignIn`, `Register`, and `ForgotPassword`. This determines the template for the verification code.
-	InteractionEvent CreateAndSendVerificationCodeJSONBodyInteractionEvent `json:"interactionEvent"`
+	InteractionEvent interface{} `json:"interactionEvent,omitempty"`
+	union            json.RawMessage
 }
 
-// CreateAndSendVerificationCodeJSONBodyIdentifier0 defines parameters for CreateAndSendVerificationCode.
-type CreateAndSendVerificationCodeJSONBodyIdentifier0 struct {
-	Type  CreateAndSendVerificationCodeJSONBodyIdentifier0Type `json:"type"`
-	Value string                                               `json:"value"`
+// CreateAndSendVerificationCodeJSONBody0 defines parameters for CreateAndSendVerificationCode.
+type CreateAndSendVerificationCodeJSONBody0 struct {
+	Identifier       CreateAndSendVerificationCodeJSONBody_0_Identifier     `json:"identifier"`
+	InteractionEvent CreateAndSendVerificationCodeJSONBody0InteractionEvent `json:"interactionEvent"`
 }
 
-// CreateAndSendVerificationCodeJSONBodyIdentifier0Type defines parameters for CreateAndSendVerificationCode.
-type CreateAndSendVerificationCodeJSONBodyIdentifier0Type string
-
-// CreateAndSendVerificationCodeJSONBodyIdentifier1 defines parameters for CreateAndSendVerificationCode.
-type CreateAndSendVerificationCodeJSONBodyIdentifier1 struct {
-	Type  CreateAndSendVerificationCodeJSONBodyIdentifier1Type `json:"type"`
-	Value string                                               `json:"value"`
+// CreateAndSendVerificationCodeJSONBody0Identifier0 defines parameters for CreateAndSendVerificationCode.
+type CreateAndSendVerificationCodeJSONBody0Identifier0 struct {
+	Type  CreateAndSendVerificationCodeJSONBody0Identifier0Type `json:"type"`
+	Value string                                                `json:"value"`
 }
 
-// CreateAndSendVerificationCodeJSONBodyIdentifier1Type defines parameters for CreateAndSendVerificationCode.
-type CreateAndSendVerificationCodeJSONBodyIdentifier1Type string
+// CreateAndSendVerificationCodeJSONBody0Identifier0Type defines parameters for CreateAndSendVerificationCode.
+type CreateAndSendVerificationCodeJSONBody0Identifier0Type string
 
-// CreateAndSendVerificationCodeJSONBody_Identifier defines parameters for CreateAndSendVerificationCode.
-type CreateAndSendVerificationCodeJSONBody_Identifier struct {
+// CreateAndSendVerificationCodeJSONBody0Identifier1 defines parameters for CreateAndSendVerificationCode.
+type CreateAndSendVerificationCodeJSONBody0Identifier1 struct {
+	Type  CreateAndSendVerificationCodeJSONBody0Identifier1Type `json:"type"`
+	Value string                                                `json:"value"`
+}
+
+// CreateAndSendVerificationCodeJSONBody0Identifier1Type defines parameters for CreateAndSendVerificationCode.
+type CreateAndSendVerificationCodeJSONBody0Identifier1Type string
+
+// CreateAndSendVerificationCodeJSONBody_0_Identifier defines parameters for CreateAndSendVerificationCode.
+type CreateAndSendVerificationCodeJSONBody_0_Identifier struct {
 	union json.RawMessage
 }
 
-// CreateAndSendVerificationCodeJSONBodyInteractionEvent defines parameters for CreateAndSendVerificationCode.
-type CreateAndSendVerificationCodeJSONBodyInteractionEvent string
+// CreateAndSendVerificationCodeJSONBody0InteractionEvent defines parameters for CreateAndSendVerificationCode.
+type CreateAndSendVerificationCodeJSONBody0InteractionEvent string
+
+// CreateAndSendVerificationCodeJSONBody1 defines parameters for CreateAndSendVerificationCode.
+type CreateAndSendVerificationCodeJSONBody1 struct {
+	Identifier struct {
+		Type CreateAndSendVerificationCodeJSONBody1IdentifierType `json:"type"`
+	} `json:"identifier"`
+	InteractionEvent CreateAndSendVerificationCodeJSONBody1InteractionEvent `json:"interactionEvent"`
+}
+
+// CreateAndSendVerificationCodeJSONBody1IdentifierType defines parameters for CreateAndSendVerificationCode.
+type CreateAndSendVerificationCodeJSONBody1IdentifierType string
+
+// CreateAndSendVerificationCodeJSONBody1InteractionEvent defines parameters for CreateAndSendVerificationCode.
+type CreateAndSendVerificationCodeJSONBody1InteractionEvent string
 
 // VerifyVerificationCodeVerificationJSONBody defines parameters for VerifyVerificationCodeVerification.
 type VerifyVerificationCodeVerificationJSONBody struct {
 	// Code The verification code to be verified.
 	Code string `json:"code"`
 
-	// Identifier The identifier (email address or phone number) to verify the code against. Must match the identifier used to send the verification code.
+	// Identifier The identifier (email address or phone number) to verify the code against. Must match the identifier used to send the verification code. For a code sent to the subject the interaction carries, only the `type` is given.
 	Identifier VerifyVerificationCodeVerificationJSONBody_Identifier `json:"identifier"`
 
 	// VerificationId The verification ID of the CodeVerification record.
@@ -29425,17 +29810,30 @@ type VerifyVerificationCodeVerificationJSONBody struct {
 
 // VerifyVerificationCodeVerificationJSONBodyIdentifier0 defines parameters for VerifyVerificationCodeVerification.
 type VerifyVerificationCodeVerificationJSONBodyIdentifier0 struct {
-	Type  VerifyVerificationCodeVerificationJSONBodyIdentifier0Type `json:"type"`
-	Value string                                                    `json:"value"`
+	union json.RawMessage
 }
 
-// VerifyVerificationCodeVerificationJSONBodyIdentifier0Type defines parameters for VerifyVerificationCodeVerification.
-type VerifyVerificationCodeVerificationJSONBodyIdentifier0Type string
+// VerifyVerificationCodeVerificationJSONBodyIdentifier00 defines parameters for VerifyVerificationCodeVerification.
+type VerifyVerificationCodeVerificationJSONBodyIdentifier00 struct {
+	Type  VerifyVerificationCodeVerificationJSONBodyIdentifier00Type `json:"type"`
+	Value string                                                     `json:"value"`
+}
+
+// VerifyVerificationCodeVerificationJSONBodyIdentifier00Type defines parameters for VerifyVerificationCodeVerification.
+type VerifyVerificationCodeVerificationJSONBodyIdentifier00Type string
+
+// VerifyVerificationCodeVerificationJSONBodyIdentifier01 defines parameters for VerifyVerificationCodeVerification.
+type VerifyVerificationCodeVerificationJSONBodyIdentifier01 struct {
+	Type  VerifyVerificationCodeVerificationJSONBodyIdentifier01Type `json:"type"`
+	Value string                                                     `json:"value"`
+}
+
+// VerifyVerificationCodeVerificationJSONBodyIdentifier01Type defines parameters for VerifyVerificationCodeVerification.
+type VerifyVerificationCodeVerificationJSONBodyIdentifier01Type string
 
 // VerifyVerificationCodeVerificationJSONBodyIdentifier1 defines parameters for VerifyVerificationCodeVerification.
 type VerifyVerificationCodeVerificationJSONBodyIdentifier1 struct {
-	Type  VerifyVerificationCodeVerificationJSONBodyIdentifier1Type `json:"type"`
-	Value string                                                    `json:"value"`
+	Type VerifyVerificationCodeVerificationJSONBodyIdentifier1Type `json:"type"`
 }
 
 // VerifyVerificationCodeVerificationJSONBodyIdentifier1Type defines parameters for VerifyVerificationCodeVerification.
@@ -29820,6 +30218,17 @@ type GetSocialIdentityAccessToken200JSONResponseBody_ExpiresIn struct {
 	union json.RawMessage
 }
 
+// GetSocialIdentityAccessToken200JSONResponseBodyScope0 defines parameters for GetSocialIdentityAccessToken.
+type GetSocialIdentityAccessToken200JSONResponseBodyScope0 = string
+
+// GetSocialIdentityAccessToken200JSONResponseBodyScope1 defines parameters for GetSocialIdentityAccessToken.
+type GetSocialIdentityAccessToken200JSONResponseBodyScope1 = []string
+
+// GetSocialIdentityAccessToken200JSONResponseBody_Scope defines parameters for GetSocialIdentityAccessToken.
+type GetSocialIdentityAccessToken200JSONResponseBody_Scope struct {
+	union json.RawMessage
+}
+
 // UpdateSocialIdentityAccessTokenByVerificationIdJSONBody defines parameters for UpdateSocialIdentityAccessTokenByVerificationId.
 type UpdateSocialIdentityAccessTokenByVerificationIdJSONBody struct {
 	VerificationRecordId string `json:"verificationRecordId"`
@@ -29833,6 +30242,17 @@ type UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyExpiresIn
 
 // UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_ExpiresIn defines parameters for UpdateSocialIdentityAccessTokenByVerificationId.
 type UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_ExpiresIn struct {
+	union json.RawMessage
+}
+
+// UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0 defines parameters for UpdateSocialIdentityAccessTokenByVerificationId.
+type UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0 = string
+
+// UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1 defines parameters for UpdateSocialIdentityAccessTokenByVerificationId.
+type UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1 = []string
+
+// UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope defines parameters for UpdateSocialIdentityAccessTokenByVerificationId.
+type UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope struct {
 	union json.RawMessage
 }
 
@@ -29858,6 +30278,10 @@ type UpdateLogtoConfigJSONBody struct {
 
 // UpdateMfaSettingsJSONBody defines parameters for UpdateMfaSettings.
 type UpdateMfaSettingsJSONBody struct {
+	// Enabled Set whether MFA is enabled for the user. Omit to keep the stored value; `undefined` for legacy users is treated as enabled when the user has usable factors.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// SkipMfaOnSignIn Set whether the user has opted to skip MFA verification on sign-in. This is ignored when the MFA policy is mandatory.
 	SkipMfaOnSignIn bool `json:"skipMfaOnSignIn"`
 }
 
@@ -29959,6 +30383,30 @@ type UpdateMfaVerificationNameJSONBody struct {
 type UpdatePasswordJSONBody struct {
 	// Password The new password for the user.
 	Password string `json:"password"`
+}
+
+// UpdateMyAccountPersonalAccessTokenNameJSONBody defines parameters for UpdateMyAccountPersonalAccessTokenName.
+type UpdateMyAccountPersonalAccessTokenNameJSONBody struct {
+	// CurrentName The current name of the token to rename.
+	CurrentName string `json:"currentName"`
+
+	// Name The new name of the token. It must be unique among the user's personal access tokens.
+	Name string `json:"name"`
+}
+
+// CreateMyAccountPersonalAccessTokenJSONBody defines parameters for CreateMyAccountPersonalAccessToken.
+type CreateMyAccountPersonalAccessTokenJSONBody struct {
+	// ExpiresAt The epoch time in milliseconds when the token expires. It must be in the future and at most 365 days from now.
+	ExpiresAt float32 `json:"expiresAt"`
+
+	// Name The name of the token. It must be unique among the user's personal access tokens.
+	Name string `json:"name"`
+}
+
+// DeleteMyAccountPersonalAccessTokenJSONBody defines parameters for DeleteMyAccountPersonalAccessToken.
+type DeleteMyAccountPersonalAccessTokenJSONBody struct {
+	// Name The name of the token to delete.
+	Name string `json:"name"`
 }
 
 // UpdatePrimaryEmailJSONBody defines parameters for UpdatePrimaryEmail.
@@ -30372,6 +30820,17 @@ type GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_ExpiresIn struct {
 	union json.RawMessage
 }
 
+// GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0 defines parameters for GetEnterpriseSsoIdentityAccessToken.
+type GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0 = string
+
+// GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1 defines parameters for GetEnterpriseSsoIdentityAccessToken.
+type GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1 = []string
+
+// GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope defines parameters for GetEnterpriseSsoIdentityAccessToken.
+type GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope struct {
+	union json.RawMessage
+}
+
 // UploadAccountAvatarMultipartBody defines parameters for UploadAccountAvatar.
 type UploadAccountAvatarMultipartBody struct {
 	// File The avatar image file to upload. Must be an allowed image type and not exceed the maximum upload file size.
@@ -30680,6 +31139,9 @@ type ListOrganizationsParams struct {
 	// If not provided, `featuredUsers` will not be included in the response.
 	ShowFeatured *string `form:"showFeatured,omitempty" json:"showFeatured,omitempty"`
 
+	// JitEmailDomain Only return the organizations that have this email domain for just-in-time provisioning (e.g. `example.com`), that is the organizations a user with this email domain would be provisioned into. The domain is matched exactly, and `q` still searches by id or name within the result.
+	JitEmailDomain *string `form:"jitEmailDomain,omitempty" json:"jitEmailDomain,omitempty"`
+
 	// Page Page number (starts from 1).
 	Page *int `form:"page,omitempty" json:"page,omitempty"`
 
@@ -30951,6 +31413,9 @@ type ListResourcesParams struct {
 	// IncludeScopes If it's provided with a truthy value (`true`, `1`, `yes`), the scopes of each resource will be included in the response.
 	IncludeScopes *string `form:"includeScopes,omitempty" json:"includeScopes,omitempty"`
 
+	// ExcludeManagementApis If it's provided with a truthy value (`true`, `1`, `yes`), Logto Management API resources will be excluded from the response.
+	ExcludeManagementApis *string `form:"excludeManagementApis,omitempty" json:"excludeManagementApis,omitempty"`
+
 	// Page Page number (starts from 1).
 	Page *int `form:"page,omitempty" json:"page,omitempty"`
 
@@ -31191,12 +31656,15 @@ type CreateSamlApplicationJSONBody struct {
 	Description *string `json:"description,omitempty"`
 
 	// Encryption Validator function
-	Encryption *map[string]interface{} `json:"encryption,omitempty"`
-	EntityId   *string                 `json:"entityId,omitempty"`
+	Encryption interface{} `json:"encryption,omitempty"`
+	EntityId   *string     `json:"entityId,omitempty"`
 
 	// Name The name of the SAML application.
 	Name         string                                    `json:"name"`
 	NameIdFormat CreateSamlApplicationJSONBodyNameIdFormat `json:"nameIdFormat"`
+
+	// StaticAttributes Fixed SAML attributes added to every assertion, keyed by attribute name. Names may only contain letters, digits, and `_.:/#@-`, and values must be non-empty. After camel-case normalization, names must not conflict with each other or with the user attribute names in the assertion (the mapped names, or `sub`, `email` and `name` when nothing is mapped).
+	StaticAttributes *map[string]string `json:"staticAttributes,omitempty"`
 }
 
 // CreateSamlApplicationJSONBody_AuthnRequestConfig defines parameters for CreateSamlApplication.
@@ -31282,12 +31750,15 @@ type UpdateSamlApplicationJSONBody struct {
 	Description *string `json:"description,omitempty"`
 
 	// Encryption Validator function
-	Encryption *map[string]interface{} `json:"encryption,omitempty"`
-	EntityId   *string                 `json:"entityId,omitempty"`
+	Encryption interface{} `json:"encryption,omitempty"`
+	EntityId   *string     `json:"entityId,omitempty"`
 
 	// Name The name of the SAML application.
 	Name         *string                                    `json:"name,omitempty"`
 	NameIdFormat *UpdateSamlApplicationJSONBodyNameIdFormat `json:"nameIdFormat,omitempty"`
+
+	// StaticAttributes Fixed SAML attributes added to every assertion, keyed by attribute name. Names may only contain letters, digits, and `_.:/#@-`, and values must be non-empty. After camel-case normalization, names must not conflict with each other or with the user attribute names in the assertion (the mapped names, or `sub`, `email` and `name` when nothing is mapped). PATCH replaces this object.
+	StaticAttributes *map[string]string `json:"staticAttributes,omitempty"`
 }
 
 // UpdateSamlApplicationJSONBody_AuthnRequestConfig defines parameters for UpdateSamlApplication.
@@ -31383,6 +31854,9 @@ type DeleteSentinelActivitiesJSONBodyTargetType string
 // GetSignInExp200JSONResponseBodyAgreeToTermsPolicy defines parameters for GetSignInExp.
 type GetSignInExp200JSONResponseBodyAgreeToTermsPolicy string
 
+// GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy defines parameters for GetSignInExp.
+type GetSignInExp200JSONResponseBodyCrossOriginOpenerPolicy string
+
 // GetSignInExp200JSONResponseBodyForgotPasswordMethods defines parameters for GetSignInExp.
 type GetSignInExp200JSONResponseBodyForgotPasswordMethods string
 
@@ -31463,6 +31937,9 @@ type UpdateSignInExpJSONBody struct {
 		IsDarkModeEnabled bool   `json:"isDarkModeEnabled"`
 		PrimaryColor      string `json:"primaryColor"`
 	} `json:"color,omitempty"`
+
+	// CrossOriginOpenerPolicy The `Cross-Origin-Opener-Policy` header to send with the hosted sign-in page while Custom UI assets are configured. `unsafe-none` (the default) sends no header; other values require Bring your UI. Any other value cuts off apps that open the sign-in page in a popup and rely on `window.opener`. Popups the Custom UI opens itself also lose `window.opener` when they navigate back to the Custom UI (for example, to a social sign-in callback), and with `same-origin` they lose it as soon as they open, so `same-origin-allow-popups` is recommended over `same-origin`.
+	CrossOriginOpenerPolicy *UpdateSignInExpJSONBodyCrossOriginOpenerPolicy `json:"crossOriginOpenerPolicy,omitempty"`
 
 	// CustomContent Custom content to display on experience flow pages. the page pathname will be the config key, the content will be the config value.
 	CustomContent  *map[string]string `json:"customContent,omitempty"`
@@ -31583,6 +32060,9 @@ type UpdateSignInExpJSONBody struct {
 	// SocialSignInConnectorTargets Specify the social sign-in connectors to display on the sign-in page.
 	SocialSignInConnectorTargets *[]string `json:"socialSignInConnectorTargets,omitempty"`
 
+	// SsoBrandingBeforeEmailMatch Whether to include SSO connector branding (display name and logos) in the public sign-in experience before an email domain matches. Defaults to true.
+	SsoBrandingBeforeEmailMatch *bool `json:"ssoBrandingBeforeEmailMatch,omitempty"`
+
 	// SupportEmail The support email address to display on the error pages.
 	SupportEmail *UpdateSignInExpJSONBody_SupportEmail `json:"supportEmail,omitempty"`
 
@@ -31599,7 +32079,7 @@ type UpdateSignInExpJSONBody struct {
 	UnknownSessionRedirectUrl *UpdateSignInExpJSONBody_UnknownSessionRedirectUrl `json:"unknownSessionRedirectUrl,omitempty"`
 
 	// UsernamePolicy Validator function
-	UsernamePolicy         *map[string]interface{} `json:"usernamePolicy,omitempty"`
+	UsernamePolicy         interface{} `json:"usernamePolicy,omitempty"`
 	VerificationCodePolicy *struct {
 		ExpirationDuration *float32 `json:"expirationDuration,omitempty"`
 		MaxRetryAttempts   *float32 `json:"maxRetryAttempts,omitempty"`
@@ -31614,6 +32094,9 @@ type UpdateSignInExpParams struct {
 
 // UpdateSignInExpJSONBodyAgreeToTermsPolicy defines parameters for UpdateSignInExp.
 type UpdateSignInExpJSONBodyAgreeToTermsPolicy string
+
+// UpdateSignInExpJSONBodyCrossOriginOpenerPolicy defines parameters for UpdateSignInExp.
+type UpdateSignInExpJSONBodyCrossOriginOpenerPolicy string
 
 // UpdateSignInExpJSONBodyForgotPasswordMethods defines parameters for UpdateSignInExp.
 type UpdateSignInExpJSONBodyForgotPasswordMethods string
@@ -31729,6 +32212,9 @@ type UpdateSignInExpJSONBody_UnknownSessionRedirectUrl struct {
 
 // UpdateSignInExp200JSONResponseBodyAgreeToTermsPolicy defines parameters for UpdateSignInExp.
 type UpdateSignInExp200JSONResponseBodyAgreeToTermsPolicy string
+
+// UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy defines parameters for UpdateSignInExp.
+type UpdateSignInExp200JSONResponseBodyCrossOriginOpenerPolicy string
 
 // UpdateSignInExp200JSONResponseBodyForgotPasswordMethods defines parameters for UpdateSignInExp.
 type UpdateSignInExp200JSONResponseBodyForgotPasswordMethods string
@@ -31908,6 +32394,18 @@ type CreateSubjectTokenJSONBody struct {
 	UserId string `json:"userId"`
 }
 
+// GetSystemLicense200JSONResponseBodyEnv defines parameters for GetSystemLicense.
+type GetSystemLicense200JSONResponseBodyEnv string
+
+// GetSystemLicense200JSONResponseBodyPlan defines parameters for GetSystemLicense.
+type GetSystemLicense200JSONResponseBodyPlan string
+
+// InstallSystemLicenseJSONBody defines parameters for InstallSystemLicense.
+type InstallSystemLicenseJSONBody struct {
+	// License The license key to install, as issued by Logto Cloud.
+	License string `json:"license"`
+}
+
 // CreateUserAssetMultipartBody defines parameters for CreateUserAsset.
 type CreateUserAssetMultipartBody struct {
 	// File The file asset to upload.
@@ -31947,6 +32445,9 @@ type ListUsersParams struct {
 
 	// IdentityId The user identifier issued by the external identity provider, such as a DingTalk OpenID. Must be provided together with `identityType` and `identityProvider`.
 	IdentityId *string `form:"identityId,omitempty" json:"identityId,omitempty"`
+
+	// CustomData A repeatable filter for exact user lookup by custom data. Each value must be a URL-encoded JSON object, for example `customData=%7B%22customId%22%3A114514%7D` for `{"customId":114514}`. Matching uses PostgreSQL JSONB containment (`users.custom_data @> value::jsonb`) with strict JSON types: the number `114514` does not match the string `"114514"`, strings are case-sensitive without phone/date normalization, and `null` only matches an explicit JSON `null`, not a missing key. Nested objects are matched recursively, and arrays are matched by element regardless of order or duplicates. All keys within one object are combined with AND, repeated `customData` parameters are combined with OR, and the whole custom data condition is combined with `search`, identity, `excludeRoleId`, and `excludeOrganizationId` filters using AND. Empty objects and empty arrays are rejected with 400, and at most 20 `customData` values are allowed per request. The `mode`, `joint`, and `isCaseSensitive` parameters do not apply to `customData`, and nested syntax such as `customData.customId` or `mode.customData` is not supported.
+	CustomData *[]string `form:"customData,omitempty" json:"customData,omitempty"`
 }
 
 // ListUsersParamsIdentityType defines parameters for ListUsers.
@@ -31972,7 +32473,7 @@ type CreateUserJSONBody struct {
 	// PasswordAlgorithm The hash algorithm used for the password. It should be one of the supported algorithms, including `Legacy` for custom legacy expressions. Should the encryption algorithm differ from `Argon2i`, it will automatically be upgraded to `Argon2i` upon the user's next sign-in.
 	PasswordAlgorithm *CreateUserJSONBodyPasswordAlgorithm `json:"passwordAlgorithm,omitempty"`
 
-	// PasswordDigest In case you already have the password digests and not the passwords, you can use them for the newly created user via this property. The algorithm can be specified using the `passwordAlgorithm` property. For `Legacy`, pass a JSON string in the format `[algorithm, args, encryptedPassword]`, where `args` is a string array that MUST contain an `@` placeholder, which will be replaced by the plain text password at runtime. For PBKDF2 under `Legacy`, `args` is expected to be in the order `[salt, iterations, keylen, digest, '@']`. The salt supports a plain string or a `hex:`-prefixed hex string (for binary salt bytes).
+	// PasswordDigest In case you already have the password digests and not the passwords, you can use them for the newly created user via this property. The algorithm can be specified using the `passwordAlgorithm` property. For `Legacy`, pass a JSON string in the format `[algorithm, args, encryptedPassword]`, where `args` is a string array that MUST contain an `@` placeholder, which will be replaced by the plain text password at runtime. For PBKDF2 under `Legacy`, `args` is expected to be in the order `[salt, iterations, keylen, digest, '@']`. The salt supports a plain string or a `hex:`-prefixed hex string (for binary salt bytes). For SHA-crypt under `Legacy`, use `sha256-crypt` or `sha512-crypt` and pass the complete stored crypt string as `encryptedPassword`, e.g. `["sha512-crypt", ["@"], "$6$rounds=656000$salt$checksum"]`. The `rounds` value, when present, must be between 1,000 and 1,000,000; omitting it uses 5,000.
 	PasswordDigest *string `json:"passwordDigest,omitempty"`
 
 	// PrimaryEmail Primary email address for the user. It should be unique across all users.
@@ -32017,7 +32518,7 @@ type GetUserParams struct {
 	// IncludeSsoIdentities If it's provided with a truthy value (`true`, `1`, `yes`), each user in the response will include a `ssoIdentities` property containing a list of SSO identities associated with the user.
 	IncludeSsoIdentities *string `form:"includeSsoIdentities,omitempty" json:"includeSsoIdentities,omitempty"`
 
-	// IncludePasswordHash If it's provided with a truthy value (`true`, `1`, `yes`), the response will include the `passwordDigest` and `passwordAlgorithm` fields. These fields are omitted by default for security reasons.
+	// IncludePasswordHash If it's provided with a truthy value (`true`, `1`, `yes`), the response will include the `passwordDigest` and `passwordAlgorithm` fields. These fields are omitted by default for security reasons, and always omitted when the request carries the `logto-read-only-access: true` header.
 	IncludePasswordHash *string `form:"includePasswordHash,omitempty" json:"includePasswordHash,omitempty"`
 }
 
@@ -32141,6 +32642,9 @@ type UpdateUserLogtoConfigsJSONBody struct {
 
 		// Enabled Set whether MFA is enabled for the user.
 		Enabled *bool `json:"enabled,omitempty"`
+
+		// Required Set whether the user is required to set up MFA. When enabled, the user cannot skip the MFA binding flow during sign-in.
+		Required *bool `json:"required,omitempty"`
 
 		// SkipMfaOnSignIn Set whether the user has opted to skip MFA verification on sign-in. This is ignored when the MFA policy is mandatory.
 		SkipMfaOnSignIn *bool `json:"skipMfaOnSignIn,omitempty"`
@@ -33335,6 +33839,9 @@ type UpdateEmailTemplateDetailsJSONRequestBody UpdateEmailTemplateDetailsJSONBod
 // InitInteractionJSONRequestBody defines body for InitInteraction for application/json ContentType.
 type InitInteractionJSONRequestBody InitInteractionJSONBody
 
+// AbortInteractionJSONRequestBody defines body for AbortInteraction for application/json ContentType.
+type AbortInteractionJSONRequestBody AbortInteractionJSONBody
+
 // IdentifyUserJSONRequestBody defines body for IdentifyUser for application/json ContentType.
 type IdentifyUserJSONRequestBody IdentifyUserJSONBody
 
@@ -33448,6 +33955,15 @@ type UpdateMfaVerificationNameJSONRequestBody UpdateMfaVerificationNameJSONBody
 
 // UpdatePasswordJSONRequestBody defines body for UpdatePassword for application/json ContentType.
 type UpdatePasswordJSONRequestBody UpdatePasswordJSONBody
+
+// UpdateMyAccountPersonalAccessTokenNameJSONRequestBody defines body for UpdateMyAccountPersonalAccessTokenName for application/json ContentType.
+type UpdateMyAccountPersonalAccessTokenNameJSONRequestBody UpdateMyAccountPersonalAccessTokenNameJSONBody
+
+// CreateMyAccountPersonalAccessTokenJSONRequestBody defines body for CreateMyAccountPersonalAccessToken for application/json ContentType.
+type CreateMyAccountPersonalAccessTokenJSONRequestBody CreateMyAccountPersonalAccessTokenJSONBody
+
+// DeleteMyAccountPersonalAccessTokenJSONRequestBody defines body for DeleteMyAccountPersonalAccessToken for application/json ContentType.
+type DeleteMyAccountPersonalAccessTokenJSONRequestBody DeleteMyAccountPersonalAccessTokenJSONBody
 
 // UpdatePrimaryEmailJSONRequestBody defines body for UpdatePrimaryEmail for application/json ContentType.
 type UpdatePrimaryEmailJSONRequestBody UpdatePrimaryEmailJSONBody
@@ -33631,6 +34147,9 @@ type UpdateSsoConnectorSigningKeyJSONRequestBody UpdateSsoConnectorSigningKeyJSO
 
 // CreateSubjectTokenJSONRequestBody defines body for CreateSubjectToken for application/json ContentType.
 type CreateSubjectTokenJSONRequestBody CreateSubjectTokenJSONBody
+
+// InstallSystemLicenseJSONRequestBody defines body for InstallSystemLicense for application/json ContentType.
+type InstallSystemLicenseJSONRequestBody InstallSystemLicenseJSONBody
 
 // CreateUserAssetMultipartRequestBody defines body for CreateUserAsset for multipart/form-data ContentType.
 type CreateUserAssetMultipartRequestBody CreateUserAssetMultipartBody
@@ -34457,6 +34976,32 @@ func (t *GetCaptchaProvider200JSONResponseBody_Config) MergeGetCaptchaProvider20
 	return err
 }
 
+// AsGetCaptchaProvider200JSONResponseBodyConfig3 returns the union data inside the GetCaptchaProvider200JSONResponseBody_Config as a GetCaptchaProvider200JSONResponseBodyConfig3
+func (t GetCaptchaProvider200JSONResponseBody_Config) AsGetCaptchaProvider200JSONResponseBodyConfig3() (GetCaptchaProvider200JSONResponseBodyConfig3, error) {
+	var body GetCaptchaProvider200JSONResponseBodyConfig3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetCaptchaProvider200JSONResponseBodyConfig3 overwrites any union data inside the GetCaptchaProvider200JSONResponseBody_Config as the provided GetCaptchaProvider200JSONResponseBodyConfig3
+func (t *GetCaptchaProvider200JSONResponseBody_Config) FromGetCaptchaProvider200JSONResponseBodyConfig3(v GetCaptchaProvider200JSONResponseBodyConfig3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetCaptchaProvider200JSONResponseBodyConfig3 performs a merge with any union data inside the GetCaptchaProvider200JSONResponseBody_Config, using the provided GetCaptchaProvider200JSONResponseBodyConfig3
+func (t *GetCaptchaProvider200JSONResponseBody_Config) MergeGetCaptchaProvider200JSONResponseBodyConfig3(v GetCaptchaProvider200JSONResponseBodyConfig3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
 func (t GetCaptchaProvider200JSONResponseBody_Config) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	return b, err
@@ -34545,6 +35090,32 @@ func (t *UpdateCaptchaProviderJSONBody_Config) MergeUpdateCaptchaProviderJSONBod
 	return err
 }
 
+// AsUpdateCaptchaProviderJSONBodyConfig3 returns the union data inside the UpdateCaptchaProviderJSONBody_Config as a UpdateCaptchaProviderJSONBodyConfig3
+func (t UpdateCaptchaProviderJSONBody_Config) AsUpdateCaptchaProviderJSONBodyConfig3() (UpdateCaptchaProviderJSONBodyConfig3, error) {
+	var body UpdateCaptchaProviderJSONBodyConfig3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUpdateCaptchaProviderJSONBodyConfig3 overwrites any union data inside the UpdateCaptchaProviderJSONBody_Config as the provided UpdateCaptchaProviderJSONBodyConfig3
+func (t *UpdateCaptchaProviderJSONBody_Config) FromUpdateCaptchaProviderJSONBodyConfig3(v UpdateCaptchaProviderJSONBodyConfig3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUpdateCaptchaProviderJSONBodyConfig3 performs a merge with any union data inside the UpdateCaptchaProviderJSONBody_Config, using the provided UpdateCaptchaProviderJSONBodyConfig3
+func (t *UpdateCaptchaProviderJSONBody_Config) MergeUpdateCaptchaProviderJSONBodyConfig3(v UpdateCaptchaProviderJSONBodyConfig3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
 func (t UpdateCaptchaProviderJSONBody_Config) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	return b, err
@@ -34623,6 +35194,32 @@ func (t *UpdateCaptchaProvider200JSONResponseBody_Config) FromUpdateCaptchaProvi
 
 // MergeUpdateCaptchaProvider200JSONResponseBodyConfig2 performs a merge with any union data inside the UpdateCaptchaProvider200JSONResponseBody_Config, using the provided UpdateCaptchaProvider200JSONResponseBodyConfig2
 func (t *UpdateCaptchaProvider200JSONResponseBody_Config) MergeUpdateCaptchaProvider200JSONResponseBodyConfig2(v UpdateCaptchaProvider200JSONResponseBodyConfig2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsUpdateCaptchaProvider200JSONResponseBodyConfig3 returns the union data inside the UpdateCaptchaProvider200JSONResponseBody_Config as a UpdateCaptchaProvider200JSONResponseBodyConfig3
+func (t UpdateCaptchaProvider200JSONResponseBody_Config) AsUpdateCaptchaProvider200JSONResponseBodyConfig3() (UpdateCaptchaProvider200JSONResponseBodyConfig3, error) {
+	var body UpdateCaptchaProvider200JSONResponseBodyConfig3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUpdateCaptchaProvider200JSONResponseBodyConfig3 overwrites any union data inside the UpdateCaptchaProvider200JSONResponseBody_Config as the provided UpdateCaptchaProvider200JSONResponseBodyConfig3
+func (t *UpdateCaptchaProvider200JSONResponseBody_Config) FromUpdateCaptchaProvider200JSONResponseBodyConfig3(v UpdateCaptchaProvider200JSONResponseBodyConfig3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUpdateCaptchaProvider200JSONResponseBodyConfig3 performs a merge with any union data inside the UpdateCaptchaProvider200JSONResponseBody_Config, using the provided UpdateCaptchaProvider200JSONResponseBodyConfig3
+func (t *UpdateCaptchaProvider200JSONResponseBody_Config) MergeUpdateCaptchaProvider200JSONResponseBodyConfig3(v UpdateCaptchaProvider200JSONResponseBodyConfig3) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -47449,22 +48046,22 @@ func (t *AddUserProfileJSONBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-// AsCreateAndSendVerificationCodeJSONBodyIdentifier0 returns the union data inside the CreateAndSendVerificationCodeJSONBody_Identifier as a CreateAndSendVerificationCodeJSONBodyIdentifier0
-func (t CreateAndSendVerificationCodeJSONBody_Identifier) AsCreateAndSendVerificationCodeJSONBodyIdentifier0() (CreateAndSendVerificationCodeJSONBodyIdentifier0, error) {
-	var body CreateAndSendVerificationCodeJSONBodyIdentifier0
+// AsCreatePasswordVerificationJSONBody0 returns the union data inside the CreatePasswordVerificationJSONBody as a CreatePasswordVerificationJSONBody0
+func (t CreatePasswordVerificationJSONBody) AsCreatePasswordVerificationJSONBody0() (CreatePasswordVerificationJSONBody0, error) {
+	var body CreatePasswordVerificationJSONBody0
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromCreateAndSendVerificationCodeJSONBodyIdentifier0 overwrites any union data inside the CreateAndSendVerificationCodeJSONBody_Identifier as the provided CreateAndSendVerificationCodeJSONBodyIdentifier0
-func (t *CreateAndSendVerificationCodeJSONBody_Identifier) FromCreateAndSendVerificationCodeJSONBodyIdentifier0(v CreateAndSendVerificationCodeJSONBodyIdentifier0) error {
+// FromCreatePasswordVerificationJSONBody0 overwrites any union data inside the CreatePasswordVerificationJSONBody as the provided CreatePasswordVerificationJSONBody0
+func (t *CreatePasswordVerificationJSONBody) FromCreatePasswordVerificationJSONBody0(v CreatePasswordVerificationJSONBody0) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeCreateAndSendVerificationCodeJSONBodyIdentifier0 performs a merge with any union data inside the CreateAndSendVerificationCodeJSONBody_Identifier, using the provided CreateAndSendVerificationCodeJSONBodyIdentifier0
-func (t *CreateAndSendVerificationCodeJSONBody_Identifier) MergeCreateAndSendVerificationCodeJSONBodyIdentifier0(v CreateAndSendVerificationCodeJSONBodyIdentifier0) error {
+// MergeCreatePasswordVerificationJSONBody0 performs a merge with any union data inside the CreatePasswordVerificationJSONBody, using the provided CreatePasswordVerificationJSONBody0
+func (t *CreatePasswordVerificationJSONBody) MergeCreatePasswordVerificationJSONBody0(v CreatePasswordVerificationJSONBody0) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -47475,22 +48072,22 @@ func (t *CreateAndSendVerificationCodeJSONBody_Identifier) MergeCreateAndSendVer
 	return err
 }
 
-// AsCreateAndSendVerificationCodeJSONBodyIdentifier1 returns the union data inside the CreateAndSendVerificationCodeJSONBody_Identifier as a CreateAndSendVerificationCodeJSONBodyIdentifier1
-func (t CreateAndSendVerificationCodeJSONBody_Identifier) AsCreateAndSendVerificationCodeJSONBodyIdentifier1() (CreateAndSendVerificationCodeJSONBodyIdentifier1, error) {
-	var body CreateAndSendVerificationCodeJSONBodyIdentifier1
+// AsCreatePasswordVerificationJSONBody1 returns the union data inside the CreatePasswordVerificationJSONBody as a CreatePasswordVerificationJSONBody1
+func (t CreatePasswordVerificationJSONBody) AsCreatePasswordVerificationJSONBody1() (CreatePasswordVerificationJSONBody1, error) {
+	var body CreatePasswordVerificationJSONBody1
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromCreateAndSendVerificationCodeJSONBodyIdentifier1 overwrites any union data inside the CreateAndSendVerificationCodeJSONBody_Identifier as the provided CreateAndSendVerificationCodeJSONBodyIdentifier1
-func (t *CreateAndSendVerificationCodeJSONBody_Identifier) FromCreateAndSendVerificationCodeJSONBodyIdentifier1(v CreateAndSendVerificationCodeJSONBodyIdentifier1) error {
+// FromCreatePasswordVerificationJSONBody1 overwrites any union data inside the CreatePasswordVerificationJSONBody as the provided CreatePasswordVerificationJSONBody1
+func (t *CreatePasswordVerificationJSONBody) FromCreatePasswordVerificationJSONBody1(v CreatePasswordVerificationJSONBody1) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeCreateAndSendVerificationCodeJSONBodyIdentifier1 performs a merge with any union data inside the CreateAndSendVerificationCodeJSONBody_Identifier, using the provided CreateAndSendVerificationCodeJSONBodyIdentifier1
-func (t *CreateAndSendVerificationCodeJSONBody_Identifier) MergeCreateAndSendVerificationCodeJSONBodyIdentifier1(v CreateAndSendVerificationCodeJSONBodyIdentifier1) error {
+// MergeCreatePasswordVerificationJSONBody1 performs a merge with any union data inside the CreatePasswordVerificationJSONBody, using the provided CreatePasswordVerificationJSONBody1
+func (t *CreatePasswordVerificationJSONBody) MergeCreatePasswordVerificationJSONBody1(v CreatePasswordVerificationJSONBody1) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -47501,12 +48098,288 @@ func (t *CreateAndSendVerificationCodeJSONBody_Identifier) MergeCreateAndSendVer
 	return err
 }
 
-func (t CreateAndSendVerificationCodeJSONBody_Identifier) MarshalJSON() ([]byte, error) {
+func (t CreatePasswordVerificationJSONBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["identifier"], err = json.Marshal(t.Identifier)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'identifier': %w", err)
+	}
+
+	object["password"], err = json.Marshal(t.Password)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'password': %w", err)
+	}
+
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *CreatePasswordVerificationJSONBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["identifier"]; found {
+		err = json.Unmarshal(raw, &t.Identifier)
+		if err != nil {
+			return fmt.Errorf("error reading 'identifier': %w", err)
+		}
+	}
+
+	if raw, found := object["password"]; found {
+		err = json.Unmarshal(raw, &t.Password)
+		if err != nil {
+			return fmt.Errorf("error reading 'password': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsCreateAndSendVerificationCodeJSONBody0 returns the union data inside the CreateAndSendVerificationCodeJSONBody as a CreateAndSendVerificationCodeJSONBody0
+func (t CreateAndSendVerificationCodeJSONBody) AsCreateAndSendVerificationCodeJSONBody0() (CreateAndSendVerificationCodeJSONBody0, error) {
+	var body CreateAndSendVerificationCodeJSONBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCreateAndSendVerificationCodeJSONBody0 overwrites any union data inside the CreateAndSendVerificationCodeJSONBody as the provided CreateAndSendVerificationCodeJSONBody0
+func (t *CreateAndSendVerificationCodeJSONBody) FromCreateAndSendVerificationCodeJSONBody0(v CreateAndSendVerificationCodeJSONBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCreateAndSendVerificationCodeJSONBody0 performs a merge with any union data inside the CreateAndSendVerificationCodeJSONBody, using the provided CreateAndSendVerificationCodeJSONBody0
+func (t *CreateAndSendVerificationCodeJSONBody) MergeCreateAndSendVerificationCodeJSONBody0(v CreateAndSendVerificationCodeJSONBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCreateAndSendVerificationCodeJSONBody1 returns the union data inside the CreateAndSendVerificationCodeJSONBody as a CreateAndSendVerificationCodeJSONBody1
+func (t CreateAndSendVerificationCodeJSONBody) AsCreateAndSendVerificationCodeJSONBody1() (CreateAndSendVerificationCodeJSONBody1, error) {
+	var body CreateAndSendVerificationCodeJSONBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCreateAndSendVerificationCodeJSONBody1 overwrites any union data inside the CreateAndSendVerificationCodeJSONBody as the provided CreateAndSendVerificationCodeJSONBody1
+func (t *CreateAndSendVerificationCodeJSONBody) FromCreateAndSendVerificationCodeJSONBody1(v CreateAndSendVerificationCodeJSONBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCreateAndSendVerificationCodeJSONBody1 performs a merge with any union data inside the CreateAndSendVerificationCodeJSONBody, using the provided CreateAndSendVerificationCodeJSONBody1
+func (t *CreateAndSendVerificationCodeJSONBody) MergeCreateAndSendVerificationCodeJSONBody1(v CreateAndSendVerificationCodeJSONBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t CreateAndSendVerificationCodeJSONBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	object["identifier"], err = json.Marshal(t.Identifier)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'identifier': %w", err)
+	}
+
+	object["interactionEvent"], err = json.Marshal(t.InteractionEvent)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'interactionEvent': %w", err)
+	}
+
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *CreateAndSendVerificationCodeJSONBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["identifier"]; found {
+		err = json.Unmarshal(raw, &t.Identifier)
+		if err != nil {
+			return fmt.Errorf("error reading 'identifier': %w", err)
+		}
+	}
+
+	if raw, found := object["interactionEvent"]; found {
+		err = json.Unmarshal(raw, &t.InteractionEvent)
+		if err != nil {
+			return fmt.Errorf("error reading 'interactionEvent': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsCreateAndSendVerificationCodeJSONBody0Identifier0 returns the union data inside the CreateAndSendVerificationCodeJSONBody_0_Identifier as a CreateAndSendVerificationCodeJSONBody0Identifier0
+func (t CreateAndSendVerificationCodeJSONBody_0_Identifier) AsCreateAndSendVerificationCodeJSONBody0Identifier0() (CreateAndSendVerificationCodeJSONBody0Identifier0, error) {
+	var body CreateAndSendVerificationCodeJSONBody0Identifier0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCreateAndSendVerificationCodeJSONBody0Identifier0 overwrites any union data inside the CreateAndSendVerificationCodeJSONBody_0_Identifier as the provided CreateAndSendVerificationCodeJSONBody0Identifier0
+func (t *CreateAndSendVerificationCodeJSONBody_0_Identifier) FromCreateAndSendVerificationCodeJSONBody0Identifier0(v CreateAndSendVerificationCodeJSONBody0Identifier0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCreateAndSendVerificationCodeJSONBody0Identifier0 performs a merge with any union data inside the CreateAndSendVerificationCodeJSONBody_0_Identifier, using the provided CreateAndSendVerificationCodeJSONBody0Identifier0
+func (t *CreateAndSendVerificationCodeJSONBody_0_Identifier) MergeCreateAndSendVerificationCodeJSONBody0Identifier0(v CreateAndSendVerificationCodeJSONBody0Identifier0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCreateAndSendVerificationCodeJSONBody0Identifier1 returns the union data inside the CreateAndSendVerificationCodeJSONBody_0_Identifier as a CreateAndSendVerificationCodeJSONBody0Identifier1
+func (t CreateAndSendVerificationCodeJSONBody_0_Identifier) AsCreateAndSendVerificationCodeJSONBody0Identifier1() (CreateAndSendVerificationCodeJSONBody0Identifier1, error) {
+	var body CreateAndSendVerificationCodeJSONBody0Identifier1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCreateAndSendVerificationCodeJSONBody0Identifier1 overwrites any union data inside the CreateAndSendVerificationCodeJSONBody_0_Identifier as the provided CreateAndSendVerificationCodeJSONBody0Identifier1
+func (t *CreateAndSendVerificationCodeJSONBody_0_Identifier) FromCreateAndSendVerificationCodeJSONBody0Identifier1(v CreateAndSendVerificationCodeJSONBody0Identifier1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCreateAndSendVerificationCodeJSONBody0Identifier1 performs a merge with any union data inside the CreateAndSendVerificationCodeJSONBody_0_Identifier, using the provided CreateAndSendVerificationCodeJSONBody0Identifier1
+func (t *CreateAndSendVerificationCodeJSONBody_0_Identifier) MergeCreateAndSendVerificationCodeJSONBody0Identifier1(v CreateAndSendVerificationCodeJSONBody0Identifier1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t CreateAndSendVerificationCodeJSONBody_0_Identifier) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	return b, err
 }
 
-func (t *CreateAndSendVerificationCodeJSONBody_Identifier) UnmarshalJSON(b []byte) error {
+func (t *CreateAndSendVerificationCodeJSONBody_0_Identifier) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsVerifyVerificationCodeVerificationJSONBodyIdentifier00 returns the union data inside the VerifyVerificationCodeVerificationJSONBodyIdentifier0 as a VerifyVerificationCodeVerificationJSONBodyIdentifier00
+func (t VerifyVerificationCodeVerificationJSONBodyIdentifier0) AsVerifyVerificationCodeVerificationJSONBodyIdentifier00() (VerifyVerificationCodeVerificationJSONBodyIdentifier00, error) {
+	var body VerifyVerificationCodeVerificationJSONBodyIdentifier00
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromVerifyVerificationCodeVerificationJSONBodyIdentifier00 overwrites any union data inside the VerifyVerificationCodeVerificationJSONBodyIdentifier0 as the provided VerifyVerificationCodeVerificationJSONBodyIdentifier00
+func (t *VerifyVerificationCodeVerificationJSONBodyIdentifier0) FromVerifyVerificationCodeVerificationJSONBodyIdentifier00(v VerifyVerificationCodeVerificationJSONBodyIdentifier00) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeVerifyVerificationCodeVerificationJSONBodyIdentifier00 performs a merge with any union data inside the VerifyVerificationCodeVerificationJSONBodyIdentifier0, using the provided VerifyVerificationCodeVerificationJSONBodyIdentifier00
+func (t *VerifyVerificationCodeVerificationJSONBodyIdentifier0) MergeVerifyVerificationCodeVerificationJSONBodyIdentifier00(v VerifyVerificationCodeVerificationJSONBodyIdentifier00) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsVerifyVerificationCodeVerificationJSONBodyIdentifier01 returns the union data inside the VerifyVerificationCodeVerificationJSONBodyIdentifier0 as a VerifyVerificationCodeVerificationJSONBodyIdentifier01
+func (t VerifyVerificationCodeVerificationJSONBodyIdentifier0) AsVerifyVerificationCodeVerificationJSONBodyIdentifier01() (VerifyVerificationCodeVerificationJSONBodyIdentifier01, error) {
+	var body VerifyVerificationCodeVerificationJSONBodyIdentifier01
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromVerifyVerificationCodeVerificationJSONBodyIdentifier01 overwrites any union data inside the VerifyVerificationCodeVerificationJSONBodyIdentifier0 as the provided VerifyVerificationCodeVerificationJSONBodyIdentifier01
+func (t *VerifyVerificationCodeVerificationJSONBodyIdentifier0) FromVerifyVerificationCodeVerificationJSONBodyIdentifier01(v VerifyVerificationCodeVerificationJSONBodyIdentifier01) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeVerifyVerificationCodeVerificationJSONBodyIdentifier01 performs a merge with any union data inside the VerifyVerificationCodeVerificationJSONBodyIdentifier0, using the provided VerifyVerificationCodeVerificationJSONBodyIdentifier01
+func (t *VerifyVerificationCodeVerificationJSONBodyIdentifier0) MergeVerifyVerificationCodeVerificationJSONBodyIdentifier01(v VerifyVerificationCodeVerificationJSONBodyIdentifier01) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t VerifyVerificationCodeVerificationJSONBodyIdentifier0) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *VerifyVerificationCodeVerificationJSONBodyIdentifier0) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -47821,6 +48694,68 @@ func (t *GetSocialIdentityAccessToken200JSONResponseBody_ExpiresIn) UnmarshalJSO
 	return err
 }
 
+// AsGetSocialIdentityAccessToken200JSONResponseBodyScope0 returns the union data inside the GetSocialIdentityAccessToken200JSONResponseBody_Scope as a GetSocialIdentityAccessToken200JSONResponseBodyScope0
+func (t GetSocialIdentityAccessToken200JSONResponseBody_Scope) AsGetSocialIdentityAccessToken200JSONResponseBodyScope0() (GetSocialIdentityAccessToken200JSONResponseBodyScope0, error) {
+	var body GetSocialIdentityAccessToken200JSONResponseBodyScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetSocialIdentityAccessToken200JSONResponseBodyScope0 overwrites any union data inside the GetSocialIdentityAccessToken200JSONResponseBody_Scope as the provided GetSocialIdentityAccessToken200JSONResponseBodyScope0
+func (t *GetSocialIdentityAccessToken200JSONResponseBody_Scope) FromGetSocialIdentityAccessToken200JSONResponseBodyScope0(v GetSocialIdentityAccessToken200JSONResponseBodyScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetSocialIdentityAccessToken200JSONResponseBodyScope0 performs a merge with any union data inside the GetSocialIdentityAccessToken200JSONResponseBody_Scope, using the provided GetSocialIdentityAccessToken200JSONResponseBodyScope0
+func (t *GetSocialIdentityAccessToken200JSONResponseBody_Scope) MergeGetSocialIdentityAccessToken200JSONResponseBodyScope0(v GetSocialIdentityAccessToken200JSONResponseBodyScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGetSocialIdentityAccessToken200JSONResponseBodyScope1 returns the union data inside the GetSocialIdentityAccessToken200JSONResponseBody_Scope as a GetSocialIdentityAccessToken200JSONResponseBodyScope1
+func (t GetSocialIdentityAccessToken200JSONResponseBody_Scope) AsGetSocialIdentityAccessToken200JSONResponseBodyScope1() (GetSocialIdentityAccessToken200JSONResponseBodyScope1, error) {
+	var body GetSocialIdentityAccessToken200JSONResponseBodyScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetSocialIdentityAccessToken200JSONResponseBodyScope1 overwrites any union data inside the GetSocialIdentityAccessToken200JSONResponseBody_Scope as the provided GetSocialIdentityAccessToken200JSONResponseBodyScope1
+func (t *GetSocialIdentityAccessToken200JSONResponseBody_Scope) FromGetSocialIdentityAccessToken200JSONResponseBodyScope1(v GetSocialIdentityAccessToken200JSONResponseBodyScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetSocialIdentityAccessToken200JSONResponseBodyScope1 performs a merge with any union data inside the GetSocialIdentityAccessToken200JSONResponseBody_Scope, using the provided GetSocialIdentityAccessToken200JSONResponseBodyScope1
+func (t *GetSocialIdentityAccessToken200JSONResponseBody_Scope) MergeGetSocialIdentityAccessToken200JSONResponseBodyScope1(v GetSocialIdentityAccessToken200JSONResponseBodyScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetSocialIdentityAccessToken200JSONResponseBody_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetSocialIdentityAccessToken200JSONResponseBody_Scope) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyExpiresIn0 returns the union data inside the UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_ExpiresIn as a UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyExpiresIn0
 func (t UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_ExpiresIn) AsUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyExpiresIn0() (UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyExpiresIn0, error) {
 	var body UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyExpiresIn0
@@ -47879,6 +48814,68 @@ func (t UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Expir
 }
 
 func (t *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_ExpiresIn) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0 returns the union data inside the UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope as a UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0
+func (t UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope) AsUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0() (UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0, error) {
+	var body UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0 overwrites any union data inside the UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope as the provided UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0
+func (t *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope) FromUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0(v UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0 performs a merge with any union data inside the UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope, using the provided UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0
+func (t *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope) MergeUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0(v UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1 returns the union data inside the UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope as a UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1
+func (t UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope) AsUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1() (UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1, error) {
+	var body UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1 overwrites any union data inside the UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope as the provided UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1
+func (t *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope) FromUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1(v UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1 performs a merge with any union data inside the UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope, using the provided UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1
+func (t *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope) MergeUpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1(v UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBodyScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *UpdateSocialIdentityAccessTokenByVerificationId200JSONResponseBody_Scope) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -49077,6 +50074,68 @@ func (t GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_ExpiresIn) Marsha
 }
 
 func (t *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_ExpiresIn) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0 returns the union data inside the GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope as a GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0
+func (t GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope) AsGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0() (GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0, error) {
+	var body GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0 overwrites any union data inside the GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope as the provided GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0
+func (t *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope) FromGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0(v GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0 performs a merge with any union data inside the GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope, using the provided GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0
+func (t *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope) MergeGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0(v GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1 returns the union data inside the GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope as a GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1
+func (t GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope) AsGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1() (GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1, error) {
+	var body GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1 overwrites any union data inside the GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope as the provided GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1
+func (t *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope) FromGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1(v GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1 performs a merge with any union data inside the GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope, using the provided GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1
+func (t *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope) MergeGetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1(v GetEnterpriseSsoIdentityAccessToken200JSONResponseBodyScope1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetEnterpriseSsoIdentityAccessToken200JSONResponseBody_Scope) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

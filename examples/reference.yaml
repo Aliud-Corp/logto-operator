@@ -1,0 +1,110 @@
+# Reference configuration: every kind of milestone 1, with example names. It is what the acceptance tests apply to an
+# empty Logto of each supported version. Secrets are read from the environment, never written here.
+apiVersion: logto.aliud.fr/v1alpha1
+kind: LogtoConfig
+metadata:
+  name: example
+spec:
+  endpoint: ${endpoint}
+  credentials:
+    clientId: {valueFrom: {env: LOGTO_CLIENT_ID}}
+    clientSecret: {valueFrom: {env: LOGTO_CLIENT_SECRET}}
+    tokenEndpoint: ${tokenEndpoint}
+  variables:
+    endpoint: http://localhost:3001
+    tokenEndpoint: http://localhost:3002
+    zone: example.test
+
+  connectors:
+    smtp:
+      id: example-smtp
+      connectorId: simple-mail-transfer-protocol
+      smtp:
+        host: smtp.${zone}
+        port: 587
+        auth:
+          user: {value: mailer}
+          pass: {valueFrom: {env: EXAMPLE_SMTP_PASSWORD}}
+        fromEmail: no-reply@${zone}
+        templates: {fromDir: reference/email-templates}
+
+  customProfileFields:
+    fullname:
+      name: fullname
+      type: Fullname
+      label: Full name
+      required: true
+      config:
+        parts:
+          - {enabled: true, name: givenName, type: Text, label: Given name, required: true}
+          - {enabled: false, name: middleName, type: Text, label: Middle name, required: false}
+          - {enabled: true, name: familyName, type: Text, label: Family name, required: true}
+
+  signInExperience:
+    color: {primaryColor: "#101418", isDarkModeEnabled: false}
+    languageInfo: {autoDetect: false, fallbackLanguage: en}
+    branding:
+      logoUrl: {fromFile: reference/logo.svg, as: dataUri}
+    customCss: {fromFile: reference/custom.css}
+    signUp: {identifiers: [email], password: true, verify: true}
+    signIn:
+      methods:
+        - {identifier: email, password: true, verificationCode: true, isPasswordPrimary: true}
+    unknownSessionRedirectUrl: https://app.${zone}
+
+  resources:
+    app:
+      name: Example App API
+      indicator: https://app.${zone}/api
+      accessTokenTtl: 3600
+      scopes:
+        "event:read": {description: Read events}
+        "event:write": {description: Write events}
+    admin:
+      name: Example Admin API
+      indicator: https://admin.${zone}/api
+      scopes:
+        all: {description: Everything in the admin surface}
+
+  organizationScopes:
+    "members:read": {description: Read the members of the organization}
+    "members:write": {description: Manage the members of the organization}
+
+  organizationRoles:
+    owner:
+      name: organization_owner
+      description: Owns the organization
+      organizationScopes: ["members:read", "members:write"]
+      resourceScopes:
+        - {resource: app, scope: "event:read"}
+        - {resource: app, scope: "event:write"}
+    member:
+      name: organization_member
+      description: Member of the organization
+      organizationScopes: ["members:read"]
+      resourceScopes:
+        - {resource: app, scope: "event:read"}
+
+  applications:
+    app:
+      name: Example App
+      type: SPA
+      description: The example application
+      oidcClientMetadata:
+        redirectUris: ["https://app.${zone}/callback"]
+        postLogoutRedirectUris: ["https://app.${zone}"]
+      customClientMetadata:
+        corsAllowedOrigins: ["https://app.${zone}"]
+        alwaysIssueRefreshToken: true
+    backend:
+      name: Example Backend
+      type: MachineToMachine
+      description: The example backend, reading user profiles
+      roles:
+        - {name: Logto Management API access}
+      secret: {publish: true}
+
+  users:
+    admin:
+      primaryEmail: admin@${zone}
+      name: Example Admin

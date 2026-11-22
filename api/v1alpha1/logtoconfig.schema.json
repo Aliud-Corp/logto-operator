@@ -1,0 +1,812 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "LogtoConfig is the desired configuration of one Logto instance.",
+  "properties": {
+    "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+      "enum": [
+        "logto.aliud.fr/v1alpha1"
+      ],
+      "type": "string"
+    },
+    "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+      "enum": [
+        "LogtoConfig"
+      ],
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "spec": {
+      "description": "LogtoConfigSpec declares what the tool owns in one Logto tenant. Objects that reference each other are maps keyed\nby a local key (stable, ours), distinct from the Logto name (theirs, shown in the console).",
+      "properties": {
+        "applications": {
+          "additionalProperties": {
+            "description": "Application is matched by its Logto name and never deleted or recreated.",
+            "properties": {
+              "customClientMetadata": {
+                "description": "CustomClientMetadata of an application; undeclared keys are left as Logto has them.",
+                "properties": {
+                  "allowTokenExchange": {
+                    "type": "boolean"
+                  },
+                  "alwaysIssueRefreshToken": {
+                    "type": "boolean"
+                  },
+                  "corsAllowedOrigins": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "idTokenTtl": {
+                    "format": "int32",
+                    "type": "integer"
+                  },
+                  "refreshTokenTtlInDays": {
+                    "format": "int32",
+                    "type": "integer"
+                  },
+                  "rotateRefreshToken": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              },
+              "description": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "oidcClientMetadata": {
+                "description": "OIDCClientMetadata of an application; URI lists are compared as sets.",
+                "properties": {
+                  "postLogoutRedirectUris": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "redirectUris": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "roles": {
+                "description": "Roles granted to a MachineToMachine application, by Logto name (e.g. \"Logto Management API access\").",
+                "items": {
+                  "description": "RoleRef names an existing Logto global role by name.",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "secret": {
+                "description": "Secret of a MachineToMachine application: one usable secret is ensured and published, never rotated.",
+                "properties": {
+                  "publish": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "publish"
+                ],
+                "type": "object"
+              },
+              "type": {
+                "description": "Type cannot change once the application exists in Logto.",
+                "enum": [
+                  "Native",
+                  "SPA",
+                  "Traditional",
+                  "MachineToMachine"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "type"
+            ],
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "connectors": {
+          "additionalProperties": {
+            "description": "Connector is a passwordless connector. M1 supports the SMTP e-mail connector.",
+            "properties": {
+              "connectorId": {
+                "description": "ConnectorID is the factory id, e.g. simple-mail-transfer-protocol.",
+                "type": "string"
+              },
+              "id": {
+                "description": "ID is the connector id in Logto (declared: Logto accepts it at creation).",
+                "type": "string"
+              },
+              "smtp": {
+                "description": "SMTPConfig is the config of the simple-mail-transfer-protocol connector.",
+                "properties": {
+                  "auth": {
+                    "description": "SMTPAuth are the SMTP credentials; both are required by the connector.",
+                    "properties": {
+                      "pass": {
+                        "description": "SecretSource is a secret: it is never written in the document.",
+                        "properties": {
+                          "valueFrom": {
+                            "description": "ValueFrom names exactly one place a value is read from. The CLI reads env and file; the operator reads\nsecretKeyRef.",
+                            "properties": {
+                              "env": {
+                                "type": "string"
+                              },
+                              "file": {
+                                "type": "string"
+                              },
+                              "secretKeyRef": {
+                                "description": "SecretKeyRef points at one key of a Kubernetes Secret in the namespace of the LogtoConfig.",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "key",
+                                  "name"
+                                ],
+                                "type": "object"
+                              }
+                            },
+                            "type": "object"
+                          }
+                        },
+                        "required": [
+                          "valueFrom"
+                        ],
+                        "type": "object"
+                      },
+                      "user": {
+                        "description": "StringSource is a value written in the document, or read from the environment, a file or a Secret.",
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          },
+                          "valueFrom": {
+                            "description": "ValueFrom names exactly one place a value is read from. The CLI reads env and file; the operator reads\nsecretKeyRef.",
+                            "properties": {
+                              "env": {
+                                "type": "string"
+                              },
+                              "file": {
+                                "type": "string"
+                              },
+                              "secretKeyRef": {
+                                "description": "SecretKeyRef points at one key of a Kubernetes Secret in the namespace of the LogtoConfig.",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "key",
+                                  "name"
+                                ],
+                                "type": "object"
+                              }
+                            },
+                            "type": "object"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "pass",
+                      "user"
+                    ],
+                    "type": "object"
+                  },
+                  "fromEmail": {
+                    "type": "string"
+                  },
+                  "host": {
+                    "type": "string"
+                  },
+                  "ignoreTLS": {
+                    "type": "boolean"
+                  },
+                  "port": {
+                    "format": "int32",
+                    "maximum": 65535,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "replyTo": {
+                    "type": "string"
+                  },
+                  "secure": {
+                    "type": "boolean"
+                  },
+                  "templates": {
+                    "description": "Templates are listed, or read from a directory of <usageType>.json files.",
+                    "properties": {
+                      "fromDir": {
+                        "type": "string"
+                      },
+                      "items": {
+                        "items": {
+                          "description": "EmailTemplate is one template of the SMTP connector.",
+                          "properties": {
+                            "content": {
+                              "description": "TextSource is text written in the document, or read from a file relative to the document.",
+                              "properties": {
+                                "as": {
+                                  "description": "As is how a file is turned into the value: text (default) or dataUri (images).",
+                                  "enum": [
+                                    "text",
+                                    "dataUri"
+                                  ],
+                                  "type": "string"
+                                },
+                                "fromFile": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "contentType": {
+                              "enum": [
+                                "text/plain",
+                                "text/html"
+                              ],
+                              "type": "string"
+                            },
+                            "subject": {
+                              "type": "string"
+                            },
+                            "usageType": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "content",
+                            "contentType",
+                            "subject",
+                            "usageType"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "auth",
+                  "fromEmail",
+                  "host",
+                  "port",
+                  "templates"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "connectorId"
+            ],
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "credentials": {
+          "description": "Credentials of the M2M application the tool authenticates as.",
+          "properties": {
+            "clientId": {
+              "description": "StringSource is a value written in the document, or read from the environment, a file or a Secret.",
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "valueFrom": {
+                  "description": "ValueFrom names exactly one place a value is read from. The CLI reads env and file; the operator reads\nsecretKeyRef.",
+                  "properties": {
+                    "env": {
+                      "type": "string"
+                    },
+                    "file": {
+                      "type": "string"
+                    },
+                    "secretKeyRef": {
+                      "description": "SecretKeyRef points at one key of a Kubernetes Secret in the namespace of the LogtoConfig.",
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            },
+            "clientSecret": {
+              "description": "SecretSource is a secret: it is never written in the document.",
+              "properties": {
+                "valueFrom": {
+                  "description": "ValueFrom names exactly one place a value is read from. The CLI reads env and file; the operator reads\nsecretKeyRef.",
+                  "properties": {
+                    "env": {
+                      "type": "string"
+                    },
+                    "file": {
+                      "type": "string"
+                    },
+                    "secretKeyRef": {
+                      "description": "SecretKeyRef points at one key of a Kubernetes Secret in the namespace of the LogtoConfig.",
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "required": [
+                "valueFrom"
+              ],
+              "type": "object"
+            },
+            "tokenEndpoint": {
+              "description": "TokenEndpoint is where the client gets its token, when it is not the tenant endpoint (the m-default route uses\nthe console endpoint).",
+              "pattern": "^https?://",
+              "type": "string"
+            }
+          },
+          "required": [
+            "clientId",
+            "clientSecret"
+          ],
+          "type": "object"
+        },
+        "customProfileFields": {
+          "additionalProperties": {
+            "description": "CustomProfileField is a sign-up profile field, matched by its name.",
+            "properties": {
+              "config": {
+                "description": "Config is passed to Logto as is (its shape depends on the type).",
+                "type": "object",
+                "x-kubernetes-preserve-unknown-fields": true
+              },
+              "description": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "name",
+              "type"
+            ],
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "endpoint": {
+          "description": "Endpoint is where the Management API answers (the tenant endpoint).",
+          "pattern": "^https?://",
+          "type": "string"
+        },
+        "organizationRoles": {
+          "additionalProperties": {
+            "description": "OrganizationRole is a role of the organization template, matched by its name.",
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "organizationScopes": {
+                "description": "OrganizationScopes are names declared in spec.organizationScopes; the role holds exactly these.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "resourceScopes": {
+                "description": "ResourceScopes are scopes of declared resources; the role holds exactly these.",
+                "items": {
+                  "description": "ResourceScopeRef names a scope of a resource declared in spec.resources, by local key and scope name.",
+                  "properties": {
+                    "resource": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "resource",
+                    "scope"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "organizationScopes": {
+          "additionalProperties": {
+            "description": "Scope of an API resource or of the organization template.",
+            "properties": {
+              "description": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "prune": {
+          "description": "Prune, per kind, deletes the Logto objects of that kind that this document does not declare. Off by default.",
+          "properties": {
+            "connectors": {
+              "type": "boolean"
+            },
+            "customProfileFields": {
+              "type": "boolean"
+            },
+            "keep": {
+              "description": "Keep lists objects never pruned, whatever the switches say: by name (organization scope and role, custom\nprofile field), by name or indicator (resource), by id (connector, which has no name of its own).",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "organizationRoles": {
+              "type": "boolean"
+            },
+            "organizationScopes": {
+              "type": "boolean"
+            },
+            "resources": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "resources": {
+          "additionalProperties": {
+            "description": "Resource is an API resource, matched by its indicator.",
+            "properties": {
+              "accessTokenTtl": {
+                "format": "int32",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "indicator": {
+                "pattern": "^https?://",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "scopes": {
+                "additionalProperties": {
+                  "description": "Scope of an API resource or of the organization template.",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "description": "Scopes by name.",
+                "type": "object"
+              }
+            },
+            "required": [
+              "indicator",
+              "name"
+            ],
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "signInExperience": {
+          "description": "SignInExperience lists the owned keys of the sign-in experience; undeclared keys are left as Logto has them.",
+          "properties": {
+            "branding": {
+              "description": "Branding of the sign-in pages: URLs, or files turned into data URIs.",
+              "properties": {
+                "darkLogoUrl": {
+                  "description": "TextSource is text written in the document, or read from a file relative to the document.",
+                  "properties": {
+                    "as": {
+                      "description": "As is how a file is turned into the value: text (default) or dataUri (images).",
+                      "enum": [
+                        "text",
+                        "dataUri"
+                      ],
+                      "type": "string"
+                    },
+                    "fromFile": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "favicon": {
+                  "description": "TextSource is text written in the document, or read from a file relative to the document.",
+                  "properties": {
+                    "as": {
+                      "description": "As is how a file is turned into the value: text (default) or dataUri (images).",
+                      "enum": [
+                        "text",
+                        "dataUri"
+                      ],
+                      "type": "string"
+                    },
+                    "fromFile": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "logoUrl": {
+                  "description": "TextSource is text written in the document, or read from a file relative to the document.",
+                  "properties": {
+                    "as": {
+                      "description": "As is how a file is turned into the value: text (default) or dataUri (images).",
+                      "enum": [
+                        "text",
+                        "dataUri"
+                      ],
+                      "type": "string"
+                    },
+                    "fromFile": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            },
+            "color": {
+              "description": "Color of the sign-in pages.",
+              "properties": {
+                "darkPrimaryColor": {
+                  "pattern": "^#([0-9A-Fa-f]{3}){1,2}$",
+                  "type": "string"
+                },
+                "isDarkModeEnabled": {
+                  "type": "boolean"
+                },
+                "primaryColor": {
+                  "pattern": "^#([0-9A-Fa-f]{3}){1,2}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "primaryColor"
+              ],
+              "type": "object"
+            },
+            "customCss": {
+              "description": "TextSource is text written in the document, or read from a file relative to the document.",
+              "properties": {
+                "as": {
+                  "description": "As is how a file is turned into the value: text (default) or dataUri (images).",
+                  "enum": [
+                    "text",
+                    "dataUri"
+                  ],
+                  "type": "string"
+                },
+                "fromFile": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "languageInfo": {
+              "description": "LanguageInfo of the sign-in pages.",
+              "properties": {
+                "autoDetect": {
+                  "type": "boolean"
+                },
+                "fallbackLanguage": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "signIn": {
+              "description": "SignIn settings.",
+              "properties": {
+                "methods": {
+                  "items": {
+                    "description": "SignInMethod is one sign-in method, in order.",
+                    "properties": {
+                      "identifier": {
+                        "type": "string"
+                      },
+                      "isPasswordPrimary": {
+                        "type": "boolean"
+                      },
+                      "password": {
+                        "type": "boolean"
+                      },
+                      "verificationCode": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "identifier"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "methods"
+              ],
+              "type": "object"
+            },
+            "signUp": {
+              "description": "SignUp settings.",
+              "properties": {
+                "identifiers": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "password": {
+                  "type": "boolean"
+                },
+                "verify": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "identifiers"
+              ],
+              "type": "object"
+            },
+            "unknownSessionRedirectUrl": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "users": {
+          "additionalProperties": {
+            "description": "User is an application-level administrator, matched by its primary e-mail. Never a password.",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "primaryEmail": {
+                "type": "string"
+              },
+              "roles": {
+                "items": {
+                  "description": "RoleRef names an existing Logto global role by name.",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "primaryEmail"
+            ],
+            "type": "object"
+          },
+          "description": "Users are application-level administrators only; users from sign-up are never declared, never pruned.",
+          "type": "object"
+        },
+        "variables": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Variables usable as ${name} in string fields of this spec.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "credentials",
+        "endpoint"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "spec",
+    "apiVersion",
+    "kind"
+  ],
+  "title": "LogtoConfig (logto.aliud.fr/v1alpha1)",
+  "type": "object"
+}

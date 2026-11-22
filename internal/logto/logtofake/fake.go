@@ -5,53 +5,113 @@
 // therefore never pass against a route that nobody modelled, and a Logto upgrade that renames or removes a route stops
 // compiling the fake instead of silently diverging from it.
 //
-// Behaviour the fake models is Logto 1.44.0's as observed (see docs/plan.md); each override says which behaviour it
+// Behaviour the fake models is Logto's as observed (see docs/plan.md); each override says which behaviour it
 // reproduces, and a real-Logto integration test confirms it.
 package logtofake
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
+	"github.com/Aliud-Corp/logto-operator/internal/logto/openapi"
 )
-
-// Application is the subset of a Logto application the fake stores.
-type Application struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
 
 // Server is the fake. Its zero value is not usable: call New.
 type Server struct {
 	mgmt.Unimplemented
 
-	clientID, clientSecret, token string
+	clientID, clientSecret string
 
-	mu           sync.Mutex
-	applications []Application
+	mu       sync.Mutex
+	tokenTTL time.Duration
+	tokens   map[string]time.Time
+	issued   int
+	writes   int
+	failures map[string][]int // path -> statuses to answer next, in order
+	spec     []byte
+	seq      int
+	docs     map[string]*openapi.Doc // ValidateAgainst
+	problems []string
+
+	apps       map[string]object
+	appSecrets map[string][]object // app id -> secrets
+	appRoles   map[string][]string // app id -> role ids
+	roles      map[string]object
+	users      map[string]object
+	userRoles  map[string][]string // user id -> role ids
+
+	resources             map[string]object
+	resourceScopes        map[string]map[string]object // resource id -> scope id -> scope
+	orgScopes             map[string]object
+	orgRoles              map[string]object
+	orgRoleScopes         map[string][]string // role id -> organization scope ids
+	orgRoleResourceScopes map[string][]string // role id -> resource scope ids
+	profileFields         map[string]object   // by name
+	connectors            map[string]object   // by id
+	signInExp             object
 }
 
-// New returns a fake that issues a Management API token to the given client credentials only.
+// New returns a fake that issues Management API tokens to the given client credentials only.
 func New(clientID, clientSecret string) *Server {
-	return &Server{clientID: clientID, clientSecret: clientSecret, token: "fake-token-" + clientID}
+	return &Server{
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		tokenTTL:     time.Hour,
+		tokens:       map[string]time.Time{},
+		failures:     map[string][]int{},
+	}
 }
 
-// SeedApplication stores an application as if it already existed in Logto.
-func (s *Server) SeedApplication(a Application) {
+// SetTokenTTL sets the lifetime of the tokens issued from now on.
+func (s *Server) SetTokenTTL(d time.Duration) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.applications = append(s.applications, a)
+	s.tokenTTL = d
+}
+
+// TokensIssued is the number of tokens issued so far.
+func (s *Server) TokensIssued() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.issued
+}
+
+// Writes is the number of successful non-GET Management API calls so far: a replay of an unchanged document must
+// not move it.
+func (s *Server) Writes() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.writes
+}
+
+// FailNext makes the next calls to path answer the given statuses, in order, before serving normally again. A path
+// prefixed with a method ("POST /api/applications") fails only calls of that method.
+func (s *Server) FailNext(path string, statuses ...int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.failures[path] = append(s.failures[path], statuses...)
+}
+
+// ServeSpec makes the fake serve a Logto OpenAPI document (a vendored one) as its own spec, like an instance does at
+// /api/swagger.json and /api/.well-known/management.openapi.json, without authentication.
+func (s *Server) ServeSpec(raw []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.spec = raw
 }
 
 // Handler serves the OIDC token endpoint and the Management API under /api, bearer-protected like Logto's.
 func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
+	r.Use(s.injectFailures, s.validate, s.countWrites)
 	r.Post("/oidc/token", s.issueToken)
 	return mgmt.HandlerWithOptions(s, mgmt.ChiServerOptions{
 		BaseRouter:  r,
@@ -67,32 +127,123 @@ func (s *Server) issueToken(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_client"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"access_token": s.token, "token_type": "Bearer", "expires_in": 3600})
+	s.mu.Lock()
+	s.issued++
+	token := fmt.Sprintf("fake-token-%d", s.issued)
+	ttl := s.tokenTTL
+	s.tokens[token] = time.Now().Add(ttl)
+	s.mu.Unlock()
+	writeJSON(w, http.StatusOK, map[string]any{"access_token": token, "token_type": "Bearer", "expires_in": int(ttl.Seconds())})
 }
+
+var public = map[string]bool{"/api/swagger.json": true, "/api/.well-known/management.openapi.json": true, "/api/status": true}
 
 func (s *Server) requireBearer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ") != s.token {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"code": "auth.authorization_header_missing"})
+		if public[r.URL.Path] {
+			next.ServeHTTP(w, r)
+			return
+		}
+		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		s.mu.Lock()
+		expiry, ok := s.tokens[token]
+		s.mu.Unlock()
+		if !ok || time.Now().After(expiry) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"code": "auth.unauthorized", "message": "invalid or expired token"})
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
 }
 
-// ListApplications returns every stored application, like Logto's GET /api/applications (filters not modelled yet).
-func (s *Server) ListApplications(w http.ResponseWriter, _ *http.Request, _ mgmt.ListApplicationsParams) {
+func (s *Server) injectFailures(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.mu.Lock()
+		status := 0
+		for _, key := range []string{r.Method + " " + r.URL.Path, r.URL.Path} {
+			if queue := s.failures[key]; len(queue) > 0 {
+				status, s.failures[key] = queue[0], queue[1:]
+				break
+			}
+		}
+		s.mu.Unlock()
+		if status != 0 {
+			writeJSON(w, status, map[string]string{"code": "fake.injected", "message": http.StatusText(status)})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func (s *Server) countWrites(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+		if r.Method != http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/") && rec.status < 300 {
+			s.mu.Lock()
+			s.writes++
+			s.mu.Unlock()
+		}
+	})
+}
+
+// GetSwaggerJson serves the configured spec (ServeSpec).
+func (s *Server) GetSwaggerJson(w http.ResponseWriter, _ *http.Request) { //nolint:revive // generated name
+	s.serveSpec(w)
+}
+
+// GetWellKnownManagementOpenapiJson serves the configured spec (ServeSpec).
+func (s *Server) GetWellKnownManagementOpenapiJson(w http.ResponseWriter, _ *http.Request) { //nolint:revive // generated name
+	s.serveSpec(w)
+}
+
+func (s *Server) serveSpec(w http.ResponseWriter) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	out := make([]map[string]any, 0, len(s.applications))
-	for _, a := range s.applications {
-		out = append(out, map[string]any{
-			"id": a.ID, "name": a.Name, "type": a.Type, "tenantId": "default",
-			"oidcClientMetadata":   map[string]any{"redirectUris": []string{}, "postLogoutRedirectUris": []string{}},
-			"customClientMetadata": map[string]any{},
-		})
+	spec := s.spec
+	s.mu.Unlock()
+	if spec == nil {
+		writeJSON(w, http.StatusNotImplemented, map[string]string{"code": "fake.no_spec"})
+		return
 	}
-	writeJSON(w, http.StatusOK, out)
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(spec)
+}
+
+// nextID returns a Logto-looking generated id.
+func (s *Server) nextID(prefix string) string {
+	s.seq++
+	return fmt.Sprintf("%s%017d", prefix, s.seq)
+}
+
+// paginate answers a Logto list: page (from 1) and page_size (default 20) from the query, page_size above 100
+// refused like Logto does (guard.invalid_pagination), the total in the Total-Number header.
+func paginate[T any](w http.ResponseWriter, r *http.Request, items []T) {
+	q := r.URL.Query()
+	page, size := 1, 20
+	if v := q.Get("page"); v != "" {
+		page, _ = strconv.Atoi(v)
+	}
+	if v := q.Get("page_size"); v != "" {
+		size, _ = strconv.Atoi(v)
+	}
+	if page < 1 || size < 1 || size > 100 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"code": "guard.invalid_pagination", "message": "Invalid pagination value."})
+		return
+	}
+	start := min((page-1)*size, len(items))
+	end := min(start+size, len(items))
+	w.Header().Set("Total-Number", strconv.Itoa(len(items)))
+	writeJSON(w, http.StatusOK, items[start:end])
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

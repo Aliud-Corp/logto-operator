@@ -342,6 +342,9 @@ type ServerInterface interface {
 	// InitInteraction Init new interaction
 	// (PUT /api/experience)
 	InitInteraction(w http.ResponseWriter, r *http.Request)
+	// AbortInteraction Abort interaction
+	// (POST /api/experience/abort)
+	AbortInteraction(w http.ResponseWriter, r *http.Request)
 	// IdentifyUser Identify user for the current interaction
 	// (POST /api/experience/identification)
 	IdentifyUser(w http.ResponseWriter, r *http.Request)
@@ -351,6 +354,9 @@ type ServerInterface interface {
 	// UpdateInteractionEvent Update interaction event
 	// (PUT /api/experience/interaction-event)
 	UpdateInteractionEvent(w http.ResponseWriter, r *http.Request)
+	// GetDirectSignIn Get the direct sign-in target of the current interaction
+	// (GET /api/experience/interaction/direct-sign-in)
+	GetDirectSignIn(w http.ResponseWriter, r *http.Request)
 	// CreateSignInPasskeyAuthentication Create passkey sign-in WebAuthn authentication
 	// (POST /api/experience/preflight/sign-in-passkey/authentication)
 	CreateSignInPasskeyAuthentication(w http.ResponseWriter, r *http.Request)
@@ -549,6 +555,18 @@ type ServerInterface interface {
 	// UpdatePassword Update password
 	// (POST /api/my-account/password)
 	UpdatePassword(w http.ResponseWriter, r *http.Request)
+	// ListMyAccountPersonalAccessTokens List personal access tokens
+	// (GET /api/my-account/personal-access-tokens)
+	ListMyAccountPersonalAccessTokens(w http.ResponseWriter, r *http.Request)
+	// UpdateMyAccountPersonalAccessTokenName Rename a personal access token
+	// (PATCH /api/my-account/personal-access-tokens)
+	UpdateMyAccountPersonalAccessTokenName(w http.ResponseWriter, r *http.Request)
+	// CreateMyAccountPersonalAccessToken Create a personal access token
+	// (POST /api/my-account/personal-access-tokens)
+	CreateMyAccountPersonalAccessToken(w http.ResponseWriter, r *http.Request)
+	// DeleteMyAccountPersonalAccessToken Delete a personal access token
+	// (POST /api/my-account/personal-access-tokens/delete)
+	DeleteMyAccountPersonalAccessToken(w http.ResponseWriter, r *http.Request)
 	// DeletePrimaryEmail Delete primary email
 	// (DELETE /api/my-account/primary-email)
 	DeletePrimaryEmail(w http.ResponseWriter, r *http.Request)
@@ -951,6 +969,12 @@ type ServerInterface interface {
 	// GetSystemApplicationConfig Get the application constants.
 	// (GET /api/systems/application)
 	GetSystemApplicationConfig(w http.ResponseWriter, r *http.Request)
+	// GetSystemLicense Get the installed license.
+	// (GET /api/systems/license)
+	GetSystemLicense(w http.ResponseWriter, r *http.Request)
+	// InstallSystemLicense Install a license.
+	// (PUT /api/systems/license)
+	InstallSystemLicense(w http.ResponseWriter, r *http.Request)
 	// CreateUserAsset Upload asset
 	// (POST /api/user-assets)
 	CreateUserAsset(w http.ResponseWriter, r *http.Request)
@@ -1768,6 +1792,12 @@ func (_ Unimplemented) InitInteraction(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// AbortInteraction Abort interaction
+// (POST /api/experience/abort)
+func (_ Unimplemented) AbortInteraction(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // IdentifyUser Identify user for the current interaction
 // (POST /api/experience/identification)
 func (_ Unimplemented) IdentifyUser(w http.ResponseWriter, r *http.Request) {
@@ -1783,6 +1813,12 @@ func (_ Unimplemented) GetInteraction(w http.ResponseWriter, r *http.Request) {
 // UpdateInteractionEvent Update interaction event
 // (PUT /api/experience/interaction-event)
 func (_ Unimplemented) UpdateInteractionEvent(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetDirectSignIn Get the direct sign-in target of the current interaction
+// (GET /api/experience/interaction/direct-sign-in)
+func (_ Unimplemented) GetDirectSignIn(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2179,6 +2215,30 @@ func (_ Unimplemented) UpdateMfaVerificationName(w http.ResponseWriter, r *http.
 // UpdatePassword Update password
 // (POST /api/my-account/password)
 func (_ Unimplemented) UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListMyAccountPersonalAccessTokens List personal access tokens
+// (GET /api/my-account/personal-access-tokens)
+func (_ Unimplemented) ListMyAccountPersonalAccessTokens(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateMyAccountPersonalAccessTokenName Rename a personal access token
+// (PATCH /api/my-account/personal-access-tokens)
+func (_ Unimplemented) UpdateMyAccountPersonalAccessTokenName(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateMyAccountPersonalAccessToken Create a personal access token
+// (POST /api/my-account/personal-access-tokens)
+func (_ Unimplemented) CreateMyAccountPersonalAccessToken(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteMyAccountPersonalAccessToken Delete a personal access token
+// (POST /api/my-account/personal-access-tokens/delete)
+func (_ Unimplemented) DeleteMyAccountPersonalAccessToken(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2983,6 +3043,18 @@ func (_ Unimplemented) GetSwaggerJson(w http.ResponseWriter, r *http.Request) {
 // GetSystemApplicationConfig Get the application constants.
 // (GET /api/systems/application)
 func (_ Unimplemented) GetSystemApplicationConfig(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSystemLicense Get the installed license.
+// (GET /api/systems/license)
+func (_ Unimplemented) GetSystemLicense(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// InstallSystemLicense Install a license.
+// (PUT /api/systems/license)
+func (_ Unimplemented) InstallSystemLicense(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6088,6 +6160,20 @@ func (siw *ServerInterfaceWrapper) InitInteraction(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// AbortInteraction operation middleware
+func (siw *ServerInterfaceWrapper) AbortInteraction(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AbortInteraction(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // IdentifyUser operation middleware
 func (siw *ServerInterfaceWrapper) IdentifyUser(w http.ResponseWriter, r *http.Request) {
 
@@ -6121,6 +6207,20 @@ func (siw *ServerInterfaceWrapper) UpdateInteractionEvent(w http.ResponseWriter,
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateInteractionEvent(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDirectSignIn operation middleware
+func (siw *ServerInterfaceWrapper) GetDirectSignIn(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDirectSignIn(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7548,6 +7648,62 @@ func (siw *ServerInterfaceWrapper) UpdatePassword(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// ListMyAccountPersonalAccessTokens operation middleware
+func (siw *ServerInterfaceWrapper) ListMyAccountPersonalAccessTokens(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyAccountPersonalAccessTokens(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateMyAccountPersonalAccessTokenName operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMyAccountPersonalAccessTokenName(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMyAccountPersonalAccessTokenName(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateMyAccountPersonalAccessToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateMyAccountPersonalAccessToken(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateMyAccountPersonalAccessToken(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteMyAccountPersonalAccessToken operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMyAccountPersonalAccessToken(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMyAccountPersonalAccessToken(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeletePrimaryEmail operation middleware
 func (siw *ServerInterfaceWrapper) DeletePrimaryEmail(w http.ResponseWriter, r *http.Request) {
 
@@ -8726,6 +8882,19 @@ func (siw *ServerInterfaceWrapper) ListOrganizations(w http.ResponseWriter, r *h
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "showFeatured"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "showFeatured", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "jitEmailDomain" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "jitEmailDomain", r.URL.Query(), &params.JitEmailDomain, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "jitEmailDomain"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jitEmailDomain", Err: err})
 		}
 		return
 	}
@@ -10069,6 +10238,19 @@ func (siw *ServerInterfaceWrapper) ListResources(w http.ResponseWriter, r *http.
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "includeScopes"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "includeScopes", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "excludeManagementApis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "excludeManagementApis", r.URL.Query(), &params.ExcludeManagementApis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "excludeManagementApis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "excludeManagementApis", Err: err})
 		}
 		return
 	}
@@ -11888,6 +12070,34 @@ func (siw *ServerInterfaceWrapper) GetSystemApplicationConfig(w http.ResponseWri
 	handler.ServeHTTP(w, r)
 }
 
+// GetSystemLicense operation middleware
+func (siw *ServerInterfaceWrapper) GetSystemLicense(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSystemLicense(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// InstallSystemLicense operation middleware
+func (siw *ServerInterfaceWrapper) InstallSystemLicense(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.InstallSystemLicense(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateUserAsset operation middleware
 func (siw *ServerInterfaceWrapper) CreateUserAsset(w http.ResponseWriter, r *http.Request) {
 
@@ -11999,6 +12209,19 @@ func (siw *ServerInterfaceWrapper) ListUsers(w http.ResponseWriter, r *http.Requ
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "identityId"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identityId", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customData" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customData", r.URL.Query(), &params.CustomData, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customData"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customData", Err: err})
 		}
 		return
 	}
@@ -13891,6 +14114,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/api/experience", wrapper.InitInteraction)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/experience/abort", wrapper.AbortInteraction)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/experience/identification", wrapper.IdentifyUser)
 	})
 	r.Group(func(r chi.Router) {
@@ -13898,6 +14124,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/experience/interaction-event", wrapper.UpdateInteractionEvent)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/experience/interaction/direct-sign-in", wrapper.GetDirectSignIn)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/experience/preflight/sign-in-passkey/authentication", wrapper.CreateSignInPasskeyAuthentication)
@@ -14096,6 +14325,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/my-account/password", wrapper.UpdatePassword)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/my-account/personal-access-tokens", wrapper.ListMyAccountPersonalAccessTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/my-account/personal-access-tokens", wrapper.UpdateMyAccountPersonalAccessTokenName)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/my-account/personal-access-tokens", wrapper.CreateMyAccountPersonalAccessToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/my-account/personal-access-tokens/delete", wrapper.DeleteMyAccountPersonalAccessToken)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/my-account/primary-email", wrapper.DeletePrimaryEmail)
@@ -14498,6 +14739,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/systems/application", wrapper.GetSystemApplicationConfig)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/systems/license", wrapper.GetSystemLicense)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/systems/license", wrapper.InstallSystemLicense)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/user-assets", wrapper.CreateUserAsset)

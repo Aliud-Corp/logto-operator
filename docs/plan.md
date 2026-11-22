@@ -70,7 +70,11 @@ type Kind interface {
 touched kinds and fails if Logto did not keep what was written.
 `check` = `Plan` + exit code. The CLI and the controller are thin shells around these two calls.
 
-Generator choice, **measured**: `oapi-codegen` 2.8.2 (pinned in `mise.toml`, mise `go` backend). `ogen` 1.25.0 was
+**Revised 2026-11-21 (option E):** kinds own their request and response types (only the fields they manage) and
+send them through the generated client's raw-body variants; the generated client provides routes and parameters.
+Contract tests validate those types against the vendored spec of every Logto version in the support window (the
+latest minor and the two before it). This replaces "request and response types generated from the spec": one client,
+no per-version code. Generator choice, **measured**: `oapi-codegen` 2.8.2 (pinned in `mise.toml`, mise `go` backend). `ogen` 1.25.0 was
 tried on the same spec and **skipped 46 operations**, among them `GetSignInExp`, `UpdateSignInExp`, every connector
 route, `CreateCustomProfileField`, `UpdateCustomProfileFieldByName`, the JWT customizer routes, `CreateUser` and
 `UpdateUser` (unsupported `oneOf` shapes): disqualifying. oapi-codegen generates all 245 paths after two documented
@@ -101,7 +105,7 @@ spec:
   prune: {resources: false, organizationRoles: true, webhooks: false}             # per kind, all false by default
 
   signInExperience:                                 # only declared keys are owned, compared and patched
-    color: {primaryColor: "#5B4FE0", isDarkModeEnabled: false}
+    color: {primaryColor: "#101418", isDarkModeEnabled: false}
     languageInfo: {autoDetect: false, fallbackLanguage: fr}
     branding: {logoUrl: {fromFile: sign-in-experience/logo.svg, as: dataUri}}
     customCss: {fromFile: sign-in-experience/custom.css}
@@ -216,6 +220,14 @@ Dependency rules:
   and an unchanged count. `check` = `plan`, exit **0** in sync, **2** drift, **1** error; `apply` exits **3** when it
   completed with warnings.
 - A re-apply of an unchanged document issues **zero writes** (tested: the fake counts non-GET calls).
+- A sub-object Logto replaces whole (sign-in experience keys, a connector's `config`) is sent as the declared value
+  written over what Logto holds (`kindkit.Overlay`): a field no kind manages, set in a console or added by a newer
+  Logto, survives. A list is the declared one; its items, when Logto replaces them whole too (sign-in methods),
+  are each written over the item Logto holds with the same key.
+- Deletes run last, kinds in reverse order. An interrupted apply reports each op: applied, failed, not run; and
+  whether the failure is transient (429, 5xx, unreachable) or not.
+- A Logto outside the support window is recognised by its own spec (none of the vendored ones, `servers` aside) and
+  refused unless `--allow-untested-logto`: its behaviour was never tested, whatever routes its spec lists.
 - **Write-only secrets** are the hard case: Logto may not return the SMTP `auth.pass` (unverified). If Logto returns
   it, compare it. If not, the engine cannot know whether it changed; options in open question 5.
 - **Prune** is per kind, off by default, and never applies to users, organizations, Logto built-ins (the Management
@@ -285,8 +297,9 @@ default-tenant users and are in scope from milestone 2.
    control without a rule, `page_size` > 100 refused, default page of 20, connector `config` replace-on-PATCH once
    measured). Table tests per kind: create, adopt, update one field, no-op, ambiguous match, prune on/off. Property
    asserted everywhere: **apply twice, the second plan is empty and the fake saw zero writes**.
-2. **Contract**: the fake validates every request body the engine sends against the normalized spec (kin-openapi
-   request validation middleware), so an engine that builds a body Logto would reject fails in unit tests.
+2. **Contract**: in every kind test the fake validates each request body the kinds really send against every spec
+   of the support window, and the fields of each answer it gives (types, declared keys); one problem fails the
+   test. Wire types are also validated per version by each kind's contract test.
 3. **Behaviour scenarios**, run on the fake and again on a real Logto (4), against the reference configuration
    `examples/reference.yaml` (every kind, committed): first run creates everything; replay changes nothing,
    secrets included; drift repaired without touching secrets (a redirect URI, a hook URL); JWT environment
@@ -295,10 +308,10 @@ default-tenant users and are in scope from milestone 2.
 4. **Integration, real Logto 1.44.0** (`test/integration`, build tag): the same scenarios against a fresh Logto, plus
    what only a real Logto can tell (read-back of secrets, PATCH merge vs replace, JWT customizer execution by
    minting and decoding a real token, which endpoints of a "Cloud" spec actually work on OSS). In CI (GitHub-hosted
-   runner, section 12b): Postgres as a job service container, Logto started by a `docker run` step with its seeding
-   entrypoint (`npm run cli db seed -- --swe && npm run alteration deploy latest && npm start`), because a service
-   container cannot override the entrypoint. No secret involved: the bootstrap
-   credential of that throwaway Logto is created by the job itself.
+   runner, section 12b): the same `test/integration/compose.yaml` as locally (Postgres + Logto, the version from
+   `LOGTO_VERSION`, with its seeding entrypoint `npm run cli db seed -- --swe && npm run alteration deploy latest &&
+   npm start`). No secret involved: the harness reads the throwaway instance's `m-default` secret from its own
+   database.
 5. **End-to-end, Chainsaw on k3d** (`test/e2e`, `task e2e`): the operator deployed in a throwaway k3d cluster with
    Logto + Postgres in it; scenarios as Chainsaw tests (apply a `LogtoConfig`, assert `status` conditions and the
    published Secret/ConfigMap, edit Logto behind the operator's back and assert `Drifted` then repaired, delete the
@@ -319,7 +332,7 @@ default-tenant users and are in scope from milestone 2.
 | 4 | No first credential without a credential | by construction | bootstrap is a manual step (section 7) |
 | 5 | Admin tenant (console users) unreachable with a default-tenant token | observed | section 8 |
 | 6 | JWT customizer: whether a self-hosted 1.44.0 actually runs the stored script at token issuance is **unproven** (observations disagree); `/api/configs/jwt-customizer/test` only proves the script runs | observed, conflicting | supported as a kind, gated by an integration test minting a real token; the `/test` endpoint proves the script runs, not that issuance uses it |
-| 7 | Connector `config` PATCH: merge or replace unknown; `GET /api/connectors/{id}` may or may not return `auth.pass` | unknown | assume replace (always send the full config incl. secrets); drift on write-only secrets: open question 5 |
+| 7 | Connector `config`: a PATCH with a partial config is refused (the config is validated whole); `GET /api/connectors/{id}` returns `auth.pass` in clear | measured (1.44.0, 1.46.0) | the whole config is always sent; a changed password is drift seen by comparison (Q5 settled) |
 | 8 | No "managed-by" marker on resources, scopes, roles; no state file | spec | prune is opt-in per kind with a keep list |
 | 9 | Spec says `info.version: Cloud`: presence of a route is not proof it works on OSS (custom UI assets zip, domains, SAML apps, sentinel...) | spec | each kind enters scope only with an integration test |
 | 10 | Two e-mail template mechanisms: connector `config.templates` and `/api/email-templates` (per language) | spec | open question 6 |
@@ -333,7 +346,7 @@ default-tenant users and are in scope from milestone 2.
 - **M0 — plan and skeleton.** Four pull requests: this plan, the agent memory and the contributor docs; the pinned
   toolchain, generated client, drift and runner guards and the `check` CI; the fake Management API with its
   hello-world test and the CLI stub; the Chainsaw/k3d harness with a smoke test and its `e2e` workflow.
-- **M1 — core kinds through the CLI, on a local Logto.** `api/v1alpha1` types (generated JSON Schema), loader with
+- **M1 — core kinds through the CLI, on a local Logto (done 2026-11-21).** `api/v1alpha1` types (generated JSON Schema), loader with
   the schema rules of section 3, `internal/logto/client`, kinds: connectors, customProfileFields, signInExperience,
   resources + scopes, organizationScopes, organizationRoles, applications (+ M2M secret, role grants), users
   (application admins, no passwords); `plan` / `apply` / `check` / `render`; `examples/reference.yaml` covering
@@ -342,11 +355,24 @@ default-tenant users and are in scope from milestone 2.
   then 2 after a console edit, `render` shows no secret. Integration test harness (`task it`) run locally and by a
   CI job against a Logto started in the job.
 - **M2 — remaining kinds.** Global roles, access control, webhooks, JWT customizer + id token, account center,
-  captcha, `/api/email-templates`; the behaviour scenarios of section 9 complete; outputs files.
+  captcha, `/api/email-templates`; the behaviour scenarios of section 9 complete; outputs files. Before the new
+  kinds:
+  - a generic "collection by natural key" in `kindkit` (list, adopt, refuse an ambiguous match, create, update,
+    prune with `keep`, `Needs` built from the same request builders as Apply), and the matching helper in the fake,
+    so that twenty kinds do not each rewrite Logto;
+  - global roles publish their ids as Refs; applications and users depend on them and read Refs, so that a role
+    created and granted by the same document plans (today they resolve roles by reading Logto).
 - **M3 — operator.** CRD generated from `api/v1alpha1` (controller-gen, committed, drift-guarded), controller-runtime
   manager, Secret watch, resync (`RequeueAfter`, default 10 min, no CronJob), conditions, outputs Secret/ConfigMap,
   `spec.mode: Observe|Apply` (Observe = plan only, status `Drifted`), narrow RBAC, manifests (kustomize, committed);
-  Chainsaw e2e with Logto inside k3d.
+  Chainsaw e2e with Logto inside k3d. From the engine:
+  - conditions from each op's `plan.Result`; `engine.Transient` picks a requeue with backoff, anything else
+    `Degraded` until the document changes;
+  - one CR per Logto endpoint (a second one is refused through an index) and one reconcile at a time per endpoint:
+    two documents would fight over the sign-in experience, and one's prune would delete the other's objects;
+  - `secretKeyRef` through a `Resolver` that takes a context and reads Kubernetes Secrets; outputs (a flat map) map
+    to the keys of one Secret and one ConfigMap;
+  - the untested-Logto override becomes a field of the CR.
 - **M4 — first adopters.** A consuming project renders its `LogtoConfig` and runs `check` in its CI; each
   environment starts in `Observe` (drift reviewed, anything edited by hand in a console shows up), then `Apply`.
 - **M5 — admin console users** (only if section 8's spike succeeds).
@@ -366,9 +392,9 @@ default-tenant users and are in scope from milestone 2.
 
 ### 12b. CI runners (decided 2026-11-20)
 
-CI runs on **GitHub-hosted runners** (`ubuntu-<version>`, pinned), which carry a Docker daemon (k3d, Logto via
-`docker run`). Never the studio's self-hosted runners: the repository will be **public**, and a fork's pull request
-would run arbitrary code on studio infrastructure. `task ci:runners` (in `task check`) fails on any other `runs-on`.
+CI runs on **GitHub-hosted runners** (`ubuntu-<version>`, pinned), which carry a Docker daemon (k3d, the Logto of
+`test/integration/compose.yaml`). Never the studio's self-hosted runners: the repository will be **public**, and a
+fork's pull request would run arbitrary code on studio infrastructure. `task ci:runners` (in `task check`) fails on any other `runs-on`.
 
 The repository starts **private** and goes public later. While private, its minutes count against the organization's
 shared free quota, and an exhausted quota blocks every hosted job of the organization until the next month. So: one
@@ -384,16 +410,13 @@ small; switching later is a one-line `runs-on` change.
 ## 13. Open questions
 
 1. ~~e2e cluster in CI~~ — **decided**: GitHub-hosted runners, k3d in the runner's Docker (12b).
-2. ~~Real Logto in CI~~ — **decided**: Postgres service container + Logto by `docker run` in the job (9.4, 12b).
-3. **Names.** CLI `logtoctl`, operator `logto-operator`, CRD group `logto.<domain>`: which studio domain?
-4. **Environment-specific values.** `${var}` interpolation in the document (explicit, limited to
-   declared variables) vs one fully-rendered document per environment (kustomize overlays on the
-   CR). My pick: interpolation, limited to declared `variables`, rendered and shown by `render`.
-5. **Write-only secrets drift** (SMTP password, if Logto does not return it): (a) store a salted hash in the object's
-   `customData`/`metadata` where Logto offers one and compare that; (b) always re-send (breaks "unchanged = zero
-   writes" for that one field, reported as such); (c) ignore. Decide after measuring what Logto returns (M1).
-6. **E-mail templates.** Connector `config.templates` or `/api/email-templates` (per language), or both as
-   two kinds?
+2. ~~Real Logto in CI~~ — **decided**: one `test/integration/compose.yaml` (Postgres + Logto), locally and on the
+   runner (9.4, 12b).
+3. ~~Names~~ — **decided**: CLI `logtoctl`, CRD group `logto.aliud.fr`, `apiVersion: logto.aliud.fr/v1alpha1`.
+4. ~~Environment-specific values~~ — **decided**: `${var}` interpolation, limited to declared `spec.variables`.
+5. ~~Write-only secrets drift~~ — **settled 2026-11-21 by measurement**: Logto returns the SMTP password in clear,
+   so it is compared like any field (shown as `(sensitive)` in a plan); the whole config is always sent.
+6. ~~E-mail templates~~ — **decided**: connector `config.templates` in M1, `/api/email-templates` in M2.
 7. **CR deletion.** Leave Logto untouched (my pick, no finalizer) or prune everything the CR declared?
 8. **JWT customizer** (gap 6): keep it in M2 behind an integration test that mints a real token and decodes it?
 9. **Admin console users** (section 8): spike in M5, or drop the requirement given the `m-admin` blast radius?

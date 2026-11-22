@@ -12,8 +12,10 @@
 flowchart LR
     spec["api/logto spec"] --> norm["tools/specnorm"] --> gen["internal/logto/mgmt (generated)"]
     gen --> fake["internal/logto/logtofake"]
-    gen --> cli["cmd/logtoctl"]
-    cli --> logto[("Logto Management API")]
+    doc["LogtoConfig document"] --> config["internal/config"] --> engine["internal/engine + kinds"]
+    gen --> engine
+    engine --> client["internal/logto/client"] --> logto[("Logto Management API")]
+    cli["cmd/logtoctl"] --> engine
 ```
 
 ## Key decisions
@@ -26,9 +28,32 @@ flowchart LR
   and custom profile fields.
 - Generated code is committed and guarded by `task generate:check`, which always regenerates.
 - Engine first, operator second: the CLI and the controller are thin shells over the same engine.
+- One schema, `logto.aliud.fr/v1alpha1` (`api/v1alpha1`): the Go types generate the CRD (controller-gen) and the
+  JSON Schema of the CLI file (`tools/crd2schema`); nothing is written twice.
+- Kinds own their wire types (only the fields they manage) and send them through the generated request builders
+  (`client.Do`); contract tests validate them against every vendored spec of the window (`internal/logto/contract`),
+  and the engine refuses at plan time a field the target's own spec lacks (`internal/logto/capability`).
+- The engine (`internal/engine`) runs kinds in `DependsOn` order: Plan observes and diffs; Apply runs the ops, then
+  plans the kind again and fails if Logto did not keep the write. No state file: Logto is the state.
+- A sub-object Logto replaces whole is sent as the declared value over Logto's own (`kindkit.Overlay`): unmanaged
+  fields survive. Deletes run after every create and update, kinds in reverse order; apply results are per op
+  (`plan.Result`), failures `*engine.OpError`, `engine.Transient` says whether a retry may help.
+- The target's version is its spec: `internal/logto/version.Match` fingerprints it (without `servers`) against the
+  vendored ones; an unknown one is refused unless `--allow-untested-logto`. The binary carries only the fingerprints
+  (generated); the specs, raw and normalized (`<version>.normalized.json`, what tests load), stay test-only.
+- Secret values are read only during an apply (`engine.Publisher`); a plan never holds one, and a sensitive change
+  is masked as it enters a plan.
+- A document is loaded strictly (`internal/config`): unknown keys fail with their path, `${name}` comes from
+  `spec.variables` only, the generated JSON Schema is checked on the document as written (what the CRD refuses),
+  files are resolved relative to the document, then the rules across fields; each step reports every violation.
 
 ## Gotchas
 
 - Logto encodes zod literals as `"format": "\"Value\""`; the generator's loader refuses it raw.
 - `oapi-codegen` maps OpenAPI `number` to `float32`: epoch milliseconds lose precision through those fields.
 - The spec says `info.version: Cloud`: a route's presence does not prove it works on OSS.
+- Logto writes `pattern` as JavaScript literals (`/^#...$/i`) and zod unions as `oneOf` meaning `anyOf`: the
+  validation loader (`internal/logto/openapi`) converts both, or valid values are refused.
+- Logto exports fields checked by a custom zod function (redirect URIs, names...) as empty objects "Validator
+  function": `specnorm` leaves them unconstrained, or the generated client cannot decode real answers.
+- YAML flow sequences break on `${...}`: quote such strings (`["https://app.${zone}"]`).

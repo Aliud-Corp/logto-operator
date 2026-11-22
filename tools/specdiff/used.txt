@@ -1,0 +1,45 @@
+# operationIds the kinds call, one per line. specdiff exits 1 when a breaking change touches one of them.
+# It lists exactly what the code calls (mgmt.New<OperationId>Request, tests aside): TestUsedListsExactlyTheOperationsTheCodeCalls
+# fails otherwise (docs: api/logto/README.md).
+ListResources
+CreateResource
+UpdateResource
+DeleteResource
+ListResourceScopes
+CreateResourceScope
+UpdateResourceScope
+DeleteResourceScope
+ListOrganizationScopes
+CreateOrganizationScope
+UpdateOrganizationScope
+DeleteOrganizationScope
+ListOrganizationRoles
+CreateOrganizationRole
+UpdateOrganizationRole
+DeleteOrganizationRole
+ReplaceOrganizationRoleScopes
+ReplaceOrganizationRoleResourceScopes
+ListCustomProfileFields
+CreateCustomProfileField
+UpdateCustomProfileFieldByName
+DeleteCustomProfileFieldByName
+ListConnectors
+CreateConnector
+UpdateConnector
+DeleteConnector
+GetSignInExp
+UpdateSignInExp
+ListApplications
+CreateApplication
+UpdateApplication
+ListApplicationSecrets
+CreateApplicationSecret
+ListApplicationRoles
+AssignApplicationRoles
+ListRoles
+ListUsers
+CreateUser
+UpdateUser
+ListUserRoles
+AssignUserRoles
+GetSwaggerJson

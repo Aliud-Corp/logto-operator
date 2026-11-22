@@ -1,0 +1,92 @@
+---
+# Integration tests against a real, throwaway Logto (test/integration/compose.yaml) on a GitHub-hosted runner.
+# Pushes to main, and pull requests that change how Logto is called (the engine, the kinds, the client, the specs,
+# the reference document the acceptance test applies, the harness itself),
+# test every version of api/logto/versions.txt one after the other (`task it:all`); other pull requests test the
+# newest (`task it`). One job either way: while the repository is private, each job is billed rounded up to the
+# minute (see ci.yml). Caches are restored here and saved by ci.yml on main.
+name: integration
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'internal/**'
+      - 'cmd/**'
+      - 'api/**'
+      - 'tools/**'
+      - 'test/integration/**'
+      - 'examples/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'mise.toml'
+      - 'Taskfile.yaml'
+      - '.github/workflows/integration.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'internal/**'
+      - 'cmd/**'
+      - 'api/**'
+      - 'tools/**'
+      - 'test/integration/**'
+      - 'examples/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'mise.toml'
+      - 'Taskfile.yaml'
+      - '.github/workflows/integration.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  integration:
+    name: integration
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GOMODCACHE: ${{ github.workspace }}/.cache/go-mod
+      GOCACHE: ${{ github.workspace }}/.cache/go-build
+      GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.cache/golangci-lint
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          persist-credentials: false
+          # A pull request checks out its merge commit: its first parent is the base, to list what the PR changes.
+          fetch-depth: 2
+      - name: Install the pinned toolchain (from mise.toml)
+        uses: jdx/mise-action@dba19683ed58901619b14f395a24841710cb4925  # v4.1.0
+        with:
+          cache: true
+          cache_save: ${{ github.event_name == 'push' }}
+      - name: Restore the Go caches (saved by ci.yml on main)
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .cache
+          key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.toml') }}-${{ github.run_id }}
+          restore-keys: |
+            go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.toml') }}-
+            go-${{ runner.os }}-
+      - name: Choose the versions to test
+        id: scope
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ] ||
+            git diff --name-only HEAD^1 HEAD | grep -qE '^(internal/engine/|internal/logto/|api/|examples/|test/integration/)'; then
+            echo "all=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: task it (newest version)
+        if: steps.scope.outputs.all != 'true'
+        run: task it
+      - name: task it:all (every version of the window)
+        if: steps.scope.outputs.all == 'true'
+        run: task it:all
+      - name: task it:down
+        if: always()
+        run: task it:down

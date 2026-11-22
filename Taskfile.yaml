@@ -3,10 +3,18 @@
 version: '3'
 
 vars:
-  SPEC: api/logto/management.openapi.json
+  # The Logto support window, newest first. The newest generates the client; all of them are vendored for the
+  # contract tests and the integration matrix.
+  LOGTO_LATEST:
+    sh: head -n 1 api/logto/versions.txt
+  LOGTO_VERSION: '{{.LOGTO_VERSION | default .LOGTO_LATEST}}'
+  SPEC: api/logto/{{.LOGTO_LATEST}}.openapi.json
+  IT_COMPOSE: docker compose -f test/integration/compose.yaml
   # The normalized spec is an intermediate, never committed: the committed artefact is the generated Go code.
   CODEGEN_SPEC: build/management.codegen.json
   MGMT_DIR: internal/logto/mgmt
+  # Every directory `task generate` writes into; `generate:check` guards them all.
+  GENERATED_DIRS: internal/logto/mgmt api/v1alpha1 config/crd api/logto internal/logto/version
   BIN_DIR: bin
   E2E_CLUSTER: logto-operator-e2e
   E2E_KUBECONFIG: build/e2e.kubeconfig
@@ -19,22 +27,29 @@ tasks:
       - task --list
 
   generate:
-    desc: Regenerate the Management API client from the vendored OpenAPI spec (commit the result).
+    desc: Regenerate the Management API client, the normalized specs and version fingerprints, and the LogtoConfig deepcopy, CRD and JSON Schema (commit the result).
     # No `sources:` fingerprint on purpose: the drift guard below must ALWAYS regenerate, never trust a checksum.
     cmds:
       - mkdir -p build
+      # Each vendored spec normalized for validation (what the tests load), and the fingerprints logtoctl recognises a
+      # target's version by: the binary carries no spec.
+      - go run ./tools/specwindow api/logto internal/logto/version/fingerprints.gen.go
       - go run ./tools/specnorm {{.SPEC}} {{.CODEGEN_SPEC}}
       - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.types.yaml {{.CODEGEN_SPEC}}
       - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.client.yaml {{.CODEGEN_SPEC}}
       - oapi-codegen -config {{.MGMT_DIR}}/oapi-codegen.server.yaml {{.CODEGEN_SPEC}}
+      # The LogtoConfig schema: deepcopy and CRD from api/v1alpha1, then the JSON Schema of the CLI file from the CRD.
+      - controller-gen object paths=./api/...
+      - controller-gen crd paths=./api/... output:crd:artifacts:config=config/crd
+      - go run ./tools/crd2schema config/crd/logto.aliud.fr_logtoconfigs.yaml api/v1alpha1/logtoconfig.schema.json
 
   generate:check:
     desc: Fail when the committed generated code differs from a fresh generation (drift guard, runs on every push).
     cmds:
       - task: generate
       - cmd: |
-          if ! git diff --exit-code -- {{.MGMT_DIR}} || [ -n "$(git status --porcelain -- {{.MGMT_DIR}})" ]; then
-            echo "generate:check FAILED: {{.MGMT_DIR}} is not what the spec and the pinned generator produce." >&2
+          if ! git diff --exit-code -- {{.GENERATED_DIRS}} || [ -n "$(git status --porcelain -- {{.GENERATED_DIRS}})" ]; then
+            echo "generate:check FAILED: generated code ({{.GENERATED_DIRS}}) is not what its sources and the pinned generators produce." >&2
             echo "Run 'task generate' and commit the result." >&2
             exit 1
           fi
@@ -93,6 +108,61 @@ tasks:
       # Its own kubeconfig file: the suite never touches the developer's current context.
       - k3d kubeconfig get {{.E2E_CLUSTER}} > {{.E2E_KUBECONFIG}}
       - KUBECONFIG={{.E2E_KUBECONFIG}} chainsaw test --config test/e2e/.chainsaw.yaml test/e2e
+
+  it:up:
+    desc: Start a throwaway Logto (LOGTO_VERSION, default the newest supported) on 127.0.0.1:3001/3002. Needs Docker.
+    cmds:
+      - LOGTO_VERSION={{.LOGTO_VERSION}} {{.IT_COMPOSE}} up -d --wait
+
+  it:down:
+    desc: Remove the throwaway Logto, its database and its volume.
+    cmds:
+      - LOGTO_VERSION={{.LOGTO_VERSION}} {{.IT_COMPOSE}} down --volumes --remove-orphans
+
+  it:bootstrap:
+    desc: Write the throwaway Logto's m-default credentials to build/it.env (mode 0600), read from its own database.
+    cmds:
+      - LOGTO_VERSION={{.LOGTO_VERSION}} IT_COMPOSE="{{.IT_COMPOSE}}" sh test/integration/bootstrap.sh
+
+  it:
+    desc: Integration tests against a throwaway Logto (LOGTO_VERSION). Not part of `check` (needs Docker).
+    cmds:
+      - task: it:up
+      - task: it:bootstrap
+      # -p 1: packages share the throwaway Logto, and a prune in one must not see another's objects appear.
+      - LOGTO_IT_REQUIRED=1 go test -tags integration -count=1 -p 1 ./...
+
+  it:all:
+    desc: Integration tests on every version of the support window, one after the other (what CI runs on main).
+    cmds:
+      - for: { var: WINDOW, split: "\n" }
+        cmd: task it:down LOGTO_VERSION={{.ITEM}} && task it LOGTO_VERSION={{.ITEM}}
+      - task: it:down
+    vars:
+      WINDOW:
+        sh: grep -v '^$' api/logto/versions.txt
+
+  spec:refresh:
+    desc: Vendor the spec served by Logto VERSION (restarts the throwaway Logto at that version). Usage - task spec:refresh VERSION=1.46.0
+    requires:
+      vars: [VERSION]
+    cmds:
+      - task: it:down
+      - task: it:up
+        vars: { LOGTO_VERSION: '{{.VERSION}}' }
+      # `servers` echoes the request's host: always ask localhost:3001, so the file depends on the version only.
+      - curl -sSf http://localhost:3001/api/swagger.json | jq -Sc . > build/spec-{{.VERSION}}.json
+      - jq -e '.paths | length > 0' build/spec-{{.VERSION}}.json > /dev/null
+      - mv build/spec-{{.VERSION}}.json api/logto/{{.VERSION}}.openapi.json
+      - task: it:down
+      - task: generate
+
+  spec:diff:
+    desc: Classify the differences between two vendored specs; fails on a breaking change of an operation the kinds use. Usage - task spec:diff FROM=1.44.0 TO=1.46.0
+    requires:
+      vars: [FROM, TO]
+    cmds:
+      - go run ./tools/specdiff -used tools/specdiff/used.txt api/logto/{{.FROM}}.openapi.json api/logto/{{.TO}}.openapi.json
 
   check:
     desc: The gate of ci.yml. Does not cover `task e2e` (e2e.yml, needs Docker).

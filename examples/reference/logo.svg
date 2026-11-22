@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Aliud">
+  <g fill="#101418">
+    <rect x="7" y="7" width="22" height="22"/>
+    <rect x="34" y="7" width="22" height="22"/>
+    <rect x="7" y="34" width="22" height="22"/>
+  </g>
+  <path fill="#C05A2E" d="M44.5 32 57 44.5 44.5 57 32 44.5Z"/>
+</svg>

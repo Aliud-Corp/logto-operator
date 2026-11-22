@@ -2,19 +2,23 @@ package operator_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/yaml"
 
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
@@ -57,12 +61,17 @@ spec:
 
 func credentials() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "logto-credentials", Namespace: ns},
+		ObjectMeta: metav1.ObjectMeta{Name: "logto-credentials", Namespace: ns, Annotations: map[string]string{operator.ReadableAnnotation: "true"}},
 		Data:       map[string][]byte{"id": []byte("boot"), "secret": []byte("boot-secret")},
 	}
 }
 
 func setup(t *testing.T, objs ...client.Object) (*operator.Reconciler, client.Client) {
+	t.Helper()
+	return setupWith(t, interceptor.Funcs{}, objs...)
+}
+
+func setupWith(t *testing.T, funcs interceptor.Funcs, objs ...client.Object) (*operator.Reconciler, client.Client) {
 	t.Helper()
 	scheme := runtime.NewScheme()
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
@@ -74,6 +83,7 @@ func setup(t *testing.T, objs ...client.Object) (*operator.Reconciler, client.Cl
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).
 		WithStatusSubresource(&v1alpha1.LogtoConfig{}).
 		WithIndex(&v1alpha1.LogtoConfig{}, operator.EndpointIndex, operator.EndpointOf).
+		WithInterceptorFuncs(funcs).
 		Build()
 	return &operator.Reconciler{Client: c, Scheme: scheme}, c
 }
@@ -191,6 +201,19 @@ func TestADocumentInErrorIsDegraded(t *testing.T) {
 		want   string
 	}{
 		"missing credentials": {func(*v1alpha1.LogtoConfig) {}, nil, `secrets "logto-credentials" not found`},
+		// The operator never reads its own environment or files: a document could send them to its endpoint.
+		"an env source": {func(cfg *v1alpha1.LogtoConfig) {
+			cfg.Spec.Credentials.ClientID = v1alpha1.StringSource{ValueFrom: &v1alpha1.ValueFrom{Env: "HOME"}}
+		}, []client.Object{credentials()}, "spec.credentials.clientId.valueFrom: a LogtoConfig object reads secretKeyRef only"},
+		"a file source": {func(cfg *v1alpha1.LogtoConfig) {
+			cfg.Spec.Credentials.ClientSecret = v1alpha1.SecretSource{ValueFrom: v1alpha1.ValueFrom{File: "/var/run/secrets/kubernetes.io/serviceaccount/token"}}
+		}, []client.Object{credentials()}, "spec.credentials.clientSecret.valueFrom: a LogtoConfig object reads secretKeyRef only"},
+		// A Secret is read only when it says so: otherwise whoever may create a LogtoConfig could send any Secret of
+		// the namespace to an endpoint of their choice.
+		"a Secret that does not opt in": {func(*v1alpha1.LogtoConfig) {}, []client.Object{&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "logto-credentials", Namespace: ns},
+			Data:       map[string][]byte{"id": []byte("boot"), "secret": []byte("boot-secret")},
+		}}, `the Secret logto-credentials does not allow LogtoConfig objects to read it (annotation logto.aliud.fr/readable: "true")`},
 		"a file to read": {func(cfg *v1alpha1.LogtoConfig) {
 			cfg.Spec.SignInExperience = &v1alpha1.SignInExperience{CustomCSS: &v1alpha1.TextSource{FromFile: "theme.css"}}
 		}, []client.Object{credentials()}, "logtoctl render"},
@@ -293,5 +316,122 @@ func TestOutputKeysRenameWhatIsPublished(t *testing.T) {
 	}
 	if len(sec.Data) != 1 || string(sec.Data["LOGTO_MANAGEMENT_CLIENT_SECRET"]) != fakeLogto.ApplicationSecrets(backendID)[0] {
 		t.Fatalf("secret keys = %v", keys(sec.Data))
+	}
+}
+
+// Someone writes the object while a run talks to Logto: the status is written anyway, on the newest object, and
+// lastAppliedTime is not lost.
+func TestAStatusConflictIsRetriedOnTheNewestObject(t *testing.T) {
+	_, lc := kindtest.Fake(t)
+	conflicts := 1
+	funcs := interceptor.Funcs{SubResourceUpdate: func(ctx context.Context, c client.Client, sub string, obj client.Object, opts ...client.SubResourceUpdateOption) error {
+		if conflicts > 0 {
+			conflicts--
+			return apierrors.NewConflict(schema.GroupResource{Group: "logto.aliud.fr", Resource: "logtoconfigs"}, obj.GetName(), errors.New("changed"))
+		}
+		return c.SubResource(sub).Update(ctx, obj, opts...)
+	}}
+	r, c := setupWith(t, funcs, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials())
+	if _, err := reconcile(t, r, "main"); err != nil {
+		t.Fatal(err)
+	}
+	cfg := get(t, c, "main")
+	if cfg.Status.LastAppliedTime == nil || condition(t, cfg, operator.Ready).Status != metav1.ConditionTrue {
+		t.Fatalf("status = %+v", cfg.Status)
+	}
+}
+
+// A run that fails says nothing about drift: Drifted becomes Unknown instead of keeping an old answer.
+func TestAFailedRunMakesDriftUnknown(t *testing.T) {
+	_, lc := kindtest.Fake(t)
+	cfg := doc(t, lc.Endpoint(), "main", v1alpha1.ModeObserve)
+	r, c := setup(t, cfg, credentials())
+	if _, err := reconcile(t, r, "main"); err != nil {
+		t.Fatal(err)
+	}
+	if d := condition(t, get(t, c, "main"), operator.Drifted); d.Status != metav1.ConditionTrue {
+		t.Fatalf("Drifted = %+v", d)
+	}
+	if err := c.Delete(context.Background(), credentials()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reconcile(t, r, "main"); err != nil {
+		t.Fatal(err)
+	}
+	if d := condition(t, get(t, c, "main"), operator.Drifted); d.Status != metav1.ConditionUnknown {
+		t.Fatalf("Drifted = %+v", d)
+	}
+}
+
+// An outputs name that is taken by an object this operator does not manage is never overwritten: the document is
+// Degraded until the name changes, instead of retrying for ever.
+func TestAnOutputsNameTakenByAnotherObjectIsRefused(t *testing.T) {
+	_, lc := kindtest.Fake(t)
+	theirs := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "logto-secrets", Namespace: ns}, Data: map[string][]byte{"keep": []byte("me")}}
+	r, c := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials(), theirs)
+	if _, err := reconcile(t, r, "main"); err != nil {
+		t.Fatalf("a taken name is not retried with backoff: %v", err)
+	}
+	if d := condition(t, get(t, c, "main"), operator.Degraded); d.Status != metav1.ConditionTrue || d.Reason != "OutputsConflict" || !strings.Contains(d.Message, "Secret logto-secrets") {
+		t.Fatalf("Degraded = %+v", d)
+	}
+	var s corev1.Secret
+	if err := c.Get(context.Background(), types.NamespacedName{Namespace: ns, Name: "logto-secrets"}, &s); err != nil || string(s.Data["keep"]) != "me" || len(s.Data) != 1 {
+		t.Fatalf("the other Secret was touched: %v %v", keys(s.Data), err)
+	}
+}
+
+// The outputs follow the document: an output it no longer declares leaves the ConfigMap.
+func TestAnOutputTheDocumentDropsIsRemoved(t *testing.T) {
+	_, lc := kindtest.Fake(t)
+	cfg := doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply)
+	r, c := setup(t, cfg, credentials())
+	if _, err := reconcile(t, r, "main"); err != nil {
+		t.Fatal(err)
+	}
+	latest := get(t, c, "main")
+	latest.Spec.Resources = nil
+	if err := c.Update(context.Background(), latest); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reconcile(t, r, "main"); err != nil {
+		t.Fatal(err)
+	}
+	var ids corev1.ConfigMap
+	if err := c.Get(context.Background(), types.NamespacedName{Namespace: ns, Name: "logto-ids"}, &ids); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := ids.Data["resources.app.indicator"]; ok {
+		t.Fatalf("ids = %v", ids.Data)
+	}
+}
+
+// One Logto has many spellings: case, default port, trailing slash and scheme do not make another endpoint.
+func TestAnEndpointIsComparedNormalized(t *testing.T) {
+	key := func(endpoint string) string {
+		return operator.EndpointOf(&v1alpha1.LogtoConfig{Spec: v1alpha1.LogtoConfigSpec{Endpoint: endpoint}})[0]
+	}
+	want := key("https://auth.example.test")
+	for _, e := range []string{"https://Auth.Example.TEST/", "https://auth.example.test:443", "http://auth.example.test:80/", "HTTPS://auth.example.test//"} {
+		if got := key(e); got != want {
+			t.Errorf("%s = %q, want %q", e, got, want)
+		}
+	}
+	if key("https://auth.example.test:3001") == want || key("https://auth.example.test/tenant") == want {
+		t.Error("another port or path is another endpoint")
+	}
+}
+
+// When a LogtoConfig goes away (or changes endpoint), the others of its endpoint are reconciled at once: one of
+// them takes the endpoint over without waiting for its resync.
+func TestTheOthersOfAnEndpointAreWokenUp(t *testing.T) {
+	_, lc := kindtest.Fake(t)
+	first := doc(t, lc.Endpoint(), "first", v1alpha1.ModeObserve)
+	second := doc(t, lc.Endpoint()+"/", "second", v1alpha1.ModeObserve)
+	other := doc(t, "https://elsewhere.example.test", "other", v1alpha1.ModeObserve)
+	r, _ := setup(t, first, second, other, credentials())
+	got := r.Siblings(context.Background(), first)
+	if len(got) != 1 || got[0].Name != "second" {
+		t.Fatalf("woken = %v", got)
 	}
 }

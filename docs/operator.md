@@ -8,14 +8,19 @@ controller runs; manifests, image and end-to-end tests come next.
 
 - It turns the object into a document like `logtoctl` does a file (variables, strict keys, the JSON Schema, the rules
   across fields). It reads no file: `fromFile` and `fromDir` are refused, so render the document first
-  (`logtoctl render -f config.yaml`, files inlined) and apply the result.
-- It reads `secretKeyRef` values from Secrets of the object's namespace, uncached, at each run.
+  (`logtoctl render -f config.yaml`: files inlined, variables applied and dropped, a literal `${` written `$${`)
+  and apply the result.
+- It reads `secretKeyRef` values only, from Secrets of the object's namespace that carry the annotation
+  `logto.aliud.fr/readable: "true"`, uncached, at each run. `env` and `file` sources are refused: the operator never
+  reads its own environment or files. Without the annotation, whoever may create a LogtoConfig in a namespace could
+  send any of its Secrets to an endpoint of their choice.
 - `spec.mode: Observe` (the default) plans and reports what differs; `spec.mode: Apply` reconciles Logto.
 - It publishes the identifiers Logto generates in the ConfigMap `spec.outputs.configMap.name`, and, after an apply,
   the secrets in the Secret `spec.outputs.secret.name`. Both are owned by the object and labelled
   `app.kubernetes.io/managed-by: logto-operator`.
-- It comes back every `spec.resyncInterval` (default `10m`), and at once when the object changes. A changed
-  credential Secret is read at the next resync.
+- It comes back every `spec.resyncInterval` (default `10m`), at once when the object's spec, labels or annotations
+  change (not its status), when an output it owns changes, and when another object of its endpoint goes away. A
+  changed credential Secret is read at the next resync.
 
 ## Outputs
 
@@ -48,7 +53,9 @@ envFrom:
 ```
 
 The document is refused when a key names no output, puts a secret in the ConfigMap or an identifier in the Secret,
-or is no valid ConfigMap key. In Observe mode the Secret is not written and the ConfigMap holds the identifiers of
+appears in both targets, or is no valid ConfigMap key (nor is an output name without `keys`). A target holds exactly
+what the document publishes now. An outputs name taken by an object the LogtoConfig does not own is never
+overwritten: the object is `Degraded` (reason `OutputsConflict`) until the name changes. In Observe mode the Secret is not written and the ConfigMap holds the identifiers of
 the objects that already exist.
 
 ## Status
@@ -60,16 +67,29 @@ the objects that already exist.
 | `Degraded` | the document or the target is in error (invalid document, missing Secret, untested Logto, failed write); it stays until the object changes or the next resync succeeds |
 
 A transient failure (Logto unreachable, 429, 5xx) leaves `Ready` false with reason `Transient` and is retried with
-backoff. `status.logtoVersion` is the supported version the target matched; `status.lastAppliedTime` is the last
+backoff. A run that did not plan to its end leaves `Drifted` Unknown. `Degraded` carries a reason:
+`InvalidDocument`, `EndpointTaken`, `TargetRefused`, `UntestedLogto`, `ApplyFailed`, `ReconcileFailed`,
+`OutputsConflict`. `status.logtoVersion` is the supported version the target matched; `status.lastAppliedTime` is the last
 apply that wrote.
 
 ## One object per Logto
 
 Two objects on one endpoint would fight over the sign-in experience and prune each other's objects: the oldest one
-keeps the endpoint, any other is `Degraded` and writes nothing. Reconciles run one at a time.
+keeps the endpoint, any other is `Degraded` (reason `EndpointTaken`) and writes nothing, until the first goes away.
+Endpoints are compared without scheme, host case, default port and trailing slashes; one Logto reached through two
+hosts (a Service and an ingress) cannot be told apart, so name it one way. Several objects reconcile at once
+(`--max-concurrent-reconciles`, default 4); runs on one endpoint take turns.
+
+## Running
+
+Flags: `--leader-elect` (default true: two active replicas would both write to Logto; the lease lives in the Pod's
+namespace), `--metrics-bind-address` (default `0`, off; plain HTTP when set, keep it inside the cluster),
+`--health-probe-bind-address` (default `:8081`, `/healthz` and `/readyz`), `--max-concurrent-reconciles`.
 
 ## Permissions
 
-The ClusterRole (`config/rbac/role.yaml`, generated) reads `LogtoConfig` objects and writes their status, and
-reads and writes Secrets and ConfigMaps. The operator's cache holds only the Secrets and ConfigMaps it labels; the
-credentials a document names are read one by one.
+The ClusterRole (`config/rbac/role.yaml`, generated) reads `LogtoConfig` objects and writes their status and
+finalizers (owner references with `blockOwnerDeletion`), reads and writes Secrets and ConfigMaps, and manages the
+leader-election lease and its events. The operator's cache holds only the Secrets and ConfigMaps it labels; the
+credentials a document names are read one by one. Listing and watching Secrets stays cluster-wide: RBAC cannot
+filter by label.

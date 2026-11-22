@@ -11,12 +11,14 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"sort"
+	"strings"
 
 	"sigs.k8s.io/yaml"
 
@@ -178,13 +180,45 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 	}
 }
 
+// render prints the document as it will be applied: files inlined, variables replaced and dropped. Every ${ left
+// in a value (written $${ in the source, or inside an inlined file) is written back as $${, so that reading the
+// output again (logtoctl, or the operator on an object made of it) gives the same values.
 func render(cfg *v1alpha1.LogtoConfig, stdout io.Writer, fail func(error) int) int {
-	b, err := yaml.Marshal(cfg)
+	out := cfg.DeepCopy()
+	out.Spec.Variables = nil
+	js, err := json.Marshal(out)
+	if err != nil {
+		return fail(err)
+	}
+	var tree map[string]any
+	if err := json.Unmarshal(js, &tree); err != nil {
+		return fail(err)
+	}
+	delete(tree, "status")
+	tree["spec"] = escape(tree["spec"])
+	b, err := yaml.Marshal(tree)
 	if err != nil {
 		return fail(err)
 	}
 	_, _ = stdout.Write(b)
 	return ExitOK
+}
+
+// escape writes every ${ of the strings under v as $${.
+func escape(v any) any {
+	switch x := v.(type) {
+	case string:
+		return strings.ReplaceAll(x, "${", "$${")
+	case map[string]any:
+		for k, e := range x {
+			x[k] = escape(e)
+		}
+	case []any:
+		for i, e := range x {
+			x[i] = escape(e)
+		}
+	}
+	return v
 }
 
 func publishSecrets(o *engine.Outputs, path string, fd int, print bool, stdout, stderr io.Writer, fail func(error) int) int {

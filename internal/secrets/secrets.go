@@ -82,12 +82,18 @@ func (r Resolver) Secret(path string, s v1alpha1.SecretSource) (Secret, error) {
 func (r Resolver) read(path string, f v1alpha1.ValueFrom) (string, error) {
 	switch {
 	case f.Env != "":
+		if r.Getenv == nil {
+			return "", fmt.Errorf("%s: this resolver reads no environment variable", path)
+		}
 		v, ok := r.Getenv(f.Env)
 		if !ok || v == "" {
 			return "", fmt.Errorf("%s: environment variable %s is unset or empty", path, f.Env)
 		}
 		return v, nil
 	case f.File != "":
+		if r.ReadFile == nil {
+			return "", fmt.Errorf("%s: this resolver reads no file", path)
+		}
 		b, err := r.ReadFile(f.File)
 		if err != nil {
 			return "", fmt.Errorf("%s: %w", path, err)

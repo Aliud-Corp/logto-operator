@@ -242,28 +242,71 @@ func Outputs(s *v1alpha1.LogtoConfigSpec) (ids, secrets map[string]bool) {
 // outputKey is what Kubernetes accepts as a ConfigMap or Secret key.
 var outputKey = regexp.MustCompile(`^[-._a-zA-Z0-9]+$`)
 
+// validKey reports whether Kubernetes accepts a ConfigMap or Secret key.
+func validKey(key string) bool {
+	return len(key) <= 253 && outputKey.MatchString(key) && key != "." && key != ".." && !strings.HasPrefix(key, "..")
+}
+
 func (v *validator) outputs(s *v1alpha1.LogtoConfigSpec) {
 	if s.Outputs == nil {
 		return
 	}
 	ids, secrets := Outputs(s)
+	published := map[string]string{} // key -> target path, across both targets
 	check := func(path string, t *v1alpha1.OutputTarget, own, other map[string]bool, otherKind, otherPath string) {
 		if t == nil {
+			return
+		}
+		if len(t.Keys) == 0 {
+			for _, name := range sortedKeys(own) {
+				if !validKey(name) {
+					v.add(path, "the output %q is no valid ConfigMap key: name it with keys", name)
+				}
+				published[name] = path
+			}
 			return
 		}
 		for _, key := range sortedKeys(t.Keys) {
 			p, name := path+".keys."+key, t.Keys[key]
 			switch {
-			case len(key) > 253 || !outputKey.MatchString(key):
-				v.add(p, "not a valid ConfigMap or Secret key (letters, digits, '-', '_', '.')")
+			case !validKey(key):
+				v.add(p, "not a valid ConfigMap or Secret key (letters, digits, '-', '_', '.'; not . or ..)")
+			case published[key] != "":
+				v.add(p, "also published by %s; with envFrom one would hide the other", published[key])
 			case own[name]:
 			case other[name]:
 				v.add(p, "%q is %s: publish it in %s", name, otherKind, otherPath)
 			default:
 				v.add(p, "%q is no output of this document", name)
 			}
+			published[key] = path
 		}
 	}
 	check("spec.outputs.configMap", s.Outputs.ConfigMap, ids, secrets, "a secret", "spec.outputs.secret")
 	check("spec.outputs.secret", s.Outputs.Secret, secrets, ids, "an identifier", "spec.outputs.configMap")
+}
+
+// Source is a valueFrom of a document, by path.
+type Source struct {
+	Path string
+	From v1alpha1.ValueFrom
+}
+
+// Sources are every valueFrom a document reads (credentials, connector auth), sorted by path.
+func Sources(s *v1alpha1.LogtoConfigSpec) []Source {
+	var out []Source
+	add := func(path string, f *v1alpha1.ValueFrom) {
+		if f != nil {
+			out = append(out, Source{Path: path + ".valueFrom", From: *f})
+		}
+	}
+	add("spec.credentials.clientId", s.Credentials.ClientID.ValueFrom)
+	add("spec.credentials.clientSecret", &s.Credentials.ClientSecret.ValueFrom)
+	for _, k := range sortedKeys(s.Connectors) {
+		if c := s.Connectors[k]; c.SMTP != nil {
+			add("spec.connectors."+k+".smtp.auth.user", c.SMTP.Auth.User.ValueFrom)
+			add("spec.connectors."+k+".smtp.auth.pass", &c.SMTP.Auth.Pass.ValueFrom)
+		}
+	}
+	return out
 }

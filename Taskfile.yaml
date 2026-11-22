@@ -16,6 +16,8 @@ vars:
   # Every directory `task generate` writes into; `generate:check` guards them all.
   GENERATED_DIRS: internal/logto/mgmt api/v1alpha1 config/crd config/rbac api/logto internal/logto/version
   BIN_DIR: bin
+  # The API server of `task test:envtest`: the minor of k8s.io/client-go in go.mod.
+  ENVTEST_K8S: 1.37.0
   E2E_CLUSTER: logto-operator-e2e
   E2E_KUBECONFIG: build/e2e.kubeconfig
   VERSION:
@@ -72,6 +74,15 @@ tasks:
     desc: Unit tests (no network, no Logto; the fake Management API runs in-process).
     cmds:
       - go test -race -count=1 ./...
+
+  test:envtest:
+    desc: The operator's manager against a real API server (envtest; kube-apiserver and etcd fetched once into .cache/envtest).
+    env:
+      LOGTO_ENVTEST_REQUIRED: "1"
+    cmds:
+      - |
+        KUBEBUILDER_ASSETS="$(setup-envtest use {{.ENVTEST_K8S}} --bin-dir {{.ROOT_DIR}}/.cache/envtest -p path)" \
+          go test -race -count=1 -tags envtest -run TestTheManagerAgainstARealAPIServer ./internal/operator/
 
   lint:
     desc: golangci-lint on the Go code (generated files excluded), actionlint on the workflows, the runner guard.
@@ -174,4 +185,5 @@ tasks:
       - task: tidy:check
       - task: lint
       - task: test
+      - task: test:envtest
       - task: build

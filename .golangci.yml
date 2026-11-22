@@ -5,6 +5,7 @@ run:
   # Lint the integration tests too (they are built only with this tag).
   build-tags:
     - integration
+    - envtest
 linters:
   default: standard
   enable:

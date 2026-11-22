@@ -17,6 +17,25 @@ rules:
   - update
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - logto.aliud.fr
   resources:
   - logtoconfigs
@@ -24,6 +43,12 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - logto.aliud.fr
+  resources:
+  - logtoconfigs/finalizers
+  verbs:
+  - update
 - apiGroups:
   - logto.aliud.fr
   resources:

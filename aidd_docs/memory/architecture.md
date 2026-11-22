@@ -60,5 +60,6 @@ flowchart LR
   function": `specnorm` leaves them unconstrained, or the generated client cannot decode real answers.
 - YAML flow sequences break on `${...}`: quote such strings (`["https://app.${zone}"]`).
 - The operator turns a LogtoConfig object into a document through `config.FromObject` (the CLI's steps, no file
-  read), runs the engine once per reconcile (Observe plans, Apply applies), one reconcile at a time, and refuses a
-  second object on one endpoint. Its cache holds only the outputs it labels; credentials are read uncached.
+  read), runs the engine once per reconcile (Observe plans, Apply applies), and refuses a
+  second object on one endpoint (normalized), one run per endpoint at a time. Its cache holds only the outputs it
+  labels; credentials are read uncached, from Secrets annotated `logto.aliud.fr/readable`, secretKeyRef only.

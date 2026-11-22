@@ -43,7 +43,7 @@ func Load(path string) (*Document, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	if err := resolveFiles(cfg, dir); err != nil {
+	if err := resolveFiles(cfg, osFiles(dir)); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	return &Document{Config: cfg, Dir: dir}, nil
@@ -149,7 +149,58 @@ func interpolate(root map[string]any) error {
 }
 
 // resolveFiles reads every fromFile / fromDir relative to dir.
-func resolveFiles(cfg *v1alpha1.LogtoConfig, dir string) error {
+// files reads what a document names relative to its directory.
+type files struct {
+	read func(name string) ([]byte, error)
+	glob func(pattern string) ([]string, error)
+}
+
+func osFiles(dir string) files {
+	return files{
+		read: func(name string) ([]byte, error) { return os.ReadFile(filepath.Join(dir, name)) },
+		glob: func(pattern string) ([]string, error) {
+			found, err := filepath.Glob(filepath.Join(dir, pattern))
+			for i := range found {
+				found[i], _ = filepath.Rel(dir, found[i])
+			}
+			return found, err
+		},
+	}
+}
+
+// errNoFiles is what a document without a directory (a Kubernetes object) answers to fromFile and fromDir.
+var errNoFiles = errors.New("a LogtoConfig object reads no file: inline it with `logtoctl render` first")
+
+var noFiles = files{
+	read: func(string) ([]byte, error) { return nil, errNoFiles },
+	glob: func(string) ([]string, error) { return nil, errNoFiles },
+}
+
+// FromObject turns a LogtoConfig read from Kubernetes into a document, through the same steps as a file
+// (interpolation, strict decoding, the JSON Schema), with no file to read: fromFile and fromDir are refused. It
+// does not validate: call Validate.
+func FromObject(obj *v1alpha1.LogtoConfig) (*v1alpha1.LogtoConfig, error) {
+	raw, err := json.Marshal(struct {
+		APIVersion string                   `json:"apiVersion"`
+		Kind       string                   `json:"kind"`
+		Metadata   map[string]string        `json:"metadata"`
+		Spec       v1alpha1.LogtoConfigSpec `json:"spec"`
+	}{v1alpha1.GroupVersion.String(), v1alpha1.Kind, map[string]string{"name": obj.Name}, obj.Spec})
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := Parse(raw)
+	if err != nil {
+		return nil, err
+	}
+	if err := resolveFiles(cfg, noFiles); err != nil {
+		return nil, err
+	}
+	cfg.ObjectMeta = *obj.ObjectMeta.DeepCopy()
+	return cfg, nil
+}
+
+func resolveFiles(cfg *v1alpha1.LogtoConfig, dir files) error {
 	var errs []error
 	text := func(path string, ts *v1alpha1.TextSource) {
 		if ts == nil {
@@ -185,7 +236,7 @@ func resolveFiles(cfg *v1alpha1.LogtoConfig, dir string) error {
 	return errors.Join(errs...)
 }
 
-func resolveText(ts *v1alpha1.TextSource, dir string) error {
+func resolveText(ts *v1alpha1.TextSource, dir files) error {
 	if ts.FromFile == "" {
 		if ts.As == "dataUri" {
 			return errors.New("as: dataUri needs fromFile")
@@ -195,7 +246,7 @@ func resolveText(ts *v1alpha1.TextSource, dir string) error {
 	if ts.Value != "" {
 		return errors.New("value and fromFile are exclusive")
 	}
-	b, err := os.ReadFile(filepath.Join(dir, ts.FromFile))
+	b, err := dir.read(ts.FromFile)
 	if err != nil {
 		return fmt.Errorf("fromFile: %w", err)
 	}
@@ -214,20 +265,20 @@ func resolveText(ts *v1alpha1.TextSource, dir string) error {
 }
 
 // resolveTemplates reads <dir>/<fromDir>/*.json, one template per file, sorted by file name, appended to Items.
-func resolveTemplates(t *v1alpha1.EmailTemplates, dir string) error {
+func resolveTemplates(t *v1alpha1.EmailTemplates, dir files) error {
 	if t.FromDir == "" {
 		return nil
 	}
-	files, err := filepath.Glob(filepath.Join(dir, t.FromDir, "*.json"))
+	found, err := dir.glob(filepath.Join(t.FromDir, "*.json"))
 	if err != nil {
-		return err
+		return fmt.Errorf("fromDir: %w", err)
 	}
-	if len(files) == 0 {
+	if len(found) == 0 {
 		return fmt.Errorf("fromDir %s: no *.json template", t.FromDir)
 	}
-	sort.Strings(files)
-	for _, f := range files {
-		b, err := os.ReadFile(f)
+	sort.Strings(found)
+	for _, f := range found {
+		b, err := dir.read(f)
 		if err != nil {
 			return err
 		}

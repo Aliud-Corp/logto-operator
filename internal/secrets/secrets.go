@@ -5,7 +5,6 @@ package secrets
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -43,10 +42,12 @@ func (Secret) MarshalText() ([]byte, error) { return []byte(Masked), nil }
 
 // Resolver reads valueFrom sources.
 type Resolver struct {
-	Getenv            func(string) (string, bool)
-	ReadFile          func(string) ([]byte, error)
-	AllowSecretKeyRef bool // the operator reads Secrets; the CLI never does
-	Redactor          *Redactor
+	Getenv   func(string) (string, bool)
+	ReadFile func(string) ([]byte, error)
+	// SecretKey reads a key of a Kubernetes Secret of the document's namespace: the operator sets it, the CLI never
+	// does (a secretKeyRef is then refused).
+	SecretKey func(name, key string) (string, error)
+	Redactor  *Redactor
 }
 
 // CLI is the resolver of logtoctl: environment and files, never a Kubernetes Secret.
@@ -97,10 +98,17 @@ func (r Resolver) read(path string, f v1alpha1.ValueFrom) (string, error) {
 		}
 		return v, nil
 	case f.SecretKeyRef != nil:
-		if !r.AllowSecretKeyRef {
+		if r.SecretKey == nil {
 			return "", fmt.Errorf("%s: secretKeyRef is read by the operator only; logtoctl reads env or file", path)
 		}
-		return "", errors.New(path + ": secretKeyRef is not implemented yet (milestone 3)")
+		v, err := r.SecretKey(f.SecretKeyRef.Name, f.SecretKeyRef.Key)
+		if err != nil {
+			return "", fmt.Errorf("%s: %w", path, err)
+		}
+		if v == "" {
+			return "", fmt.Errorf("%s: key %s of Secret %s is empty", path, f.SecretKeyRef.Key, f.SecretKeyRef.Name)
+		}
+		return v, nil
 	default:
 		return "", fmt.Errorf("%s: names no source", path)
 	}

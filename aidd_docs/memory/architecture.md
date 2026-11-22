@@ -59,3 +59,6 @@ flowchart LR
 - Logto exports fields checked by a custom zod function (redirect URIs, names...) as empty objects "Validator
   function": `specnorm` leaves them unconstrained, or the generated client cannot decode real answers.
 - YAML flow sequences break on `${...}`: quote such strings (`["https://app.${zone}"]`).
+- The operator turns a LogtoConfig object into a document through `config.FromObject` (the CLI's steps, no file
+  read), runs the engine once per reconcile (Observe plans, Apply applies), one reconcile at a time, and refuses a
+  second object on one endpoint. Its cache holds only the outputs it labels; credentials are read uncached.

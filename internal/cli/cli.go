@@ -25,10 +25,9 @@ import (
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
-	"github.com/Aliud-Corp/logto-operator/internal/logto/capability"
-	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
 	"github.com/Aliud-Corp/logto-operator/internal/outputs"
 	"github.com/Aliud-Corp/logto-operator/internal/secrets"
+	"github.com/Aliud-Corp/logto-operator/internal/target"
 )
 
 // Exit codes.
@@ -132,7 +131,7 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 	}
 
 	resolver := secrets.CLI(redactor)
-	env, err := environment(ctx, doc.Config, resolver)
+	env, err := target.Connect(ctx, &doc.Config.Spec, resolver)
 	if err != nil {
 		return fail(err)
 	}
@@ -177,24 +176,6 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 		}
 		return publishSecrets(env.Outputs, *secretsOut, *secretsFD, *printSecrets, stdout, stderr, fail)
 	}
-}
-
-func environment(ctx context.Context, cfg *v1alpha1.LogtoConfig, resolver secrets.Resolver) (*engine.Env, error) {
-	s := &cfg.Spec
-	id, err := resolver.String("spec.credentials.clientId", s.Credentials.ClientID)
-	if err != nil {
-		return nil, err
-	}
-	secret, err := resolver.Secret("spec.credentials.clientSecret", s.Credentials.ClientSecret)
-	if err != nil {
-		return nil, err
-	}
-	c := client.New(client.Config{Endpoint: s.Endpoint, TokenEndpoint: s.Credentials.TokenEndpoint, ClientID: id, ClientSecret: secret.Reveal()})
-	spec, err := capability.Fetch(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-	return &engine.Env{Client: c, Spec: s, Secrets: resolver, Capability: spec}, nil
 }
 
 func render(cfg *v1alpha1.LogtoConfig, stdout io.Writer, fail func(error) int) int {

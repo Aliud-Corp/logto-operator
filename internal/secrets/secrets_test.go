@@ -86,3 +86,26 @@ func TestTheRedactorRemovesResolvedSecretsFromText(t *testing.T) {
 		t.Fatalf("redacted = %q", got)
 	}
 }
+
+// The operator reads a secretKeyRef through SecretKey; the value is registered for redaction, an empty one refused.
+func TestASecretKeyRefIsReadThroughSecretKey(t *testing.T) {
+	ref := v1alpha1.SecretSource{ValueFrom: v1alpha1.ValueFrom{SecretKeyRef: &v1alpha1.SecretKeyRef{Name: "logto", Key: "pass"}}}
+	red := &secrets.Redactor{}
+	r := secrets.Resolver{Redactor: red, SecretKey: func(name, key string) (string, error) {
+		if name == "logto" && key == "pass" {
+			return "from-the-secret", nil
+		}
+		return "", nil
+	}}
+	got, err := r.Secret("spec.x", ref)
+	if err != nil || got.Reveal() != "from-the-secret" {
+		t.Fatalf("got %q, %v", got.Reveal(), err)
+	}
+	if out := red.Redact("leaked from-the-secret"); strings.Contains(out, "from-the-secret") {
+		t.Fatalf("not redacted: %s", out)
+	}
+	ref.ValueFrom.SecretKeyRef.Key = "other"
+	if _, err := r.Secret("spec.x", ref); err == nil || !strings.Contains(err.Error(), "key other of Secret logto is empty") {
+		t.Fatalf("err = %v", err)
+	}
+}

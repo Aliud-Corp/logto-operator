@@ -3,6 +3,7 @@ package cli_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io/fs"
 	"net/http/httptest"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	logtospecs "github.com/Aliud-Corp/logto-operator/api/logto"
 	"github.com/Aliud-Corp/logto-operator/internal/cli"
+	"github.com/Aliud-Corp/logto-operator/internal/config"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/contract"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/logtofake"
@@ -240,4 +242,43 @@ func TestAnUntestedLogtoIsRefusedUnlessAllowed(t *testing.T) {
 	if r.code != cli.ExitOK || !strings.Contains(r.stderr, "outside the support window") {
 		t.Fatalf("plan --allow-untested-logto: %d\n%s", r.code, r.stderr)
 	}
+}
+
+// What an apply publishes is exactly what config.Outputs names: the output keys of a LogtoConfig are validated
+// against that list, so a kind that published another name would make a valid key publish nothing.
+func TestTheOutputsAreTheOnesTheDocumentNames(t *testing.T) {
+	_, _, doc := setup(t)
+	secretsFile := filepath.Join(t.TempDir(), "secrets.json")
+	a := run("apply", "-f", doc, "--outputs", "json", "--secrets-out", secretsFile)
+	if a.code != cli.ExitOK {
+		t.Fatalf("apply: %d\n%s%s", a.code, a.stdout, a.stderr)
+	}
+	var ids, secretValues map[string]string
+	if err := json.Unmarshal([]byte(a.stdout), &ids); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(secretsFile)
+	if err := json.Unmarshal(b, &secretValues); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := config.Load(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantIDs, wantSecrets := config.Outputs(&loaded.Config.Spec)
+	same := func(what string, got map[string]string, want map[string]bool) {
+		t.Helper()
+		for k := range got {
+			if !want[k] {
+				t.Errorf("%s %s is published but config.Outputs does not name it", what, k)
+			}
+		}
+		for k := range want {
+			if _, ok := got[k]; !ok {
+				t.Errorf("%s %s is named by config.Outputs but not published", what, k)
+			}
+		}
+	}
+	same("identifier", ids, wantIDs)
+	same("secret", secretValues, wantSecrets)
 }

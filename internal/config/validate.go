@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -33,6 +34,7 @@ func Validate(cfg *v1alpha1.LogtoConfig) error {
 	v.roles(s)
 	v.applications(s)
 	v.users(s)
+	v.outputs(s)
 	return errors.Join(v.errs...)
 }
 
@@ -216,4 +218,52 @@ func (v *validator) users(s *v1alpha1.LogtoConfigSpec) {
 		}
 		v.grantable(s, "spec.users."+k, s.Users[k].Roles, "User", "a user")
 	}
+}
+
+// Outputs are the names of what a document publishes: identifiers and secrets. The kinds publish exactly these
+// (a test of internal/engine/kinds checks it on examples/reference.yaml).
+func Outputs(s *v1alpha1.LogtoConfigSpec) (ids, secrets map[string]bool) {
+	ids, secrets = map[string]bool{}, map[string]bool{}
+	for k, a := range s.Applications {
+		ids["applications."+k+".id"] = true
+		if a.Secret != nil && a.Secret.Publish {
+			secrets["applications."+k+".secret"] = true
+		}
+	}
+	for k := range s.Resources {
+		ids["resources."+k+".indicator"] = true
+	}
+	for k := range s.Users {
+		ids["users."+k+".id"] = true
+	}
+	return ids, secrets
+}
+
+// outputKey is what Kubernetes accepts as a ConfigMap or Secret key.
+var outputKey = regexp.MustCompile(`^[-._a-zA-Z0-9]+$`)
+
+func (v *validator) outputs(s *v1alpha1.LogtoConfigSpec) {
+	if s.Outputs == nil {
+		return
+	}
+	ids, secrets := Outputs(s)
+	check := func(path string, t *v1alpha1.OutputTarget, own, other map[string]bool, otherKind, otherPath string) {
+		if t == nil {
+			return
+		}
+		for _, key := range sortedKeys(t.Keys) {
+			p, name := path+".keys."+key, t.Keys[key]
+			switch {
+			case len(key) > 253 || !outputKey.MatchString(key):
+				v.add(p, "not a valid ConfigMap or Secret key (letters, digits, '-', '_', '.')")
+			case own[name]:
+			case other[name]:
+				v.add(p, "%q is %s: publish it in %s", name, otherKind, otherPath)
+			default:
+				v.add(p, "%q is no output of this document", name)
+			}
+		}
+	}
+	check("spec.outputs.configMap", s.Outputs.ConfigMap, ids, secrets, "a secret", "spec.outputs.secret")
+	check("spec.outputs.secret", s.Outputs.Secret, secrets, ids, "an identifier", "spec.outputs.configMap")
 }

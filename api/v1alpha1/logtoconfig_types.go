@@ -12,6 +12,10 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=logtocfg
+// +kubebuilder:printcolumn:name="Mode",type=string,JSONPath=`.spec.mode`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Drifted",type=string,JSONPath=`.status.conditions[?(@.type=="Drifted")].status`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type LogtoConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -38,6 +42,27 @@ type LogtoConfigSpec struct {
 
 	// Credentials of the M2M application the tool authenticates as.
 	Credentials Credentials `json:"credentials"`
+
+	// Mode is what the operator does on each reconcile: Observe plans and reports drift (status Drifted), Apply
+	// reconciles Logto. logtoctl ignores it: its verb decides. Every environment starts in Observe.
+	// +optional
+	// +kubebuilder:default=Observe
+	// +kubebuilder:validation:Enum=Observe;Apply
+	Mode string `json:"mode,omitempty"`
+
+	// ResyncInterval is how often the operator reconciles an unchanged document (default 10m).
+	// +optional
+	ResyncInterval *metav1.Duration `json:"resyncInterval,omitempty"`
+
+	// AllowUntestedLogto lets the operator run against a Logto whose spec is none of the supported versions
+	// (logtoctl's --allow-untested-logto).
+	// +optional
+	AllowUntestedLogto bool `json:"allowUntestedLogto,omitempty"`
+
+	// Outputs names where the operator publishes what Logto generates, in the document's namespace: identifiers in
+	// a ConfigMap, secrets in a Secret, both owned by the LogtoConfig. logtoctl ignores it (--outputs, --secrets-out).
+	// +optional
+	Outputs *Outputs `json:"outputs,omitempty"`
 
 	// Variables usable as ${name} in string fields of this spec.
 	// +optional
@@ -405,12 +430,51 @@ type User struct {
 	Roles []RoleRef `json:"roles,omitempty"`
 }
 
-// LogtoConfigStatus is written by the operator (milestone 3).
+// Outputs of the operator.
+type Outputs struct {
+	// ConfigMap receives the identifiers (application ids, resource indicators), one key per output.
+	// +optional
+	ConfigMap *OutputTarget `json:"configMap,omitempty"`
+	// Secret receives the secrets (M2M application secrets), one key per output.
+	// +optional
+	Secret *OutputTarget `json:"secret,omitempty"`
+}
+
+// OutputTarget names an object of the document's namespace.
+type OutputTarget struct {
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name"`
+	// Keys, when set, publishes only these outputs, each under the key it is mapped from (LOGTO_APP_ID:
+	// applications.organizer.id), so that a Pod can take the object whole with envFrom. Without keys, every output
+	// is published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator,
+	// users.<key>.id).
+	// +optional
+	Keys map[string]string `json:"keys,omitempty"`
+}
+
+// Modes of the operator.
+const (
+	ModeObserve = "Observe"
+	ModeApply   = "Apply"
+)
+
+// LogtoConfigStatus is written by the operator.
 type LogtoConfigStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	// Conditions: Ready (the last reconcile succeeded and Logto matches the document), Drifted (Logto differs from
+	// the document; Observe mode only reports it), Degraded (the document or the target is in error until it changes).
 	// +optional
+	// +listType=map
+	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// LogtoVersion is the supported version the target's spec matched, empty when untested.
+	// +optional
+	LogtoVersion string `json:"logtoVersion,omitempty"`
+	// LastAppliedTime is when an apply last wrote to Logto.
+	// +optional
+	LastAppliedTime *metav1.Time `json:"lastAppliedTime,omitempty"`
 }
 
 // Free is a JSON object passed to Logto as is.

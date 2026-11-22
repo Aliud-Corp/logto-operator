@@ -22,6 +22,10 @@
     "spec": {
       "description": "LogtoConfigSpec declares what the tool owns in one Logto tenant. Objects that reference each other are maps keyed\nby a local key (stable, ours), distinct from the Logto name (theirs, shown in the console).",
       "properties": {
+        "allowUntestedLogto": {
+          "description": "AllowUntestedLogto lets the operator run against a Logto whose spec is none of the supported versions\n(logtoctl's --allow-untested-logto).",
+          "type": "boolean"
+        },
         "applications": {
           "additionalProperties": {
             "description": "Application is matched by its Logto name and never deleted or recreated.",
@@ -449,6 +453,15 @@
           "pattern": "^https?://",
           "type": "string"
         },
+        "mode": {
+          "default": "Observe",
+          "description": "Mode is what the operator does on each reconcile: Observe plans and reports drift (status Drifted), Apply\nreconciles Logto. logtoctl ignores it: its verb decides. Every environment starts in Observe.",
+          "enum": [
+            "Observe",
+            "Apply"
+          ],
+          "type": "string"
+        },
         "organizationRoles": {
           "additionalProperties": {
             "description": "OrganizationRole is a role of the organization template, matched by its name.",
@@ -503,6 +516,54 @@
               }
             },
             "type": "object"
+          },
+          "type": "object"
+        },
+        "outputs": {
+          "description": "Outputs names where the operator publishes what Logto generates, in the document's namespace: identifiers in\na ConfigMap, secrets in a Secret, both owned by the LogtoConfig. logtoctl ignores it (--outputs, --secrets-out).",
+          "properties": {
+            "configMap": {
+              "description": "ConfigMap receives the identifiers (application ids, resource indicators), one key per output.",
+              "properties": {
+                "keys": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "Keys, when set, publishes only these outputs, each under the key it is mapped from (LOGTO_APP_ID:\napplications.organizer.id), so that a Pod can take the object whole with envFrom. Without keys, every output\nis published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator,\nusers.<key>.id).",
+                  "type": "object"
+                },
+                "name": {
+                  "maxLength": 253,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "type": "object"
+            },
+            "secret": {
+              "description": "Secret receives the secrets (M2M application secrets), one key per output.",
+              "properties": {
+                "keys": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "Keys, when set, publishes only these outputs, each under the key it is mapped from (LOGTO_APP_ID:\napplications.organizer.id), so that a Pod can take the object whole with envFrom. Without keys, every output\nis published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator,\nusers.<key>.id).",
+                  "type": "object"
+                },
+                "name": {
+                  "maxLength": 253,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "type": "object"
+            }
           },
           "type": "object"
         },
@@ -575,6 +636,10 @@
             "type": "object"
           },
           "type": "object"
+        },
+        "resyncInterval": {
+          "description": "ResyncInterval is how often the operator reconciles an unchanged document (default 10m).",
+          "type": "string"
         },
         "roles": {
           "additionalProperties": {

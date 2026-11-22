@@ -16,7 +16,20 @@ spec:
     singular: logtoconfig
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.mode
+      name: Mode
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Drifted")].status
+      name: Drifted
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: LogtoConfig is the desired configuration of one Logto instance.
@@ -43,6 +56,11 @@ spec:
               LogtoConfigSpec declares what the tool owns in one Logto tenant. Objects that reference each other are maps keyed
               by a local key (stable, ours), distinct from the Logto name (theirs, shown in the console).
             properties:
+              allowUntestedLogto:
+                description: |-
+                  AllowUntestedLogto lets the operator run against a Logto whose spec is none of the supported versions
+                  (logtoctl's --allow-untested-logto).
+                type: boolean
               applications:
                 additionalProperties:
                   description: Application is matched by its Logto name and never
@@ -381,6 +399,15 @@ spec:
                   endpoint).
                 pattern: ^https?://
                 type: string
+              mode:
+                default: Observe
+                description: |-
+                  Mode is what the operator does on each reconcile: Observe plans and reports drift (status Drifted), Apply
+                  reconciles Logto. logtoctl ignores it: its verb decides. Every environment starts in Observe.
+                enum:
+                - Observe
+                - Apply
+                type: string
               organizationRoles:
                 additionalProperties:
                   description: OrganizationRole is a role of the organization template,
@@ -423,6 +450,52 @@ spec:
                     description:
                       type: string
                   type: object
+                type: object
+              outputs:
+                description: |-
+                  Outputs names where the operator publishes what Logto generates, in the document's namespace: identifiers in
+                  a ConfigMap, secrets in a Secret, both owned by the LogtoConfig. logtoctl ignores it (--outputs, --secrets-out).
+                properties:
+                  configMap:
+                    description: ConfigMap receives the identifiers (application ids,
+                      resource indicators), one key per output.
+                    properties:
+                      keys:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Keys, when set, publishes only these outputs, each under the key it is mapped from (LOGTO_APP_ID:
+                          applications.organizer.id), so that a Pod can take the object whole with envFrom. Without keys, every output
+                          is published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator,
+                          users.<key>.id).
+                        type: object
+                      name:
+                        maxLength: 253
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  secret:
+                    description: Secret receives the secrets (M2M application secrets),
+                      one key per output.
+                    properties:
+                      keys:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Keys, when set, publishes only these outputs, each under the key it is mapped from (LOGTO_APP_ID:
+                          applications.organizer.id), so that a Pod can take the object whole with envFrom. Without keys, every output
+                          is published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator,
+                          users.<key>.id).
+                        type: object
+                      name:
+                        maxLength: 253
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    type: object
                 type: object
               prune:
                 description: Prune, per kind, deletes the Logto objects of that kind
@@ -478,6 +551,10 @@ spec:
                   - name
                   type: object
                 type: object
+              resyncInterval:
+                description: ResyncInterval is how often the operator reconciles an
+                  unchanged document (default 10m).
+                type: string
               roles:
                 additionalProperties:
                   description: Role is a global role, matched by its name. Its type
@@ -697,9 +774,12 @@ spec:
             - endpoint
             type: object
           status:
-            description: LogtoConfigStatus is written by the operator (milestone 3).
+            description: LogtoConfigStatus is written by the operator.
             properties:
               conditions:
+                description: |-
+                  Conditions: Ready (the last reconcile succeeded and Logto matches the document), Drifted (Logto differs from
+                  the document; Observe mode only reports it), Degraded (the document or the target is in error until it changes).
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -755,6 +835,17 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              lastAppliedTime:
+                description: LastAppliedTime is when an apply last wrote to Logto.
+                format: date-time
+                type: string
+              logtoVersion:
+                description: LogtoVersion is the supported version the target's spec
+                  matched, empty when untested.
+                type: string
               observedGeneration:
                 format: int64
                 type: integer

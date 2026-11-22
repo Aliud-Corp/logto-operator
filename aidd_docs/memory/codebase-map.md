@@ -31,6 +31,9 @@ flowchart TD
 - `internal/logto/mgmt/`: generated code plus its three `oapi-codegen` configs; `doc.go` is the only hand-written file.
 - `internal/logto/logtofake/`: in-process fake on the generated server; unmodelled routes answer 501.
 - `cmd/logtoctl/`: the binary; `internal/cli/`: the commands.
+- `cmd/logto-operator/`: the operator's manager; `internal/operator/`: the LogtoConfig reconciler; `config/rbac/`:
+  its generated ClusterRole.
+- `internal/target/`: connects a document to its Logto (credentials, capability), for the CLI and the operator.
 - `internal/engine/kinds/`: one package per kind (`all.go` lists them), `kindkit` (shared helpers), `kindtest` (test
   harness on the fake and on a real Logto).
 - `internal/outputs/`: identifiers on stdout, secrets to a 0600 file or a descriptor.
@@ -40,4 +43,4 @@ flowchart TD
 
 ## Entry points
 
-- `cmd/logtoctl/main.go`.
+- `cmd/logtoctl/main.go`, `cmd/logto-operator/main.go`.

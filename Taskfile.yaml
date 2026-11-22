@@ -14,7 +14,7 @@ vars:
   CODEGEN_SPEC: build/management.codegen.json
   MGMT_DIR: internal/logto/mgmt
   # Every directory `task generate` writes into; `generate:check` guards them all.
-  GENERATED_DIRS: internal/logto/mgmt api/v1alpha1 config/crd api/logto internal/logto/version
+  GENERATED_DIRS: internal/logto/mgmt api/v1alpha1 config/crd config/rbac api/logto internal/logto/version
   BIN_DIR: bin
   E2E_CLUSTER: logto-operator-e2e
   E2E_KUBECONFIG: build/e2e.kubeconfig
@@ -41,6 +41,8 @@ tasks:
       # The LogtoConfig schema: deepcopy and CRD from api/v1alpha1, then the JSON Schema of the CLI file from the CRD.
       - controller-gen object paths=./api/...
       - controller-gen crd paths=./api/... output:crd:artifacts:config=config/crd
+      # The operator's ClusterRole, from the +kubebuilder:rbac markers of internal/operator.
+      - controller-gen rbac:roleName=logto-operator paths=./internal/operator/... output:rbac:artifacts:config=config/rbac
       - go run ./tools/crd2schema config/crd/logto.aliud.fr_logtoconfigs.yaml api/v1alpha1/logtoconfig.schema.json
 
   generate:check:
@@ -60,10 +62,11 @@ tasks:
       - go mod tidy -diff
 
   build:
-    desc: Build the CLI into bin/.
+    desc: Build the CLI and the operator into bin/.
     cmds:
       - mkdir -p {{.BIN_DIR}}
       - CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN_DIR}}/logtoctl ./cmd/logtoctl
+      - CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN_DIR}}/logto-operator ./cmd/logto-operator
 
   test:
     desc: Unit tests (no network, no Logto; the fake Management API runs in-process).

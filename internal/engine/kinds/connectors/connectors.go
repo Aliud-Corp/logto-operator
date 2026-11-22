@@ -211,11 +211,90 @@ func diff(next, have map[string]any) []plan.Change {
 			}
 			continue
 		}
+		if k == "templates" {
+			changes = append(changes, templateChanges(next[k], have[k])...)
+			continue
+		}
 		if !kindkit.Equal(next[k], have[k]) {
 			changes = append(changes, plan.Change{Field: "config." + k, From: kindkit.JSON(have[k]), To: kindkit.JSON(next[k])})
 		}
 	}
 	return changes
+}
+
+// templateChanges compares the templates by usage type, field by field: a template added or removed is one change,
+// a changed one shows only its changed fields.
+func templateChanges(next, have any) []plan.Change {
+	if kindkit.Equal(next, have) {
+		return nil
+	}
+	n, okN := byUsage(next)
+	h, okH := byUsage(have)
+	if !okN || !okH {
+		return []plan.Change{{Field: "config.templates", From: kindkit.JSON(have), To: kindkit.JSON(next)}}
+	}
+	all := map[string]bool{}
+	for u := range n {
+		all[u] = true
+	}
+	for u := range h {
+		all[u] = true
+	}
+	var changes []plan.Change
+	for _, u := range kindkit.Keys(all) {
+		field := "config.templates[" + u + "]"
+		wt, inN := n[u]
+		ht, inH := h[u]
+		switch {
+		case !inH:
+			changes = append(changes, plan.Change{Field: field, To: kindkit.JSON(wt)})
+		case !inN:
+			changes = append(changes, plan.Change{Field: field, From: kindkit.JSON(ht)})
+		default:
+			keys := map[string]bool{}
+			for k := range wt {
+				keys[k] = true
+			}
+			for k := range ht {
+				keys[k] = true
+			}
+			for _, k := range kindkit.Keys(keys) {
+				if !kindkit.Equal(wt[k], ht[k]) {
+					changes = append(changes, plan.Change{Field: field + "." + k, From: text(ht[k]), To: text(wt[k])})
+				}
+			}
+		}
+	}
+	return changes
+}
+
+// byUsage indexes templates by usage type; false when they are not a list of objects with distinct usage types.
+func byUsage(v any) (map[string]map[string]any, bool) {
+	list, ok := v.([]any)
+	if !ok && v != nil {
+		return nil, false
+	}
+	out := map[string]map[string]any{}
+	for _, t := range list {
+		m, ok := t.(map[string]any)
+		u := usage(t)
+		if _, dup := out[u]; !ok || u == "" || dup {
+			return nil, false
+		}
+		out[u] = m
+	}
+	return out, true
+}
+
+// text renders a template field: a string as it is, anything else as JSON.
+func text(v any) string {
+	if s, ok := v.(string); ok {
+		return s
+	}
+	if v == nil {
+		return ""
+	}
+	return kindkit.JSON(v)
 }
 
 func usage(t any) string {

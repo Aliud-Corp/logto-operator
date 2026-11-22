@@ -67,6 +67,41 @@ func TestAChangedPasswordIsDriftShownMasked(t *testing.T) {
 	}
 }
 
+// Templates are compared one by one, by usage type: a changed subject shows that subject, not every template.
+func TestATemplateChangeShowsOnlyThatTemplate(t *testing.T) {
+	t.Setenv("TEST_SMTP_PASS", "first-password")
+	fake, c := kindtest.Fake(t)
+	kindtest.Apply(t, c, kindtest.Spec(t, declared), connectors.Kind{})
+	changed := strings.Replace(declared, `subject: "Code {{code}}"`, `subject: "Your code {{code}}"`, 1)
+	changed = strings.Replace(changed, `            - {usageType: SignIn,`,
+		`            - {usageType: OrganizationInvitation, contentType: text/plain, subject: "Join", content: {value: "j {{code}}"}}
+            - {usageType: SignIn,`, 1)
+	p := kindtest.Apply(t, c, kindtest.Spec(t, changed), connectors.Kind{})
+	var out bytes.Buffer
+	_ = plan.Render(&out, p)
+	for _, want := range []string{
+		"config.templates[Generic].subject: Code {{code}} -> Your code {{code}}\n",
+		`config.templates[OrganizationInvitation]: (none) -> {"content":"j {{code}}","contentType":"text/plain","subject":"Join","usageType":"OrganizationInvitation"}` + "\n",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("plan lacks %q:\n%s", want, out.String())
+		}
+	}
+	if strings.Contains(out.String(), "Register") {
+		t.Errorf("an unchanged template is shown:\n%s", out.String())
+	}
+	if n := len(fake.Connectors()["example-smtp"]["config"].(map[string]any)["templates"].([]any)); n != 5 {
+		t.Fatalf("%d templates in Logto, want 5", n)
+	}
+	kindtest.Unchanged(t, kindtest.Apply(t, c, kindtest.Spec(t, changed), connectors.Kind{}))
+	p = kindtest.Apply(t, c, kindtest.Spec(t, declared), connectors.Kind{})
+	out.Reset()
+	_ = plan.Render(&out, p)
+	if !strings.Contains(out.String(), `config.templates[OrganizationInvitation]: {"content":"j {{code}}"`) || !strings.Contains(out.String(), `"OrganizationInvitation"} -> (none)`) {
+		t.Errorf("a removed template is not shown:\n%s", out.String())
+	}
+}
+
 func TestAnUndeclaredIDIsAdoptedWhenItIsTheOnlyOneOfItsFactory(t *testing.T) {
 	t.Setenv("TEST_SMTP_PASS", "first-password")
 	fake, c := kindtest.Fake(t)

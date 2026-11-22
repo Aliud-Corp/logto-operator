@@ -6,13 +6,13 @@ package users
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/kindkit"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/roles"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/capability"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
@@ -28,7 +28,7 @@ func OutputID(key string) string { return "users." + key + ".id" }
 type Kind struct{}
 
 func (Kind) Name() string        { return Name }
-func (Kind) DependsOn() []string { return nil }
+func (Kind) DependsOn() []string { return []string{roles.Name} }
 
 // Needs lists the bodies the kind can send.
 func (Kind) Needs(env *engine.Env) ([]capability.Need, error) {
@@ -55,7 +55,7 @@ type payload struct {
 	d       v1alpha1.User
 	create  bool
 	rename  bool
-	grant   []string
+	grant   []roles.Grant
 }
 
 // Plan looks every declared user up by primary e-mail.
@@ -63,7 +63,7 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	if len(env.Spec.Users) == 0 {
 		return nil, nil
 	}
-	roles, err := userRoles(ctx, env)
+	held, err := userRoles(ctx, env)
 	if err != nil {
 		return nil, err
 	}
@@ -71,13 +71,9 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	for _, key := range kindkit.Keys(env.Spec.Users) {
 		d := env.Spec.Users[key]
 		path := "spec.users." + key
-		var grantIDs []string
-		for i, r := range d.Roles {
-			role, ok := roles[r.Name]
-			if !ok {
-				return nil, fmt.Errorf("%s.roles[%d]: Logto has no User role named %q", path, i, r.Name)
-			}
-			grantIDs = append(grantIDs, role.ID)
+		grants, err := roles.Resolve(env, path, d.Roles, held, "User")
+		if err != nil {
+			return nil, err
 		}
 		have, exists, err := find(ctx, env, d.PrimaryEmail)
 		if err != nil {
@@ -90,7 +86,7 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 			}
 			ops = append(ops, plan.Op{
 				Kind: Name, Key: key, Name: d.PrimaryEmail, Action: plan.Create, Changes: changes,
-				Payload: payload{key: key, d: d, create: true, grant: grantIDs},
+				Payload: payload{key: key, d: d, create: true, grant: grants},
 			})
 			continue
 		}
@@ -101,15 +97,15 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 			changes = append(changes, plan.Change{Field: "name", From: kindkit.Deref(have.Name), To: d.Name})
 			p.rename = true
 		}
-		if len(grantIDs) > 0 {
+		if len(grants) > 0 {
 			granted, err := grantedRoles(ctx, env, have.ID)
 			if err != nil {
 				return nil, err
 			}
-			for i, id := range grantIDs {
-				if !granted[id] {
-					p.grant = append(p.grant, id)
-					changes = append(changes, plan.Change{Field: "roles." + d.Roles[i].Name, To: "granted"})
+			for _, g := range grants {
+				if g.ID == "" || !granted[g.ID] {
+					p.grant = append(p.grant, g)
+					changes = append(changes, plan.Change{Field: "roles." + g.Name, To: "granted"})
 				}
 			}
 		}
@@ -136,7 +132,7 @@ func find(ctx context.Context, env *engine.Env, email string) (wireUser, bool, e
 	return wireUser{}, false, nil
 }
 
-func userRoles(ctx context.Context, env *engine.Env) (map[string]wireRole, error) {
+func userRoles(ctx context.Context, env *engine.Env) (map[string]roles.Held, error) {
 	need := false
 	for _, u := range env.Spec.Users {
 		need = need || len(u.Roles) > 0
@@ -150,11 +146,9 @@ func userRoles(ctx context.Context, env *engine.Env) (map[string]wireRole, error
 	if err != nil {
 		return nil, err
 	}
-	out := map[string]wireRole{}
+	out := map[string]roles.Held{}
 	for _, r := range list {
-		if r.Type == "User" {
-			out[r.Name] = r
-		}
+		out[r.Name] = roles.Held{ID: r.ID, Type: r.Type}
 	}
 	return out, nil
 }
@@ -194,7 +188,11 @@ func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 		}
 	}
 	if len(p.grant) > 0 {
-		return kindkit.Send(ctx, env, assignRoles{RoleIDs: p.grant}, nil, func(s, ct string, b *bytes.Reader) (*http.Request, error) {
+		ids, err := roles.IDs(env, p.grant)
+		if err != nil {
+			return err
+		}
+		return kindkit.Send(ctx, env, assignRoles{RoleIDs: ids}, nil, func(s, ct string, b *bytes.Reader) (*http.Request, error) {
 			return mgmt.NewAssignUserRolesRequestWithBody(s, p.id, ct, b)
 		})
 	}

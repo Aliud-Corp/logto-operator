@@ -364,7 +364,8 @@ default-tenant users and are in scope from milestone 2.
     or factory and by case-insensitive e-mail). That every write is in `Needs` stays guarded by a test that scans
     each kind's request builders;
   - global roles publish their ids as Refs; applications and users depend on them and read Refs, so that a role
-    created and granted by the same document plans (today they resolve roles by reading Logto).
+    created and granted by the same document plans (done: `spec.roles`, `roles.Resolve`; a role the document does
+    not declare is still resolved by reading Logto).
 - **M3 — operator.** CRD generated from `api/v1alpha1` (controller-gen, committed, drift-guarded), controller-runtime
   manager, Secret watch, resync (`RequeueAfter`, default 10 min, no CronJob), conditions, outputs Secret/ConfigMap,
   `spec.mode: Observe|Apply` (Observe = plan only, status `Drifted`), narrow RBAC, manifests (kustomize, committed,

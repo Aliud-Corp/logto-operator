@@ -14,6 +14,7 @@ import (
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/kindkit"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/roles"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/capability"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
@@ -37,7 +38,7 @@ func OutputSecret(key string) string { return "applications." + key + ".secret" 
 type Kind struct{}
 
 func (Kind) Name() string        { return Name }
-func (Kind) DependsOn() []string { return nil }
+func (Kind) DependsOn() []string { return []string{roles.Name} }
 
 // Needs lists the bodies the kind can send.
 func (Kind) Needs(env *engine.Env) ([]capability.Need, error) {
@@ -76,7 +77,7 @@ type payload struct {
 	d       v1alpha1.Application
 	create  bool
 	update  *updateApp
-	grant   []string // role ids to grant
+	grant   []roles.Grant
 	publish bool
 }
 
@@ -91,13 +92,13 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	if err != nil {
 		return nil, err
 	}
-	roles, err := roleIDs(ctx, env)
+	held, err := heldRoles(ctx, env)
 	if err != nil {
 		return nil, err
 	}
 	// The grants and the secret, from the declaration alone.
-	intent := func(key string, d v1alpha1.Application) ([]string, bool, error) {
-		grant, err := wanted("spec.applications."+key, d, roles)
+	intent := func(key string, d v1alpha1.Application) ([]roles.Grant, bool, error) {
+		grant, err := roles.Resolve(env, "spec.applications."+key, d.Roles, held, "MachineToMachine")
 		return grant, d.Secret != nil && d.Secret.Publish, err
 	}
 	return kindkit.Collection[v1alpha1.Application, wireApp]{
@@ -132,7 +133,7 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	}.Plan(observed)
 }
 
-func updateOp(ctx context.Context, env *engine.Env, path, key string, d v1alpha1.Application, have wireApp, grant []string, publish bool) (plan.Op, error) {
+func updateOp(ctx context.Context, env *engine.Env, path, key string, d v1alpha1.Application, have wireApp, grant []roles.Grant, publish bool) (plan.Op, error) {
 	if have.Type != d.Type {
 		return plan.Op{}, fmt.Errorf("%s: the application exists with type %s; Logto cannot change an application's type (declared %s)", path, have.Type, d.Type)
 	}
@@ -162,10 +163,10 @@ func updateOp(ctx context.Context, env *engine.Env, path, key string, d v1alpha1
 		if err != nil {
 			return plan.Op{}, err
 		}
-		for i, id := range grant {
-			if !granted[id] {
-				p.grant = append(p.grant, id)
-				changes = append(changes, plan.Change{Field: "roles." + d.Roles[i].Name, To: "granted"})
+		for _, g := range grant {
+			if g.ID == "" || !granted[g.ID] {
+				p.grant = append(p.grant, g)
+				changes = append(changes, plan.Change{Field: "roles." + g.Name, To: "granted"})
 			}
 		}
 	}
@@ -182,23 +183,8 @@ func updateOp(ctx context.Context, env *engine.Env, path, key string, d v1alpha1
 	return plan.Op{Kind: Name, Key: key, Name: d.Name, Action: kindkit.Action(changes), Changes: changes, Payload: p}, nil
 }
 
-// wanted resolves the declared roles to ids; a role Logto does not have, or of the wrong type, stops the plan.
-func wanted(path string, d v1alpha1.Application, roles map[string]wireRole) ([]string, error) {
-	var ids []string
-	for i, r := range d.Roles {
-		role, ok := roles[r.Name]
-		if !ok {
-			return nil, fmt.Errorf("%s.roles[%d]: Logto has no role named %q", path, i, r.Name)
-		}
-		if role.Type != "MachineToMachine" {
-			return nil, fmt.Errorf("%s.roles[%d]: %q is a %s role; an application takes MachineToMachine roles", path, i, r.Name, role.Type)
-		}
-		ids = append(ids, role.ID)
-	}
-	return ids, nil
-}
-
-func roleIDs(ctx context.Context, env *engine.Env) (map[string]wireRole, error) {
+// heldRoles are the roles Logto holds, by name, when an application grants any.
+func heldRoles(ctx context.Context, env *engine.Env) (map[string]roles.Held, error) {
 	need := false
 	for _, a := range env.Spec.Applications {
 		need = need || len(a.Roles) > 0
@@ -212,9 +198,9 @@ func roleIDs(ctx context.Context, env *engine.Env) (map[string]wireRole, error) 
 	if err != nil {
 		return nil, err
 	}
-	out := map[string]wireRole{}
+	out := map[string]roles.Held{}
 	for _, r := range list {
-		out[r.Name] = r
+		out[r.Name] = roles.Held{ID: r.ID, Type: r.Type}
 	}
 	return out, nil
 }
@@ -288,7 +274,11 @@ func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 		}
 	}
 	if len(p.grant) > 0 {
-		if err := kindkit.Send(ctx, env, assignRoles{RoleIDs: p.grant}, nil, func(s, ct string, b *bytes.Reader) (*http.Request, error) {
+		ids, err := roles.IDs(env, p.grant)
+		if err != nil {
+			return err
+		}
+		if err := kindkit.Send(ctx, env, assignRoles{RoleIDs: ids}, nil, func(s, ct string, b *bytes.Reader) (*http.Request, error) {
 			return mgmt.NewAssignApplicationRolesRequestWithBody(s, p.id, ct, b)
 		}); err != nil {
 			return err

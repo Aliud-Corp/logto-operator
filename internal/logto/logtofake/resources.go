@@ -115,6 +115,9 @@ func (s *Server) DeleteResource(w http.ResponseWriter, _ *http.Request, id mgmt.
 		notFound(w)
 		return
 	}
+	for sid := range s.resourceScopes[id] {
+		s.dropRoleScopes(sid)
+	}
 	delete(s.resources, id)
 	delete(s.resourceScopes, id)
 	w.WriteHeader(http.StatusNoContent)
@@ -188,6 +191,7 @@ func (s *Server) DeleteResourceScope(w http.ResponseWriter, _ *http.Request, res
 		return
 	}
 	delete(s.resourceScopes[resourceID], scopeID)
+	s.dropRoleScopes(scopeID)
 	w.WriteHeader(http.StatusNoContent)
 }
 

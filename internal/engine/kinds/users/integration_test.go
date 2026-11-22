@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/kindtest"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/resources"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/roles"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/users"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/mgmt"
 )
@@ -27,15 +29,15 @@ func TestOnARealLogto(t *testing.T) {
 		t.Fatal(err)
 	}
 	doc := strings.NewReplacer("admin@example.test", "admin-"+u+"@example.test", "platform_admin", role).Replace(declared)
-	kindtest.Apply(t, c, kindtest.Spec(t, doc), users.Kind{})
-	p, err := kindtest.Plan(c, kindtest.Spec(t, doc), users.Kind{})
+	kindtest.Apply(t, c, kindtest.Spec(t, doc), resources.Kind{}, roles.Kind{}, users.Kind{})
+	p, err := kindtest.Plan(c, kindtest.Spec(t, doc), resources.Kind{}, roles.Kind{}, users.Kind{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	kindtest.Unchanged(t, p)
 
 	upper := strings.Replace(doc, "admin-"+u+"@example.test", "Admin-"+u+"@Example.test", 1)
-	p, err = kindtest.Plan(c, kindtest.Spec(t, upper), users.Kind{})
+	p, err = kindtest.Plan(c, kindtest.Spec(t, upper), resources.Kind{}, roles.Kind{}, users.Kind{})
 	if err != nil {
 		t.Fatal(err)
 	}

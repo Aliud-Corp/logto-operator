@@ -30,6 +30,7 @@ func Validate(cfg *v1alpha1.LogtoConfig) error {
 		v.scopeName("spec.organizationScopes."+k, k)
 	}
 	v.organizationRoles(s)
+	v.roles(s)
 	v.applications(s)
 	v.users(s)
 	return errors.Join(v.errs...)
@@ -138,15 +139,45 @@ func (v *validator) organizationRoles(s *v1alpha1.LogtoConfigSpec) {
 				v.add(fmt.Sprintf("%s.organizationScopes[%d]", path, i), "%q is not declared in spec.organizationScopes", sc)
 			}
 		}
-		for i, rs := range r.ResourceScopes {
-			p := fmt.Sprintf("%s.resourceScopes[%d]", path, i)
-			res, ok := s.Resources[rs.Resource]
-			if !ok {
-				v.add(p, "resource %q is not declared in spec.resources", rs.Resource)
-				continue
-			}
-			if _, ok := res.Scopes[rs.Scope]; !ok {
-				v.add(p, "scope %q is not declared in spec.resources.%s.scopes", rs.Scope, rs.Resource)
+		v.resourceScopes(s, path+".resourceScopes", r.ResourceScopes)
+	}
+}
+
+// resourceScopes checks that each reference names a declared resource and one of its declared scopes.
+func (v *validator) resourceScopes(s *v1alpha1.LogtoConfigSpec, path string, refs []v1alpha1.ResourceScopeRef) {
+	for i, rs := range refs {
+		p := fmt.Sprintf("%s[%d]", path, i)
+		res, ok := s.Resources[rs.Resource]
+		if !ok {
+			v.add(p, "resource %q is not declared in spec.resources", rs.Resource)
+			continue
+		}
+		if _, ok := res.Scopes[rs.Scope]; !ok {
+			v.add(p, "scope %q is not declared in spec.resources.%s.scopes", rs.Scope, rs.Resource)
+		}
+	}
+}
+
+func (v *validator) roles(s *v1alpha1.LogtoConfigSpec) {
+	uniqueBy(v, "spec.roles", s.Roles, "name", func(r v1alpha1.Role) string { return r.Name })
+	for _, k := range sortedKeys(s.Roles) {
+		r, path := s.Roles[k], "spec.roles."+k
+		if r.IsDefault != nil && *r.IsDefault && r.Type != "User" {
+			v.add(path+".isDefault", "applies to a User role only")
+		}
+		if r.Scopes != nil {
+			v.resourceScopes(s, path+".scopes", *r.Scopes)
+		}
+	}
+}
+
+// grantable checks that the declared roles a grant names are of the type the grantee takes; a role the document
+// does not declare is Logto's to know, and checked by the plan.
+func (v *validator) grantable(s *v1alpha1.LogtoConfigSpec, path string, refs []v1alpha1.RoleRef, typ, grantee string) {
+	for i, ref := range refs {
+		for _, k := range sortedKeys(s.Roles) {
+			if r := s.Roles[k]; r.Name == ref.Name && r.Type != typ {
+				v.add(fmt.Sprintf("%s.roles[%d]", path, i), "%q is a %s role (spec.roles.%s); %s takes %s roles", ref.Name, r.Type, k, grantee, typ)
 			}
 		}
 	}
@@ -167,6 +198,7 @@ func (v *validator) applications(s *v1alpha1.LogtoConfigSpec) {
 		if a.Type != "MachineToMachine" && (len(a.Roles) > 0 || a.Secret != nil) {
 			v.add(path, "roles and secret apply to a MachineToMachine application only")
 		}
+		v.grantable(s, path, a.Roles, "MachineToMachine", "an application")
 	}
 }
 
@@ -176,5 +208,6 @@ func (v *validator) users(s *v1alpha1.LogtoConfigSpec) {
 		if !strings.Contains(s.Users[k].PrimaryEmail, "@") {
 			v.add("spec.users."+k+".primaryEmail", "must be an e-mail address")
 		}
+		v.grantable(s, "spec.users."+k, s.Users[k].Roles, "User", "a user")
 	}
 }

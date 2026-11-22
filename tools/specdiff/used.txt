@@ -43,3 +43,9 @@ UpdateUser
 ListUserRoles
 AssignUserRoles
 GetSwaggerJson
+CreateRole
+UpdateRole
+DeleteRole
+ListRoleScopes
+CreateRoleScope
+DeleteRoleScope

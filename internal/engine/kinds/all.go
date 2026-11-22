@@ -8,6 +8,7 @@ import (
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/organizations"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/profilefields"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/resources"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/roles"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/signinexperience"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/users"
 )
@@ -21,6 +22,7 @@ func All() []engine.Kind {
 		resources.Kind{},
 		organizations.Scopes{},
 		organizations.Roles{},
+		roles.Kind{},
 		applications.Kind{},
 		users.Kind{},
 	}

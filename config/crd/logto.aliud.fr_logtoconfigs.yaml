@@ -434,8 +434,8 @@ spec:
                     type: boolean
                   keep:
                     description: |-
-                      Keep lists objects never pruned, whatever the switches say: by name (organization scope and role, custom
-                      profile field), by name or indicator (resource), by id (connector, which has no name of its own).
+                      Keep lists objects never pruned, whatever the switches say: by name (organization scope and role, global role,
+                      custom profile field), by name or indicator (resource), by id (connector, which has no name of its own).
                     items:
                       type: string
                     type: array
@@ -444,6 +444,10 @@ spec:
                   organizationScopes:
                     type: boolean
                   resources:
+                    type: boolean
+                  roles:
+                    description: Roles prunes global roles; a role holding a scope
+                      of Logto's Management API is never pruned.
                     type: boolean
                 type: object
               resources:
@@ -473,6 +477,54 @@ spec:
                   - indicator
                   - name
                   type: object
+                type: object
+              roles:
+                additionalProperties:
+                  description: Role is a global role, matched by its name. Its type
+                    cannot change once it exists in Logto.
+                  properties:
+                    description:
+                      description: Description is required by Logto.
+                      maxLength: 128
+                      minLength: 1
+                      type: string
+                    isDefault:
+                      description: IsDefault makes Logto grant the role to every new
+                        user (User roles only).
+                      type: boolean
+                    name:
+                      maxLength: 128
+                      minLength: 1
+                      type: string
+                    scopes:
+                      description: |-
+                        Scopes are scopes of declared resources. When set, the role holds exactly these (an empty list removes them
+                        all); when omitted, the scopes Logto holds are left as they are.
+                      items:
+                        description: ResourceScopeRef names a scope of a resource
+                          declared in spec.resources, by local key and scope name.
+                        properties:
+                          resource:
+                            type: string
+                          scope:
+                            type: string
+                        required:
+                        - resource
+                        - scope
+                        type: object
+                      type: array
+                    type:
+                      enum:
+                      - User
+                      - MachineToMachine
+                      type: string
+                  required:
+                  - description
+                  - name
+                  - type
+                  type: object
+                description: Roles are global roles (role-based access control of
+                  the tenant), granted to applications and users.
                 type: object
               signInExperience:
                 description: SignInExperience lists the owned keys of the sign-in

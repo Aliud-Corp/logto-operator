@@ -77,7 +77,7 @@ func (s *Server) ApplicationRoleNames(id string) []string {
 	s.initRoles()
 	var out []string
 	for _, rid := range s.appRoles[id] {
-		out = append(out, str(s.roles[rid], "name"))
+		out = append(out, str(s.roles.rows[rid], "name"))
 	}
 	return out
 }
@@ -178,7 +178,7 @@ func (s *Server) ListApplicationRoles(w http.ResponseWriter, r *http.Request, ap
 	s.initRoles()
 	items := []object{}
 	for _, rid := range s.appRoles[appID] {
-		items = append(items, s.roles[rid])
+		items = append(items, s.roles.rows[rid])
 	}
 	s.mu.Unlock()
 	paginate(w, r, items)
@@ -199,7 +199,7 @@ func (s *Server) AssignApplicationRoles(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	for _, rid := range stringList(body, "roleIds") {
-		if _, ok := s.roles[rid]; !ok {
+		if _, ok := s.roles.rows[rid]; !ok {
 			notFound(w)
 			return
 		}

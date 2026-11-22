@@ -8,6 +8,8 @@ import (
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/applications"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/kindtest"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/resources"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/roles"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/logtofake"
 )
 
@@ -32,7 +34,7 @@ const declared = `  applications:
 
 func apply(t *testing.T, fake *logtofake.Server, env *engine.Env) {
 	t.Helper()
-	e, err := engine.New(applications.Kind{})
+	e, err := engine.New(resources.Kind{}, roles.Kind{}, applications.Kind{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +99,7 @@ func TestAnExistingApplicationIsAdoptedByName(t *testing.T) {
 func TestATypeChangeIsRefused(t *testing.T) {
 	fake, c := kindtest.Fake(t)
 	fake.SeedApplication(logtofake.Application{Name: "Example App", Type: "Traditional"})
-	_, err := kindtest.Plan(c, kindtest.Spec(t, declared), applications.Kind{})
+	_, err := kindtest.Plan(c, kindtest.Spec(t, declared), resources.Kind{}, roles.Kind{}, applications.Kind{})
 	if err == nil || !strings.Contains(err.Error(), "Logto cannot change an application's type") {
 		t.Fatalf("err = %v", err)
 	}
@@ -107,7 +109,7 @@ func TestADuplicateNameIsRefused(t *testing.T) {
 	fake, c := kindtest.Fake(t)
 	fake.SeedApplication(logtofake.Application{Name: "Example App", Type: "SPA"})
 	fake.SeedApplication(logtofake.Application{Name: "Example App", Type: "SPA"})
-	_, err := kindtest.Plan(c, kindtest.Spec(t, declared), applications.Kind{})
+	_, err := kindtest.Plan(c, kindtest.Spec(t, declared), resources.Kind{}, roles.Kind{}, applications.Kind{})
 	if err == nil || !strings.Contains(err.Error(), `2 Logto objects match "Example App"`) {
 		t.Fatalf("err = %v", err)
 	}
@@ -116,8 +118,8 @@ func TestADuplicateNameIsRefused(t *testing.T) {
 func TestAMissingRoleIsRefused(t *testing.T) {
 	_, c := kindtest.Fake(t)
 	doc := strings.Replace(declared, "Logto Management API access", "No such role", 1)
-	_, err := kindtest.Plan(c, kindtest.Spec(t, doc), applications.Kind{})
-	if err == nil || !strings.Contains(err.Error(), `Logto has no role named "No such role"`) {
+	_, err := kindtest.Plan(c, kindtest.Spec(t, doc), resources.Kind{}, roles.Kind{}, applications.Kind{})
+	if err == nil || !strings.Contains(err.Error(), `Logto has no MachineToMachine role named "No such role"`) {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -128,7 +130,7 @@ func TestAPlanPublishesNoSecret(t *testing.T) {
 	spec := kindtest.Spec(t, declared)
 	apply(t, fake, kindtest.Env(c, spec))
 	env := kindtest.Env(c, spec)
-	e, _ := engine.New(applications.Kind{})
+	e, _ := engine.New(resources.Kind{}, roles.Kind{}, applications.Kind{})
 	if _, err := e.Plan(context.Background(), env); err != nil {
 		t.Fatal(err)
 	}

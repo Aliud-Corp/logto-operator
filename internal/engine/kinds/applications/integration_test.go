@@ -10,6 +10,8 @@ import (
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/applications"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/kindtest"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/resources"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/roles"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
 )
 
@@ -19,7 +21,7 @@ func TestOnARealLogto(t *testing.T) {
 	c := kindtest.Real(t)
 	u := kindtest.Unique(t)
 	doc := strings.NewReplacer("name: Example App", "name: IT App "+u, "name: Example Backend", "name: IT Backend "+u).Replace(declared)
-	e, err := engine.New(applications.Kind{})
+	e, err := engine.New(resources.Kind{}, roles.Kind{}, applications.Kind{})
 	if err != nil {
 		t.Fatal(err)
 	}

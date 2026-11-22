@@ -55,6 +55,9 @@ func KeepAllBut(t *testing.T, c *client.Client, spec *v1alpha1.LogtoConfigSpec, 
 		func(page, size int) (*http.Request, error) {
 			return mgmt.NewListOrganizationRolesRequest(c.Endpoint(), &mgmt.ListOrganizationRolesParams{Page: &page, PageSize: &size})
 		},
+		func(page, size int) (*http.Request, error) {
+			return mgmt.NewListRolesRequest(c.Endpoint(), &mgmt.ListRolesParams{Page: &page, PageSize: &size})
+		},
 	}
 	for _, build := range lists {
 		items, err := client.List[named](context.Background(), c, build)

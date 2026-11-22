@@ -20,6 +20,7 @@ func main() {
 	flag.StringVar(&o.MetricsAddr, "metrics-bind-address", "0", "where the metrics are served, plain HTTP (keep it inside the cluster); 0 turns them off")
 	flag.StringVar(&o.ProbeAddr, "health-probe-bind-address", ":8081", "where /healthz and /readyz are served")
 	flag.BoolVar(&o.LeaderElect, "leader-elect", true, "elect one active replica: two would both write to Logto")
+	flag.StringVar(&o.LeaderElectionNamespace, "leader-election-namespace", "", "where the lease lives; the Pod's namespace in a cluster (required outside one, or --leader-elect=false)")
 	flag.IntVar(&o.Concurrency, "max-concurrent-reconciles", 4, "LogtoConfigs reconciled at once (runs on one endpoint take turns)")
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)

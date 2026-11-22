@@ -49,10 +49,11 @@ func TestTheManagerAgainstARealAPIServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	fakeLogto, lc := kindtest.Fake(t)
 	if err := c.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.Create(ctx, credentials()); err != nil {
+	if err := c.Create(ctx, credentials(lc.Endpoint())); err != nil {
 		t.Fatal(err)
 	}
 	// An object of the outputs' name that the operator does not manage: outside its cache, it must still be refused.
@@ -60,7 +61,6 @@ func TestTheManagerAgainstARealAPIServer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fakeLogto, lc := kindtest.Fake(t)
 	main := doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply)
 	main.ResourceVersion, main.Generation = "", 0
 	if err := c.Create(ctx, main); err != nil {
@@ -77,17 +77,42 @@ func TestTheManagerAgainstARealAPIServer(t *testing.T) {
 		t.Fatalf("ids = %v, %v", ids.Data, err)
 	}
 
-	// Writing the status does not run the engine again: every run asks the fake for a token, and none is asked.
-	time.Sleep(time.Second)
-	// One run, and one more for the outputs it created (an owned object's event); a status write adds none.
-	runs := fakeLogto.TokensIssued()
-	if runs > 2 {
-		t.Fatalf("the engine ran %d times for one new object: its own status writes woke it up", runs)
+	// Every run asks the fake for a token. Once settled, a status write (the operator's own kind of write) runs
+	// nothing; an output that loses its label is taken back by the next run, never called someone else's.
+	settled := func() int {
+		t.Helper()
+		for n := -1; ; {
+			time.Sleep(time.Second)
+			if now := fakeLogto.TokensIssued(); now == n {
+				return n
+			} else {
+				n = now
+			}
+		}
 	}
-	time.Sleep(2 * time.Second)
-	if fakeLogto.TokensIssued() != runs {
-		t.Fatalf("the engine ran %d more times on an unchanged document", fakeLogto.TokensIssued()-runs)
+	runs := settled()
+	latest := waitFor(t, c, "main", func(*v1alpha1.LogtoConfig) bool { return true })
+	apimeta.SetStatusCondition(&latest.Status.Conditions, metav1.Condition{Type: "Probe", Status: metav1.ConditionTrue, Reason: "Test"})
+	if err := c.Status().Update(ctx, latest); err != nil {
+		t.Fatal(err)
 	}
+	if settled() != runs {
+		t.Fatalf("a status write ran the engine %d times", fakeLogto.TokensIssued()-runs)
+	}
+	ids.Labels = nil
+	if err := c.Update(ctx, &ids); err != nil {
+		t.Fatal(err)
+	}
+	latest = waitFor(t, c, "main", func(*v1alpha1.LogtoConfig) bool { return true })
+	latest.Annotations = map[string]string{"touch": "1"}
+	if err := c.Update(ctx, latest); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, c, "main", func(cfg *v1alpha1.LogtoConfig) bool {
+		var cm corev1.ConfigMap
+		_ = c.Get(ctx, types.NamespacedName{Namespace: ns, Name: "logto-ids"}, &cm)
+		return cm.Labels[operator.ManagedBy] == operator.ManagedByValue && apimeta.IsStatusConditionTrue(cfg.Status.Conditions, operator.Ready)
+	})
 
 	// A second object on the endpoint is refused; when the first goes away, the second takes over at once.
 	second := doc(t, lc.Endpoint()+"/", "second", v1alpha1.ModeObserve)

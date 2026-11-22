@@ -59,9 +59,10 @@ spec:
 	return &cfg
 }
 
-func credentials() *corev1.Secret {
+// credentials is the Secret of the fake Logto's client, readable by the LogtoConfigs of endpoint.
+func credentials(endpoint string) *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "logto-credentials", Namespace: ns, Annotations: map[string]string{operator.ReadableAnnotation: "true"}},
+		ObjectMeta: metav1.ObjectMeta{Name: "logto-credentials", Namespace: ns, Annotations: map[string]string{operator.ReadableByAnnotation: endpoint}},
 		Data:       map[string][]byte{"id": []byte("boot"), "secret": []byte("boot-secret")},
 	}
 }
@@ -115,7 +116,7 @@ func condition(t *testing.T, cfg *v1alpha1.LogtoConfig, typ string) metav1.Condi
 // LogtoConfig), reports Ready, and comes back after the resync interval.
 func TestApplyReconcilesLogtoAndPublishesTheOutputs(t *testing.T) {
 	fakeLogto, lc := kindtest.Fake(t)
-	r, c := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials())
+	r, c := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials(lc.Endpoint()))
 
 	res, err := reconcile(t, r, "main")
 	if err != nil {
@@ -173,7 +174,7 @@ func TestApplyReconcilesLogtoAndPublishesTheOutputs(t *testing.T) {
 // Observe (the default) writes nothing to Logto and reports the drift.
 func TestObserveWritesNothingAndReportsDrift(t *testing.T) {
 	fakeLogto, lc := kindtest.Fake(t)
-	r, c := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeObserve), credentials())
+	r, c := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeObserve), credentials(lc.Endpoint()))
 	if _, err := reconcile(t, r, "main"); err != nil {
 		t.Fatal(err)
 	}
@@ -193,36 +194,77 @@ func TestObserveWritesNothingAndReportsDrift(t *testing.T) {
 	}
 }
 
-// A document that cannot run (a missing Secret, a file to read) is Degraded, without a write, until it changes.
+// smtp declares an SMTP connector whose password comes from pass.
+func smtp(pass v1alpha1.SecretSource) map[string]v1alpha1.Connector {
+	var items []v1alpha1.EmailTemplate
+	for _, u := range []string{"Register", "SignIn", "ForgotPassword", "Generic"} {
+		items = append(items, v1alpha1.EmailTemplate{UsageType: u, ContentType: "text/plain", Subject: "s", Content: v1alpha1.TextSource{Value: "c"}})
+	}
+	return map[string]v1alpha1.Connector{"smtp": {ConnectorID: "simple-mail-transfer-protocol", SMTP: &v1alpha1.SMTPConfig{
+		Host: "smtp.example.test", Port: 587, FromEmail: "a@example.test",
+		Auth:      v1alpha1.SMTPAuth{User: v1alpha1.StringSource{Value: "u"}, Pass: pass},
+		Templates: v1alpha1.EmailTemplates{Items: items},
+	}}}
+}
+
+// A document that cannot run (a Secret it may not read, a source the operator refuses, a file to read) is
+// Degraded, with the generation it read, without a write to Logto, until it changes.
 func TestADocumentInErrorIsDegraded(t *testing.T) {
+	secret := func(annotations map[string]string) func(string) []client.Object {
+		return func(string) []client.Object {
+			return []client.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "logto-credentials", Namespace: ns, Annotations: annotations},
+				Data:       map[string][]byte{"id": []byte("boot"), "secret": []byte("boot-secret")},
+			}}
+		}
+	}
+	readable := func(endpoint string) []client.Object { return []client.Object{credentials(endpoint)} }
 	for name, tc := range map[string]struct {
 		mutate func(*v1alpha1.LogtoConfig)
-		objs   []client.Object
+		objs   func(endpoint string) []client.Object
+		reason string
 		want   string
 	}{
-		"missing credentials": {func(*v1alpha1.LogtoConfig) {}, nil, `secrets "logto-credentials" not found`},
+		"missing credentials": {func(*v1alpha1.LogtoConfig) {}, func(string) []client.Object { return nil }, "SecretNotReadable", `secrets "logto-credentials" not found`},
 		// The operator never reads its own environment or files: a document could send them to its endpoint.
 		"an env source": {func(cfg *v1alpha1.LogtoConfig) {
 			cfg.Spec.Credentials.ClientID = v1alpha1.StringSource{ValueFrom: &v1alpha1.ValueFrom{Env: "HOME"}}
-		}, []client.Object{credentials()}, "spec.credentials.clientId.valueFrom: a LogtoConfig object reads secretKeyRef only"},
+		}, readable, "InvalidDocument", "spec.credentials.clientId.valueFrom: a LogtoConfig object reads secretKeyRef only"},
 		"a file source": {func(cfg *v1alpha1.LogtoConfig) {
 			cfg.Spec.Credentials.ClientSecret = v1alpha1.SecretSource{ValueFrom: v1alpha1.ValueFrom{File: "/var/run/secrets/kubernetes.io/serviceaccount/token"}}
-		}, []client.Object{credentials()}, "spec.credentials.clientSecret.valueFrom: a LogtoConfig object reads secretKeyRef only"},
-		// A Secret is read only when it says so: otherwise whoever may create a LogtoConfig could send any Secret of
-		// the namespace to an endpoint of their choice.
-		"a Secret that does not opt in": {func(*v1alpha1.LogtoConfig) {}, []client.Object{&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "logto-credentials", Namespace: ns},
-			Data:       map[string][]byte{"id": []byte("boot"), "secret": []byte("boot-secret")},
-		}}, `the Secret logto-credentials does not allow LogtoConfig objects to read it (annotation logto.aliud.fr/readable: "true")`},
+		}, readable, "InvalidDocument", "spec.credentials.clientSecret.valueFrom: a LogtoConfig object reads secretKeyRef only"},
+		"an env source of a connector": {func(cfg *v1alpha1.LogtoConfig) {
+			cfg.Spec.Connectors = smtp(v1alpha1.SecretSource{ValueFrom: v1alpha1.ValueFrom{Env: "SMTP_PASS"}})
+		}, readable, "InvalidDocument", "spec.connectors.smtp.smtp.auth.pass.valueFrom: a LogtoConfig object reads secretKeyRef only"},
+		// A Secret is read only for the endpoints it names: otherwise whoever may create a LogtoConfig could send it
+		// (the Logto credentials themselves) to an endpoint of their choice.
+		"a Secret that does not opt in": {
+			func(*v1alpha1.LogtoConfig) {}, secret(nil), "SecretNotReadable",
+			"does not allow LogtoConfig objects to send it to ",
+		},
+		"a Secret for another endpoint": {
+			func(*v1alpha1.LogtoConfig) {}, secret(map[string]string{operator.ReadableByAnnotation: "https://auth.example.test"}), "SecretNotReadable",
+			"does not allow LogtoConfig objects to send it to ",
+		},
+		"a token endpoint the Secret does not name": {func(cfg *v1alpha1.LogtoConfig) {
+			cfg.Spec.Credentials.TokenEndpoint = "https://collector.example.test"
+		}, readable, "SecretNotReadable", "does not allow LogtoConfig objects to send it to collector.example.test"},
+		// Every Secret is read before the first call: a connector's password that cannot be read stops the run
+		// before the kinds before it have written.
+		"a connector Secret it may not read": {func(cfg *v1alpha1.LogtoConfig) {
+			cfg.Spec.Connectors = smtp(v1alpha1.SecretSource{ValueFrom: v1alpha1.ValueFrom{SecretKeyRef: &v1alpha1.SecretKeyRef{Name: "smtp", Key: "pass"}}})
+		}, func(endpoint string) []client.Object {
+			return []client.Object{credentials(endpoint), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "smtp", Namespace: ns}, Data: map[string][]byte{"pass": []byte("smtp-pass")}}}
+		}, "SecretNotReadable", "the Secret smtp does not allow"},
 		"a file to read": {func(cfg *v1alpha1.LogtoConfig) {
 			cfg.Spec.SignInExperience = &v1alpha1.SignInExperience{CustomCSS: &v1alpha1.TextSource{FromFile: "theme.css"}}
-		}, []client.Object{credentials()}, "logtoctl render"},
+		}, readable, "InvalidDocument", "logtoctl render"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			fakeLogto, lc := kindtest.Fake(t)
 			cfg := doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply)
 			tc.mutate(cfg)
-			r, c := setup(t, append(tc.objs, cfg)...)
+			r, c := setup(t, append(tc.objs(lc.Endpoint()), cfg)...)
 			res, err := reconcile(t, r, "main")
 			if err != nil {
 				t.Fatalf("a document in error is not retried with backoff: %v", err)
@@ -231,8 +273,12 @@ func TestADocumentInErrorIsDegraded(t *testing.T) {
 				t.Fatal("a degraded document must still be resynced")
 			}
 			got := get(t, c, "main")
-			if d := condition(t, got, operator.Degraded); d.Status != metav1.ConditionTrue || !strings.Contains(d.Message, tc.want) {
+			if d := condition(t, got, operator.Degraded); d.Status != metav1.ConditionTrue || d.Reason != tc.reason || !strings.Contains(d.Message, tc.want) {
 				t.Fatalf("Degraded = %+v", d)
+			}
+			// kstatus, Argo CD and Flux read a lagging observedGeneration as "in progress" and hide the failure.
+			if got.Status.ObservedGeneration != got.Generation {
+				t.Fatalf("observedGeneration %d, generation %d", got.Status.ObservedGeneration, got.Generation)
 			}
 			if fakeLogto.Writes() != 0 {
 				t.Fatalf("wrote %d times", fakeLogto.Writes())
@@ -241,11 +287,66 @@ func TestADocumentInErrorIsDegraded(t *testing.T) {
 	}
 }
 
+// A Secret the API server cannot answer now (503) is a transient failure, retried with backoff.
+func TestASecretReadFailureIsTransient(t *testing.T) {
+	_, lc := kindtest.Fake(t)
+	funcs := interceptor.Funcs{Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+		if _, ok := obj.(*corev1.Secret); ok {
+			return apierrors.NewServiceUnavailable("etcd is busy")
+		}
+		return c.Get(ctx, key, obj, opts...)
+	}}
+	r, c := setupWith(t, funcs, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials(lc.Endpoint()))
+	if _, err := reconcile(t, r, "main"); err == nil {
+		t.Fatal("a transient Secret read must be returned, for a retry with backoff")
+	}
+	if ready := condition(t, get(t, c, "main"), operator.Ready); ready.Reason != "Transient" {
+		t.Fatalf("Ready = %+v", ready)
+	}
+}
+
+// An object being deleted is left alone: it neither writes to Logto nor re-creates the outputs the garbage
+// collector removes.
+func TestADyingObjectDoesNothing(t *testing.T) {
+	fakeLogto, lc := kindtest.Fake(t)
+	cfg := doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply)
+	now := metav1.Now()
+	cfg.DeletionTimestamp, cfg.Finalizers = &now, []string{"foregroundDeletion"}
+	r, c := setup(t, cfg, credentials(lc.Endpoint()))
+	if _, err := reconcile(t, r, "main"); err != nil {
+		t.Fatal(err)
+	}
+	if fakeLogto.Writes() != 0 || fakeLogto.TokensIssued() != 0 {
+		t.Fatalf("a dying object ran: %d writes, %d tokens", fakeLogto.Writes(), fakeLogto.TokensIssued())
+	}
+	var ids corev1.ConfigMap
+	if err := c.Get(context.Background(), types.NamespacedName{Namespace: ns, Name: "logto-ids"}, &ids); err == nil {
+		t.Fatal("a dying object published its outputs")
+	}
+}
+
+// An apply that wrote before failing still records when it wrote.
+func TestAnApplyThatFailsAfterWritingRecordsIt(t *testing.T) {
+	fakeLogto, lc := kindtest.Fake(t)
+	fakeLogto.FailNext("POST /api/applications", 400)
+	r, c := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials(lc.Endpoint()))
+	if _, err := reconcile(t, r, "main"); err != nil {
+		t.Fatal(err)
+	}
+	got := get(t, c, "main")
+	if d := condition(t, got, operator.Degraded); d.Reason != "ApplyFailed" {
+		t.Fatalf("Degraded = %+v", d)
+	}
+	if got.Status.LastAppliedTime == nil {
+		t.Fatal("the resources written before the failure left no lastAppliedTime")
+	}
+}
+
 // A transient failure (Logto answering 503) is retried with backoff: the error goes back to controller-runtime.
 func TestATransientFailureIsRetried(t *testing.T) {
 	fakeLogto, lc := kindtest.Fake(t)
 	fakeLogto.FailNext("POST /api/resources", 503)
-	r, c := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials())
+	r, c := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials(lc.Endpoint()))
 	if _, err := reconcile(t, r, "main"); err == nil {
 		t.Fatal("a transient failure must be returned, for a retry with backoff")
 	}
@@ -266,7 +367,7 @@ func TestASecondLogtoConfigOnTheSameEndpointIsRefused(t *testing.T) {
 	first.CreationTimestamp = metav1.NewTime(time.Now().Add(-time.Hour))
 	second := doc(t, lc.Endpoint(), "second", v1alpha1.ModeApply)
 	second.CreationTimestamp = metav1.NewTime(time.Now())
-	r, c := setup(t, first, second, credentials())
+	r, c := setup(t, first, second, credentials(lc.Endpoint()))
 	if _, err := reconcile(t, r, "second"); err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +394,7 @@ func TestOutputKeysRenameWhatIsPublished(t *testing.T) {
 	cfg := doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply)
 	cfg.Spec.Outputs.ConfigMap.Keys = map[string]string{"LOGTO_MANAGEMENT_CLIENT_ID": "applications.backend.id"}
 	cfg.Spec.Outputs.Secret.Keys = map[string]string{"LOGTO_MANAGEMENT_CLIENT_SECRET": "applications.backend.secret"}
-	r, c := setup(t, cfg, credentials())
+	r, c := setup(t, cfg, credentials(lc.Endpoint()))
 	if _, err := reconcile(t, r, "main"); err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +432,7 @@ func TestAStatusConflictIsRetriedOnTheNewestObject(t *testing.T) {
 		}
 		return c.SubResource(sub).Update(ctx, obj, opts...)
 	}}
-	r, c := setupWith(t, funcs, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials())
+	r, c := setupWith(t, funcs, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials(lc.Endpoint()))
 	if _, err := reconcile(t, r, "main"); err != nil {
 		t.Fatal(err)
 	}
@@ -345,14 +446,14 @@ func TestAStatusConflictIsRetriedOnTheNewestObject(t *testing.T) {
 func TestAFailedRunMakesDriftUnknown(t *testing.T) {
 	_, lc := kindtest.Fake(t)
 	cfg := doc(t, lc.Endpoint(), "main", v1alpha1.ModeObserve)
-	r, c := setup(t, cfg, credentials())
+	r, c := setup(t, cfg, credentials(lc.Endpoint()))
 	if _, err := reconcile(t, r, "main"); err != nil {
 		t.Fatal(err)
 	}
 	if d := condition(t, get(t, c, "main"), operator.Drifted); d.Status != metav1.ConditionTrue {
 		t.Fatalf("Drifted = %+v", d)
 	}
-	if err := c.Delete(context.Background(), credentials()); err != nil {
+	if err := c.Delete(context.Background(), credentials(lc.Endpoint())); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := reconcile(t, r, "main"); err != nil {
@@ -368,7 +469,7 @@ func TestAFailedRunMakesDriftUnknown(t *testing.T) {
 func TestAnOutputsNameTakenByAnotherObjectIsRefused(t *testing.T) {
 	_, lc := kindtest.Fake(t)
 	theirs := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "logto-secrets", Namespace: ns}, Data: map[string][]byte{"keep": []byte("me")}}
-	r, c := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials(), theirs)
+	r, c := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply), credentials(lc.Endpoint()), theirs)
 	if _, err := reconcile(t, r, "main"); err != nil {
 		t.Fatalf("a taken name is not retried with backoff: %v", err)
 	}
@@ -385,7 +486,7 @@ func TestAnOutputsNameTakenByAnotherObjectIsRefused(t *testing.T) {
 func TestAnOutputTheDocumentDropsIsRemoved(t *testing.T) {
 	_, lc := kindtest.Fake(t)
 	cfg := doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply)
-	r, c := setup(t, cfg, credentials())
+	r, c := setup(t, cfg, credentials(lc.Endpoint()))
 	if _, err := reconcile(t, r, "main"); err != nil {
 		t.Fatal(err)
 	}
@@ -429,9 +530,27 @@ func TestTheOthersOfAnEndpointAreWokenUp(t *testing.T) {
 	first := doc(t, lc.Endpoint(), "first", v1alpha1.ModeObserve)
 	second := doc(t, lc.Endpoint()+"/", "second", v1alpha1.ModeObserve)
 	other := doc(t, "https://elsewhere.example.test", "other", v1alpha1.ModeObserve)
-	r, _ := setup(t, first, second, other, credentials())
+	r, _ := setup(t, first, second, other, credentials(lc.Endpoint()))
 	got := r.Siblings(context.Background(), first)
 	if len(got) != 1 || got[0].Name != "second" {
 		t.Fatalf("woken = %v", got)
+	}
+}
+
+// Every Secret is read before the first call, plan included: a document whose connector password cannot be read is
+// reported in Observe too, not only when an apply reaches the connector.
+func TestEverySecretIsReadBeforeTheFirstCall(t *testing.T) {
+	fakeLogto, lc := kindtest.Fake(t)
+	cfg := doc(t, lc.Endpoint(), "main", v1alpha1.ModeObserve)
+	cfg.Spec.Connectors = smtp(v1alpha1.SecretSource{ValueFrom: v1alpha1.ValueFrom{SecretKeyRef: &v1alpha1.SecretKeyRef{Name: "smtp", Key: "pass"}}})
+	r, c := setup(t, cfg, credentials(lc.Endpoint()), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "smtp", Namespace: ns}, Data: map[string][]byte{"pass": []byte("smtp-pass")}})
+	if _, err := reconcile(t, r, "main"); err != nil {
+		t.Fatal(err)
+	}
+	if d := condition(t, get(t, c, "main"), operator.Degraded); d.Reason != "SecretNotReadable" {
+		t.Fatalf("Degraded = %+v", d)
+	}
+	if fakeLogto.TokensIssued() != 0 {
+		t.Fatal("Logto was called before every Secret was read")
 	}
 }

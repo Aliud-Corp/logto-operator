@@ -62,4 +62,5 @@ flowchart LR
 - The operator turns a LogtoConfig object into a document through `config.FromObject` (the CLI's steps, no file
   read), runs the engine once per reconcile (Observe plans, Apply applies), and refuses a
   second object on one endpoint (normalized), one run per endpoint at a time. Its cache holds only the outputs it
-  labels; credentials are read uncached, from Secrets annotated `logto.aliud.fr/readable`, secretKeyRef only.
+  labels; credentials are read uncached, from Secrets whose `logto.aliud.fr/readable-by` annotation lists the endpoint (and token endpoint), secretKeyRef
+  only, all before the first call.

@@ -79,6 +79,16 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 			`spec.outputs.secret.keys.X: also published by spec.outputs.configMap; with envFrom one would hide the other`,
 		},
 		{
+			"a ConfigMap key hiding a Secret output published without keys",
+			"  applications:\n    web: {name: Web, type: SPA}\n    backend: {name: Backend, type: MachineToMachine, secret: {publish: true}}\n  outputs:\n    configMap: {name: ids, keys: {applications.backend.secret: applications.backend.id}}\n    secret: {name: s}\n",
+			`spec.outputs.secret: the output "applications.backend.secret" is also published by spec.outputs.configMap`,
+		},
+		{
+			"a resync of a second",
+			"  resyncInterval: 1s\n",
+			`spec.resyncInterval: at least 30s`,
+		},
+		{
 			"duplicate role name",
 			"  roles:\n    a: {name: Same, description: d, type: User}\n    b: {name: Same, description: d, type: User}\n",
 			`spec.roles.b: name "Same" is already declared by spec.roles.a`,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
@@ -13,6 +14,9 @@ import (
 // RequiredSMTPTemplates are the usage types the SMTP connector refuses to be created without (measured on Logto
 // 1.44.0 and 1.46.0: "Template with UsageType (Generic) should be provided!").
 var RequiredSMTPTemplates = []string{"Register", "SignIn", "ForgotPassword", "Generic"}
+
+// MinResync is the shortest spec.resyncInterval.
+const MinResync = 30 * time.Second
 
 // Validate applies the schema rules of a loaded document and returns every violation at once, each with its path.
 func Validate(cfg *v1alpha1.LogtoConfig) error {
@@ -35,6 +39,9 @@ func Validate(cfg *v1alpha1.LogtoConfig) error {
 	v.applications(s)
 	v.users(s)
 	v.outputs(s)
+	if r := s.ResyncInterval; r != nil && r.Duration < MinResync {
+		v.add("spec.resyncInterval", "at least %s: every resync plans against Logto", MinResync)
+	}
 	return errors.Join(v.errs...)
 }
 
@@ -259,8 +266,11 @@ func (v *validator) outputs(s *v1alpha1.LogtoConfigSpec) {
 		}
 		if len(t.Keys) == 0 {
 			for _, name := range sortedKeys(own) {
-				if !validKey(name) {
+				switch {
+				case !validKey(name):
 					v.add(path, "the output %q is no valid ConfigMap key: name it with keys", name)
+				case published[name] != "":
+					v.add(path, "the output %q is also published by %s; with envFrom one would hide the other", name, published[name])
 				}
 				published[name] = path
 			}

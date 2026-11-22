@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -51,10 +52,11 @@ const ManagedBy = "app.kubernetes.io/managed-by"
 // ManagedByValue is the value of ManagedBy.
 const ManagedByValue = "logto-operator"
 
-// ReadableAnnotation, set to "true" on a Secret, lets the LogtoConfig objects of its namespace read it
-// (secretKeyRef). Without it, whoever may create a LogtoConfig could send any Secret of the namespace to an
-// endpoint of their choice.
-const ReadableAnnotation = "logto.aliud.fr/readable"
+// ReadableByAnnotation lists, comma-separated, the Logto endpoints a Secret may be sent to: a LogtoConfig of its
+// namespace reads it (secretKeyRef) only when its endpoint, and its token endpoint when it has one, are listed
+// (compared like the endpoint index). Without it, whoever may create a LogtoConfig could send the Secret, the Logto
+// credentials included, to an endpoint of their choice.
+const ReadableByAnnotation = "logto.aliud.fr/readable-by"
 
 // DefaultResync is how often an unchanged document is reconciled.
 const DefaultResync = 10 * time.Minute
@@ -101,15 +103,43 @@ type Reconciler struct {
 	// Concurrency is how many LogtoConfigs reconcile at once (default 4); runs on one endpoint take turns.
 	Concurrency int
 
-	locks sync.Map // normalized endpoint -> *sync.Mutex
+	locksMu sync.Mutex
+	locks   map[string]*endpointLock // normalized endpoint, while a run holds or waits for it
 }
 
-// lock takes the endpoint's turn and returns its release.
-func (r *Reconciler) lock(endpoint string) func() {
-	m, _ := r.locks.LoadOrStore(normalized(endpoint), &sync.Mutex{})
-	mu := m.(*sync.Mutex)
-	mu.Lock()
-	return mu.Unlock
+type endpointLock struct {
+	turn  chan struct{} // holds one token while a run has the endpoint
+	users int
+}
+
+// lock waits for the endpoint's turn, or for ctx, and returns its release.
+func (r *Reconciler) lock(ctx context.Context, endpoint string) (func(), error) {
+	key := normalized(endpoint)
+	r.locksMu.Lock()
+	if r.locks == nil {
+		r.locks = map[string]*endpointLock{}
+	}
+	l := r.locks[key]
+	if l == nil {
+		l = &endpointLock{turn: make(chan struct{}, 1)}
+		r.locks[key] = l
+	}
+	l.users++
+	r.locksMu.Unlock()
+	leave := func() {
+		r.locksMu.Lock()
+		if l.users--; l.users == 0 {
+			delete(r.locks, key)
+		}
+		r.locksMu.Unlock()
+	}
+	select {
+	case l.turn <- struct{}{}:
+		return func() { <-l.turn; leave() }, nil
+	case <-ctx.Done():
+		leave()
+		return nil, ctx.Err()
+	}
 }
 
 // +kubebuilder:rbac:groups=logto.aliud.fr,resources=logtoconfigs,verbs=get;list;watch
@@ -126,15 +156,32 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err := r.Client.Get(ctx, req.NamespacedName, &obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if !obj.DeletionTimestamp.IsZero() {
+		// Being deleted: no write to Logto, no output re-created under the garbage collector.
+		return ctrl.Result{}, nil
+	}
 	resync := DefaultResync
 	if obj.Spec.ResyncInterval != nil && obj.Spec.ResyncInterval.Duration > 0 {
 		resync = obj.Spec.ResyncInterval.Duration
 	}
 	next := ctrl.Result{RequeueAfter: resync}
 
-	release := r.lock(obj.Spec.Endpoint)
-	out := r.run(ctx, &obj)
-	release()
+	// Whether this object has the endpoint is known without its turn: a waiting worker is one another endpoint lacks.
+	var out outcome
+	switch other, err := r.owner(ctx, &obj); {
+	case err != nil:
+		out = outcome{transient: err}
+	case other != "":
+		out = outcome{reason: "EndpointTaken", degraded: fmt.Errorf("the endpoint %s is managed by LogtoConfig %s; one LogtoConfig per Logto", obj.Spec.Endpoint, other)}
+	default:
+		release, err := r.lock(ctx, obj.Spec.Endpoint)
+		if err != nil {
+			out = outcome{transient: err}
+			break
+		}
+		out = r.run(ctx, &obj)
+		release()
+	}
 	if err := r.writeStatus(ctx, req.NamespacedName, obj.Generation, out); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -154,15 +201,45 @@ type outcome struct {
 	drift     string
 	connected bool // the target answered: version is what it matched (empty when untested)
 	version   string
-	applied   bool
+	applied   bool      // an apply wrote to Logto, even if it then failed
+	appliedAt time.Time // when that apply ended
+}
+
+// secretError is a Secret a document names that could not be read.
+type secretError struct {
+	err       error
+	transient bool // the API server may answer later
+}
+
+func (e *secretError) Error() string { return e.err.Error() }
+func (e *secretError) Unwrap() error { return e.err }
+
+func (r *Reconciler) now() time.Time {
+	if r.Now != nil {
+		return r.Now()
+	}
+	return time.Now()
+}
+
+func (r *Reconciler) reader() client.Reader {
+	if r.Secrets != nil {
+		return r.Secrets
+	}
+	return r.Client
+}
+
+// readableBy are the normalized endpoints a Secret's annotation lists.
+func readableBy(s *corev1.Secret) map[string]bool {
+	out := map[string]bool{}
+	for _, e := range strings.Split(s.Annotations[ReadableByAnnotation], ",") {
+		if e = strings.TrimSpace(e); e != "" {
+			out[normalized(e)] = true
+		}
+	}
+	return out
 }
 
 func (r *Reconciler) run(ctx context.Context, obj *v1alpha1.LogtoConfig) outcome {
-	if other, err := r.owner(ctx, obj); err != nil {
-		return outcome{transient: err}
-	} else if other != "" {
-		return outcome{reason: "EndpointTaken", degraded: fmt.Errorf("the endpoint %s is managed by LogtoConfig %s; one LogtoConfig per Logto", obj.Spec.Endpoint, other)}
-	}
 	cfg, err := config.FromObject(obj)
 	if err == nil {
 		err = config.Validate(cfg)
@@ -178,26 +255,48 @@ func (r *Reconciler) run(ctx context.Context, obj *v1alpha1.LogtoConfig) outcome
 			return outcome{reason: "InvalidDocument", degraded: fmt.Errorf("%s: a LogtoConfig object reads secretKeyRef only (env and file are logtoctl's)", src.Path)}
 		}
 	}
+	// Where a Secret's value goes: the endpoint, and the token endpoint when it has its own.
+	targets := []string{normalized(cfg.Spec.Endpoint)}
+	if te := cfg.Spec.Credentials.TokenEndpoint; te != "" {
+		targets = append(targets, normalized(te))
+	}
 	resolver := secrets.Resolver{Redactor: redactor, SecretKey: func(name, key string) (string, error) {
-		reader := r.Secrets
-		if reader == nil {
-			reader = r.Client
-		}
 		var s corev1.Secret
-		if err := reader.Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: name}, &s); err != nil {
-			return "", err
+		if err := r.reader().Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: name}, &s); err != nil {
+			return "", &secretError{err: err, transient: transientAPI(err)}
 		}
-		if s.Annotations[ReadableAnnotation] != "true" {
-			return "", fmt.Errorf("the Secret %s does not allow LogtoConfig objects to read it (annotation %s: \"true\")", name, ReadableAnnotation)
+		allowed := readableBy(&s)
+		var refused []string
+		for _, t := range targets {
+			if !allowed[t] {
+				refused = append(refused, t)
+			}
+		}
+		if len(refused) > 0 {
+			return "", &secretError{err: fmt.Errorf("the Secret %s does not allow LogtoConfig objects to send it to %s (annotation %s)",
+				name, strings.Join(refused, ", "), ReadableByAnnotation)}
 		}
 		return string(s.Data[key]), nil
 	}}
+	failed := func(err error, reason string) outcome {
+		var se *secretError
+		switch {
+		case errors.As(err, &se) && se.transient, engine.Transient(err):
+			return outcome{transient: redact(err)}
+		case errors.As(err, &se):
+			return outcome{reason: "SecretNotReadable", degraded: redact(err)}
+		}
+		return outcome{reason: reason, degraded: redact(err)}
+	}
+	// Every Secret is read before the first call: one that cannot be read stops the run before any write.
+	for _, src := range config.Sources(&cfg.Spec) {
+		if _, err := resolver.Secret(strings.TrimSuffix(src.Path, ".valueFrom"), v1alpha1.SecretSource{ValueFrom: src.From}); err != nil {
+			return failed(err, "SecretNotReadable")
+		}
+	}
 	env, err := target.Connect(ctx, &cfg.Spec, resolver)
 	if err != nil {
-		if engine.Transient(err) {
-			return outcome{transient: redact(err)}
-		}
-		return outcome{reason: "TargetRefused", degraded: redact(err)}
+		return failed(err, "TargetRefused")
 	}
 	env.AllowUntested = cfg.Spec.AllowUntestedLogto
 	e, err := engine.New(kinds.All()...)
@@ -208,15 +307,20 @@ func (r *Reconciler) run(ctx context.Context, obj *v1alpha1.LogtoConfig) outcome
 	var p *plan.Plan
 	if cfg.Spec.Mode == v1alpha1.ModeApply {
 		p, err = e.Apply(ctx, env)
-		out.applied = err == nil && p != nil && p.Changed()
+		out.applied, out.appliedAt = wrote(p), r.now()
 	} else {
 		p, err = e.Plan(ctx, env)
 		if err == nil && p.Changed() {
 			out.drift = summary(p)
 		}
 	}
+	var se *secretError
 	switch {
 	case err == nil:
+	case errors.As(err, &se):
+		f := failed(err, "SecretNotReadable")
+		out.transient, out.reason, out.degraded = f.transient, f.reason, f.degraded
+		return out
 	case engine.Transient(err):
 		out.transient = redact(err)
 		return out
@@ -240,6 +344,26 @@ func (r *Reconciler) run(ctx context.Context, obj *v1alpha1.LogtoConfig) outcome
 		}
 	}
 	return out
+}
+
+// wrote reports whether an apply wrote anything to Logto (an op applied), whatever came after.
+func wrote(p *plan.Plan) bool {
+	if p == nil {
+		return false
+	}
+	for _, op := range p.Ops {
+		if op.Result == plan.Applied {
+			return true
+		}
+	}
+	return false
+}
+
+// transientAPI reports whether the API server may answer a request later.
+func transientAPI(err error) bool {
+	return apierrors.IsServerTimeout(err) || apierrors.IsTimeout(err) || apierrors.IsTooManyRequests(err) ||
+		apierrors.IsServiceUnavailable(err) || apierrors.IsInternalError(err) || apierrors.IsUnexpectedServerError(err) ||
+		engine.Transient(err)
 }
 
 // owner is the LogtoConfig that manages obj's endpoint when it is not obj: the oldest one (then the first by
@@ -299,10 +423,11 @@ func (r *Reconciler) publish(ctx context.Context, obj *v1alpha1.LogtoConfig, o *
 	}
 	if t := obj.Spec.Outputs.ConfigMap; t != nil {
 		cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: obj.Namespace, Name: t.Name}}
-		if err := r.own(ctx, obj, cm, func() {
-			cm.Data = map[string]string{}
+		if err := r.own(ctx, obj, cm, func(x client.Object) {
+			c := x.(*corev1.ConfigMap)
+			c.Data = map[string]string{}
 			for k, name := range published(t, o.IDs) {
-				cm.Data[k] = o.IDs[name]
+				c.Data[k] = o.IDs[name]
 			}
 		}); err != nil {
 			return fmt.Errorf("outputs ConfigMap %s: %w", t.Name, err)
@@ -310,10 +435,11 @@ func (r *Reconciler) publish(ctx context.Context, obj *v1alpha1.LogtoConfig, o *
 	}
 	if t := obj.Spec.Outputs.Secret; t != nil && applied {
 		s := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: obj.Namespace, Name: t.Name}}
-		if err := r.own(ctx, obj, s, func() {
-			s.Data = map[string][]byte{}
+		if err := r.own(ctx, obj, s, func(x client.Object) {
+			sec := x.(*corev1.Secret)
+			sec.Data = map[string][]byte{}
 			for k, name := range published(t, o.Secrets) {
-				s.Data[k] = []byte(o.Secrets[name].Reveal())
+				sec.Data[k] = []byte(o.Secrets[name].Reveal())
 			}
 		}); err != nil {
 			return fmt.Errorf("outputs Secret %s: %w", t.Name, err)
@@ -322,21 +448,34 @@ func (r *Reconciler) publish(ctx context.Context, obj *v1alpha1.LogtoConfig, o *
 	return nil
 }
 
-// own creates or updates an output object that obj controls, and never touches one it does not: the cache only
-// holds labelled objects, so a foreign one shows up as AlreadyExists at create.
-func (r *Reconciler) own(ctx context.Context, obj *v1alpha1.LogtoConfig, o client.Object, fill func()) error {
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, o, func() error {
-		if o.GetResourceVersion() != "" && !metav1.IsControlledBy(o, obj) {
+// own creates or updates an output object that obj controls, and never touches one it does not. The cache holds
+// only labelled objects, so an existing one it misses (a foreign object, ours before the cache saw it, ours with its
+// label removed) shows up as AlreadyExists at create: it is read again from the API server, and taken back only if
+// obj controls it.
+func (r *Reconciler) own(ctx context.Context, obj *v1alpha1.LogtoConfig, o client.Object, fill func(client.Object)) error {
+	mutate := func(x client.Object) error {
+		if x.GetResourceVersion() != "" && !metav1.IsControlledBy(x, obj) {
 			return errOutputsTaken
 		}
-		o.SetLabels(merged(o.GetLabels()))
-		fill()
-		return controllerutil.SetControllerReference(obj, o, r.Scheme)
-	})
-	if apierrors.IsAlreadyExists(err) {
+		x.SetLabels(merged(x.GetLabels()))
+		fill(x)
+		return controllerutil.SetControllerReference(obj, x, r.Scheme)
+	}
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, o, func() error { return mutate(o) })
+	if !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+	fresh, ok := o.DeepCopyObject().(client.Object)
+	if !ok {
 		return errOutputsTaken
 	}
-	return err
+	if err := r.reader().Get(ctx, client.ObjectKeyFromObject(o), fresh); err != nil {
+		return err
+	}
+	if err := mutate(fresh); err != nil {
+		return err
+	}
+	return r.Client.Update(ctx, fresh)
 }
 
 // published maps each key a target publishes to the output it holds: the target's keys (those already known), or
@@ -368,11 +507,7 @@ func merged(labels map[string]string) map[string]string {
 // writeStatus writes the outcome of a run on the newest version of the object, retried on conflict: someone may
 // have written it while the run talked to Logto. gen is the generation the run read.
 func (r *Reconciler) writeStatus(ctx context.Context, key types.NamespacedName, gen int64, out outcome) error {
-	now := time.Now
-	if r.Now != nil {
-		now = r.Now
-	}
-	appliedAt := metav1.NewTime(now())
+	appliedAt := metav1.NewTime(out.appliedAt)
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var obj v1alpha1.LogtoConfig
 		if err := r.Client.Get(ctx, key, &obj); err != nil {
@@ -403,7 +538,7 @@ func setStatus(st *v1alpha1.LogtoConfigStatus, gen int64, out outcome, appliedAt
 		set(Ready, metav1.ConditionFalse, "ApplyFailed", "see the Degraded condition")
 		set(Drifted, metav1.ConditionUnknown, "NotPlanned", "the last apply stopped before its end")
 	case out.transient != nil:
-		set(Degraded, metav1.ConditionFalse, "Transient", "")
+		// A transient failure says nothing of the document: Degraded keeps what the last full run found.
 		set(Ready, metav1.ConditionFalse, "Transient", out.transient.Error())
 		set(Drifted, metav1.ConditionUnknown, "NotPlanned", "the last run did not finish")
 	default:
@@ -415,8 +550,9 @@ func setStatus(st *v1alpha1.LogtoConfigStatus, gen int64, out outcome, appliedAt
 			set(Drifted, metav1.ConditionFalse, "InSync", "")
 			set(Ready, metav1.ConditionTrue, "InSync", "Logto matches the document")
 		}
-		st.ObservedGeneration = gen
 	}
+	// The run read this generation, whatever came of it: Ready says whether it succeeded.
+	st.ObservedGeneration = gen
 	if out.connected {
 		st.LogtoVersion = out.version // empty for an untested Logto
 	}
@@ -441,11 +577,15 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		concurrency = 4
 	}
 	changed := predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{}, predicate.AnnotationChangedPredicate{})
+	// An output appears because a run created it, and a new LogtoConfig never takes an endpoint over: neither
+	// creation needs another run.
+	notCreated := predicate.Funcs{CreateFunc: func(event.CreateEvent) bool { return false }}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.LogtoConfig{}, builder.WithPredicates(changed)).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.Secret{}).
-		Watches(&v1alpha1.LogtoConfig{}, handler.EnqueueRequestsFromMapFunc(r.Siblings), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Owns(&corev1.ConfigMap{}, builder.WithPredicates(notCreated)).
+		Owns(&corev1.Secret{}, builder.WithPredicates(notCreated)).
+		Watches(&v1alpha1.LogtoConfig{}, handler.EnqueueRequestsFromMapFunc(r.Siblings),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}, notCreated)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: concurrency}).
 		Complete(r)
 }

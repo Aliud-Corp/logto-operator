@@ -35,7 +35,7 @@ controller runs; manifests, image and end-to-end tests come next.
 ## Outputs
 
 Every output has a name: `applications.<key>.id`, `applications.<key>.secret` (an M2M application with
-`secret: {publish: true}`), `resources.<key>.indicator`, `users.<key>.id`, where `<key>` is the document's local key.
+`secret: {publish: true}`), `resources.<key>.indicator`, where `<key>` is the document's local key.
 Without `keys`, a target publishes every output under its name; read them one by one:
 
 ```yaml

@@ -84,14 +84,11 @@ type LogtoConfigSpec struct {
 	OrganizationScopes map[string]OrganizationScope `json:"organizationScopes,omitempty"`
 	// +optional
 	OrganizationRoles map[string]OrganizationRole `json:"organizationRoles,omitempty"`
-	// Roles are global roles (role-based access control of the tenant), granted to applications and users.
+	// Roles are global roles (role-based access control of the tenant), granted to applications.
 	// +optional
 	Roles map[string]Role `json:"roles,omitempty"`
 	// +optional
 	Applications map[string]Application `json:"applications,omitempty"`
-	// Users are application-level administrators only; users from sign-up are never declared, never pruned.
-	// +optional
-	Users map[string]User `json:"users,omitempty"`
 }
 
 // Credentials of the Management API client.
@@ -421,15 +418,6 @@ type RoleRef struct {
 	Name string `json:"name"`
 }
 
-// User is an application-level administrator, matched by its primary e-mail. Never a password.
-type User struct {
-	PrimaryEmail string `json:"primaryEmail"`
-	// +optional
-	Name string `json:"name,omitempty"`
-	// +optional
-	Roles []RoleRef `json:"roles,omitempty"`
-}
-
 // Outputs of the operator.
 type Outputs struct {
 	// ConfigMap receives the identifiers (application ids, resource indicators), one key per output.
@@ -447,8 +435,7 @@ type OutputTarget struct {
 	Name string `json:"name"`
 	// Keys, when set, publishes only these outputs, each under the key it is mapped from (LOGTO_APP_ID:
 	// applications.organizer.id), so that a Pod can take the object whole with envFrom. Without keys, every output
-	// is published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator,
-	// users.<key>.id).
+	// is published under its own name (applications.<key>.id, applications.<key>.secret, resources.<key>.indicator).
 	// +optional
 	Keys map[string]string `json:"keys,omitempty"`
 }

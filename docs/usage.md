@@ -36,7 +36,7 @@ spec:
     tokenEndpoint: https://console.example.test # only for the m-default route (see below)
   variables: {zone: example.test}              # usable as ${zone} in string fields
   # connectors, customProfileFields, signInExperience, resources, organizationScopes,
-  # organizationRoles, roles, applications, users: see examples/reference.yaml
+  # organizationRoles, roles, applications: see examples/reference.yaml
 ```
 
 - **Strict.** An unknown key fails with its path, and `${name}` only reads `spec.variables`. Every rule is checked
@@ -68,8 +68,8 @@ Logto cannot create that first application through its API, so it is a one-time 
 | `logtoctl check -f FILE` | like `plan`, and exits 2 when Logto differs from the document | 0, 1, 2 |
 | `logtoctl apply -f FILE` | reconciles; prints the plan it ran on stderr and the identifiers on stdout | 0, 1, 3 |
 
-An `apply` publishes the identifiers Logto generates (`applications.<key>.id`, `resources.<key>.indicator`,
-`users.<key>.id`) on stdout, as `name=value` lines or, with `--outputs json`, as JSON. The secrets it publishes (an
+An `apply` publishes the identifiers Logto generates (`applications.<key>.id`, `resources.<key>.indicator`)
+on stdout, as `name=value` lines or, with `--outputs json`, as JSON. The secrets it publishes (an
 M2M application with `secret: {publish: true}`) are never printed; they go to:
 
 - `--secrets-out FILE`: JSON, created with mode 0600, also forced on an existing file;
@@ -86,7 +86,7 @@ succeed.
 ## What the tool never does
 
 - It never deletes an object that the document does not declare, unless that kind's `spec.prune` switch is set.
-  Even then it never prunes users, Logto's own Management API resource, a global role holding one of its scopes,
+  Even then it never prunes Logto's own Management API resource, a global role holding one of its scopes,
   a role the document grants, or what `spec.prune.keep` lists (by name; a resource also by indicator, a connector by id).
 - It never recreates an application: applications are matched by name and their type cannot change.
 - It never rotates a secret, and never sends a user a password.

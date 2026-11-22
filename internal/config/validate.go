@@ -37,7 +37,6 @@ func Validate(cfg *v1alpha1.LogtoConfig) error {
 	v.organizationRoles(s)
 	v.roles(s)
 	v.applications(s)
-	v.users(s)
 	v.outputs(s)
 	if r := s.ResyncInterval; r != nil && r.Duration < MinResync {
 		v.add("spec.resyncInterval", "at least %s: every resync plans against Logto", MinResync)
@@ -217,16 +216,6 @@ func (v *validator) applications(s *v1alpha1.LogtoConfigSpec) {
 	}
 }
 
-func (v *validator) users(s *v1alpha1.LogtoConfigSpec) {
-	uniqueBy(v, "spec.users", s.Users, "primaryEmail", func(u v1alpha1.User) string { return strings.ToLower(u.PrimaryEmail) })
-	for _, k := range sortedKeys(s.Users) {
-		if !strings.Contains(s.Users[k].PrimaryEmail, "@") {
-			v.add("spec.users."+k+".primaryEmail", "must be an e-mail address")
-		}
-		v.grantable(s, "spec.users."+k, s.Users[k].Roles, "User", "a user")
-	}
-}
-
 // Outputs are the names of what a document publishes: identifiers and secrets. The kinds publish exactly these
 // (a test of internal/engine/kinds checks it on examples/reference.yaml).
 func Outputs(s *v1alpha1.LogtoConfigSpec) (ids, secrets map[string]bool) {
@@ -239,9 +228,6 @@ func Outputs(s *v1alpha1.LogtoConfigSpec) (ids, secrets map[string]bool) {
 	}
 	for k := range s.Resources {
 		ids["resources."+k+".indicator"] = true
-	}
-	for k := range s.Users {
-		ids["users."+k+".id"] = true
 	}
 	return ids, secrets
 }

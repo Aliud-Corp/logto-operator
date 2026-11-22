@@ -27,6 +27,8 @@ flowchart LR
 - `oapi-codegen` over `ogen`: `ogen` skipped 46 operations of Logto's spec, including sign-in experience, connectors
   and custom profile fields.
 - Generated code is committed and guarded by `task generate:check`, which always regenerates.
+- Users and organizations are data, not configuration: no kind creates, updates or prunes them (nor memberships,
+  passwords); console admins stay manual.
 - Engine first, operator second: the CLI and the controller are thin shells over the same engine.
 - One schema, `logto.aliud.fr/v1alpha1` (`api/v1alpha1`): the Go types generate the CRD (controller-gen) and the
   JSON Schema of the CLI file (`tools/crd2schema`); nothing is written twice.

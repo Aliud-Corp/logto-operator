@@ -3,6 +3,7 @@ package cli_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io/fs"
 	"net/http/httptest"
 	"os"
@@ -10,8 +11,12 @@ import (
 	"strings"
 	"testing"
 
+	"sigs.k8s.io/yaml"
+
 	logtospecs "github.com/Aliud-Corp/logto-operator/api/logto"
+	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
 	"github.com/Aliud-Corp/logto-operator/internal/cli"
+	"github.com/Aliud-Corp/logto-operator/internal/config"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/contract"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/logtofake"
@@ -240,4 +245,103 @@ func TestAnUntestedLogtoIsRefusedUnlessAllowed(t *testing.T) {
 	if r.code != cli.ExitOK || !strings.Contains(r.stderr, "outside the support window") {
 		t.Fatalf("plan --allow-untested-logto: %d\n%s", r.code, r.stderr)
 	}
+}
+
+// What an apply publishes is exactly what config.Outputs names: the output keys of a LogtoConfig are validated
+// against that list, so a kind that published another name would make a valid key publish nothing.
+func TestTheOutputsAreTheOnesTheDocumentNames(t *testing.T) {
+	_, _, doc := setup(t)
+	secretsFile := filepath.Join(t.TempDir(), "secrets.json")
+	a := run("apply", "-f", doc, "--outputs", "json", "--secrets-out", secretsFile)
+	if a.code != cli.ExitOK {
+		t.Fatalf("apply: %d\n%s%s", a.code, a.stdout, a.stderr)
+	}
+	var ids, secretValues map[string]string
+	if err := json.Unmarshal([]byte(a.stdout), &ids); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(secretsFile)
+	if err := json.Unmarshal(b, &secretValues); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := config.Load(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantIDs, wantSecrets := config.Outputs(&loaded.Config.Spec)
+	same := func(what string, got map[string]string, want map[string]bool) {
+		t.Helper()
+		for k := range got {
+			if !want[k] {
+				t.Errorf("%s %s is published but config.Outputs does not name it", what, k)
+			}
+		}
+		for k := range want {
+			if _, ok := got[k]; !ok {
+				t.Errorf("%s %s is named by config.Outputs but not published", what, k)
+			}
+		}
+	}
+	same("identifier", ids, wantIDs)
+	same("secret", secretValues, wantSecrets)
+}
+
+// render is what an operator object is made of: its output, read back as an object (config.FromObject, which
+// interpolates again), is the document that was rendered. A $${ written in the source and a ${ inside an inlined
+// file both survive as literal text.
+func TestARenderedDocumentReadsBackAsTheSameObject(t *testing.T) {
+	dir := t.TempDir()
+	src := `apiVersion: logto.aliud.fr/v1alpha1
+kind: LogtoConfig
+metadata: {name: rt}
+spec:
+  endpoint: https://${host}
+  credentials:
+    clientId: {value: id}
+    clientSecret: {valueFrom: {secretKeyRef: {name: s, key: k}}}
+  variables: {host: auth.example.test}
+  signInExperience:
+    customCss: {fromFile: theme.css}
+  applications:
+    web: {name: Web, type: SPA, description: "costs $${price} on ${host}"}
+`
+	if err := os.WriteFile(filepath.Join(dir, "doc.yaml"), []byte(src), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "theme.css"), []byte(".a::after { content: '${x}' }"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	r := run("render", "-f", filepath.Join(dir, "doc.yaml"))
+	if r.code != cli.ExitOK {
+		t.Fatalf("render: %d %s", r.code, r.stderr)
+	}
+	var obj v1alpha1.LogtoConfig
+	if err := yaml.UnmarshalStrict([]byte(r.stdout), &obj); err != nil {
+		t.Fatal(err)
+	}
+	back, err := config.FromObject(&obj)
+	if err != nil {
+		t.Fatalf("the rendered document does not read back: %v\n%s", err, r.stdout)
+	}
+	want, err := config.Load(filepath.Join(dir, "doc.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, exp := back.Spec, want.Config.Spec
+	got.Variables, exp.Variables = nil, nil
+	if a, b := toJSON(t, got), toJSON(t, exp); a != b {
+		t.Fatalf("read back:\n%s\nwant:\n%s", a, b)
+	}
+	if d := back.Spec.Applications["web"].Description; d != "costs ${price} on auth.example.test" {
+		t.Fatalf("description = %q", d)
+	}
+}
+
+func toJSON(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
 }

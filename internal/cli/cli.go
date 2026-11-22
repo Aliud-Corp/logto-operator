@@ -11,12 +11,14 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"sort"
+	"strings"
 
 	"sigs.k8s.io/yaml"
 
@@ -25,10 +27,9 @@ import (
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
-	"github.com/Aliud-Corp/logto-operator/internal/logto/capability"
-	"github.com/Aliud-Corp/logto-operator/internal/logto/client"
 	"github.com/Aliud-Corp/logto-operator/internal/outputs"
 	"github.com/Aliud-Corp/logto-operator/internal/secrets"
+	"github.com/Aliud-Corp/logto-operator/internal/target"
 )
 
 // Exit codes.
@@ -132,7 +133,7 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 	}
 
 	resolver := secrets.CLI(redactor)
-	env, err := environment(ctx, doc.Config, resolver)
+	env, err := target.Connect(ctx, &doc.Config.Spec, resolver)
 	if err != nil {
 		return fail(err)
 	}
@@ -179,31 +180,45 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 	}
 }
 
-func environment(ctx context.Context, cfg *v1alpha1.LogtoConfig, resolver secrets.Resolver) (*engine.Env, error) {
-	s := &cfg.Spec
-	id, err := resolver.String("spec.credentials.clientId", s.Credentials.ClientID)
-	if err != nil {
-		return nil, err
-	}
-	secret, err := resolver.Secret("spec.credentials.clientSecret", s.Credentials.ClientSecret)
-	if err != nil {
-		return nil, err
-	}
-	c := client.New(client.Config{Endpoint: s.Endpoint, TokenEndpoint: s.Credentials.TokenEndpoint, ClientID: id, ClientSecret: secret.Reveal()})
-	spec, err := capability.Fetch(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-	return &engine.Env{Client: c, Spec: s, Secrets: resolver, Capability: spec}, nil
-}
-
+// render prints the document as it will be applied: files inlined, variables replaced and dropped. Every ${ left
+// in a value (written $${ in the source, or inside an inlined file) is written back as $${, so that reading the
+// output again (logtoctl, or the operator on an object made of it) gives the same values.
 func render(cfg *v1alpha1.LogtoConfig, stdout io.Writer, fail func(error) int) int {
-	b, err := yaml.Marshal(cfg)
+	out := cfg.DeepCopy()
+	out.Spec.Variables = nil
+	js, err := json.Marshal(out)
+	if err != nil {
+		return fail(err)
+	}
+	var tree map[string]any
+	if err := json.Unmarshal(js, &tree); err != nil {
+		return fail(err)
+	}
+	delete(tree, "status")
+	tree["spec"] = escape(tree["spec"])
+	b, err := yaml.Marshal(tree)
 	if err != nil {
 		return fail(err)
 	}
 	_, _ = stdout.Write(b)
 	return ExitOK
+}
+
+// escape writes every ${ of the strings under v as $${.
+func escape(v any) any {
+	switch x := v.(type) {
+	case string:
+		return strings.ReplaceAll(x, "${", "$${")
+	case map[string]any:
+		for k, e := range x {
+			x[k] = escape(e)
+		}
+	case []any:
+		for i, e := range x {
+			x[i] = escape(e)
+		}
+	}
+	return v
 }
 
 func publishSecrets(o *engine.Outputs, path string, fd int, print bool, stdout, stderr io.Writer, fail func(error) int) int {

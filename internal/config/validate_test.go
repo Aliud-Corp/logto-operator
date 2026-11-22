@@ -44,6 +44,51 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 			"spec.applications.a: roles and secret apply to a MachineToMachine application only",
 		},
 		{
+			"an output key naming no output",
+			"  applications:\n    web: {name: Web, type: SPA}\n    backend: {name: Backend, type: MachineToMachine, secret: {publish: true}}\n  outputs:\n    configMap: {name: ids, keys: {APP_ID: applications.nope.id}}\n",
+			`spec.outputs.configMap.keys.APP_ID: "applications.nope.id" is no output of this document`,
+		},
+		{
+			"a secret published in the ConfigMap",
+			"  applications:\n    web: {name: Web, type: SPA}\n    backend: {name: Backend, type: MachineToMachine, secret: {publish: true}}\n  outputs:\n    configMap: {name: ids, keys: {SECRET: applications.backend.secret}}\n",
+			`spec.outputs.configMap.keys.SECRET: "applications.backend.secret" is a secret: publish it in spec.outputs.secret`,
+		},
+		{
+			"an identifier published in the Secret",
+			"  applications:\n    web: {name: Web, type: SPA}\n    backend: {name: Backend, type: MachineToMachine, secret: {publish: true}}\n  outputs:\n    secret: {name: s, keys: {APP_ID: applications.web.id}}\n",
+			`spec.outputs.secret.keys.APP_ID: "applications.web.id" is an identifier: publish it in spec.outputs.configMap`,
+		},
+		{
+			"an output key Kubernetes refuses",
+			"  applications:\n    web: {name: Web, type: SPA}\n    backend: {name: Backend, type: MachineToMachine, secret: {publish: true}}\n  outputs:\n    configMap: {name: ids, keys: {\"APP ID\": applications.web.id}}\n",
+			`spec.outputs.configMap.keys.APP ID: not a valid ConfigMap or Secret key`,
+		},
+		{
+			"a dot output key",
+			"  applications:\n    web: {name: Web, type: SPA}\n    backend: {name: Backend, type: MachineToMachine, secret: {publish: true}}\n  outputs:\n    configMap: {name: ids, keys: {\"..\": applications.web.id}}\n",
+			`spec.outputs.configMap.keys...: not a valid ConfigMap or Secret key`,
+		},
+		{
+			"an output name Kubernetes refuses, without keys",
+			"  applications:\n    \"my app\": {name: Web, type: SPA}\n  outputs:\n    configMap: {name: ids}\n",
+			`spec.outputs.configMap: the output "applications.my app.id" is no valid ConfigMap key: name it with keys`,
+		},
+		{
+			"one key in both targets",
+			"  applications:\n    web: {name: Web, type: SPA}\n    backend: {name: Backend, type: MachineToMachine, secret: {publish: true}}\n  outputs:\n    configMap: {name: ids, keys: {X: applications.web.id}}\n    secret: {name: s, keys: {X: applications.backend.secret}}\n",
+			`spec.outputs.secret.keys.X: also published by spec.outputs.configMap; with envFrom one would hide the other`,
+		},
+		{
+			"a ConfigMap key hiding a Secret output published without keys",
+			"  applications:\n    web: {name: Web, type: SPA}\n    backend: {name: Backend, type: MachineToMachine, secret: {publish: true}}\n  outputs:\n    configMap: {name: ids, keys: {applications.backend.secret: applications.backend.id}}\n    secret: {name: s}\n",
+			`spec.outputs.secret: the output "applications.backend.secret" is also published by spec.outputs.configMap`,
+		},
+		{
+			"a resync of a second",
+			"  resyncInterval: 1s\n",
+			`spec.resyncInterval: at least 30s`,
+		},
+		{
 			"duplicate role name",
 			"  roles:\n    a: {name: Same, description: d, type: User}\n    b: {name: Same, description: d, type: User}\n",
 			`spec.roles.b: name "Same" is already declared by spec.roles.a`,

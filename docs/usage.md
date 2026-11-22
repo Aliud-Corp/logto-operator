@@ -63,7 +63,7 @@ Logto cannot create that first application through its API, so it is a one-time 
 
 | Command | Does | Exit codes |
 | --- | --- | --- |
-| `logtoctl render -f FILE` | prints the document as it will be applied (files inlined, variables replaced) | 0, 1 |
+| `logtoctl render -f FILE` | prints the document as it will be applied (files inlined, variables applied and dropped, a literal `${` written `$${`): what an operator object is made of | 0, 1 |
 | `logtoctl plan -f FILE` | prints what `apply` would do; writes nothing | 0, 1 |
 | `logtoctl check -f FILE` | like `plan`, and exits 2 when Logto differs from the document | 0, 1, 2 |
 | `logtoctl apply -f FILE` | reconciles; prints the plan it ran on stderr and the identifiers on stdout | 0, 1, 3 |

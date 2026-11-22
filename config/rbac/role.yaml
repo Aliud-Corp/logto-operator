@@ -1,0 +1,59 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: logto-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - logto.aliud.fr
+  resources:
+  - logtoconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - logto.aliud.fr
+  resources:
+  - logtoconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - logto.aliud.fr
+  resources:
+  - logtoconfigs/status
+  verbs:
+  - get
+  - patch
+  - update

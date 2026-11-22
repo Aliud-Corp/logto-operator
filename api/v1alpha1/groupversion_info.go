@@ -7,10 +7,23 @@
 // +groupName=logto.aliud.fr
 package v1alpha1
 
-import "k8s.io/apimachinery/pkg/runtime/schema"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
 
 // GroupVersion is the API group and version of LogtoConfig.
 var GroupVersion = schema.GroupVersion{Group: "logto.aliud.fr", Version: "v1alpha1"}
 
 // Kind is the kind of a LogtoConfig document.
 const Kind = "LogtoConfig"
+
+var schemeBuilder = runtime.NewSchemeBuilder(func(s *runtime.Scheme) error {
+	s.AddKnownTypes(GroupVersion, &LogtoConfig{}, &LogtoConfigList{})
+	metav1.AddToGroupVersion(s, GroupVersion)
+	return nil
+})
+
+// AddToScheme registers LogtoConfig and LogtoConfigList (the operator's client).
+var AddToScheme = schemeBuilder.AddToScheme

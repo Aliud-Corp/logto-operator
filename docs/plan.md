@@ -357,6 +357,10 @@ default-tenant users and are in scope from milestone 2.
   declared object (asserted object by object through the API), a second `apply` writes nothing, `check` exits 0
   then 2 after a console edit, `render` shows no secret. Integration test harness (`task it`) run locally and by a
   CI job against a Logto started in the job.
+- **Order (decided 2026-11-22).** M3 comes before the rest of M2: the kinds of M1 and global roles already cover a
+  first adopter's whole configuration, and what blocks its adoption is publishing the generated ids and secrets
+  into the cluster. The remaining M2 kinds land when a document needs them. Before the JWT customizer kind, a probe
+  on the throwaway Logto must show that OSS executes the script (a consumer observed it stored and never run).
 - **M2 — remaining kinds.** Global roles, access control, webhooks, JWT customizer + id token, account center,
   captcha, `/api/email-templates`; the behaviour scenarios of section 9 complete; outputs files. Before the new
   kinds:
@@ -380,6 +384,11 @@ default-tenant users and are in scope from milestone 2.
   - `secretKeyRef` through a `Resolver` that takes a context and reads Kubernetes Secrets; outputs (a flat map) map
     to the keys of one Secret and one ConfigMap;
   - the untested-Logto override becomes a field of the CR.
+  Progress: the controller (`internal/operator`, `cmd/logto-operator`) runs the engine per reconcile (`spec.mode`,
+  `spec.resyncInterval`, `spec.outputs` with optional key names for `envFrom`, `spec.allowUntestedLogto`), with conditions, outputs, `secretKeyRef`,
+  one object per normalized endpoint, Secrets read only for the endpoints their `logto.aliud.fr/readable-by` annotation lists, and a generated
+  ClusterRole (docs/operator.md); its manager runs against envtest in `task check`. Next: kustomize manifests, the ko image,
+  the Chainsaw e2e with Logto in k3d, then the Helm chart.
 - **M4 — first adopters.** A consuming project renders its `LogtoConfig` and runs `check` in its CI; each
   environment starts in `Observe` (drift reviewed, anything edited by hand in a console shows up), then `Apply`.
 - **M5 — admin console users** (only if section 8's spike succeeds).

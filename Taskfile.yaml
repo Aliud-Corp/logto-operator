@@ -14,8 +14,10 @@ vars:
   CODEGEN_SPEC: build/management.codegen.json
   MGMT_DIR: internal/logto/mgmt
   # Every directory `task generate` writes into; `generate:check` guards them all.
-  GENERATED_DIRS: internal/logto/mgmt api/v1alpha1 config/crd api/logto internal/logto/version
+  GENERATED_DIRS: internal/logto/mgmt api/v1alpha1 config/crd config/rbac api/logto internal/logto/version
   BIN_DIR: bin
+  # The API server of `task test:envtest`: the minor of k8s.io/client-go in go.mod.
+  ENVTEST_K8S: 1.37.0
   E2E_CLUSTER: logto-operator-e2e
   E2E_KUBECONFIG: build/e2e.kubeconfig
   VERSION:
@@ -41,6 +43,8 @@ tasks:
       # The LogtoConfig schema: deepcopy and CRD from api/v1alpha1, then the JSON Schema of the CLI file from the CRD.
       - controller-gen object paths=./api/...
       - controller-gen crd paths=./api/... output:crd:artifacts:config=config/crd
+      # The operator's ClusterRole, from the +kubebuilder:rbac markers of internal/operator.
+      - controller-gen rbac:roleName=logto-operator paths=./internal/operator/... output:rbac:artifacts:config=config/rbac
       - go run ./tools/crd2schema config/crd/logto.aliud.fr_logtoconfigs.yaml api/v1alpha1/logtoconfig.schema.json
 
   generate:check:
@@ -60,15 +64,25 @@ tasks:
       - go mod tidy -diff
 
   build:
-    desc: Build the CLI into bin/.
+    desc: Build the CLI and the operator into bin/.
     cmds:
       - mkdir -p {{.BIN_DIR}}
       - CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN_DIR}}/logtoctl ./cmd/logtoctl
+      - CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN_DIR}}/logto-operator ./cmd/logto-operator
 
   test:
     desc: Unit tests (no network, no Logto; the fake Management API runs in-process).
     cmds:
       - go test -race -count=1 ./...
+
+  test:envtest:
+    desc: The operator's manager against a real API server (envtest; kube-apiserver and etcd fetched once into .cache/envtest).
+    env:
+      LOGTO_ENVTEST_REQUIRED: "1"
+    cmds:
+      - |
+        KUBEBUILDER_ASSETS="$(setup-envtest use {{.ENVTEST_K8S}} --bin-dir {{.ROOT_DIR}}/.cache/envtest -p path)" \
+          go test -race -count=1 -tags envtest -run TestTheManagerAgainstARealAPIServer ./internal/operator/
 
   lint:
     desc: golangci-lint on the Go code (generated files excluded), actionlint on the workflows, the runner guard.
@@ -171,4 +185,5 @@ tasks:
       - task: tidy:check
       - task: lint
       - task: test
+      - task: test:envtest
       - task: build

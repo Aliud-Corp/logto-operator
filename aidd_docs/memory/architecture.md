@@ -35,6 +35,8 @@ flowchart LR
   and the engine refuses at plan time a field the target's own spec lacks (`internal/logto/capability`).
 - The engine (`internal/engine`) runs kinds in `DependsOn` order: Plan observes and diffs; Apply runs the ops, then
   plans the kind again and fails if Logto did not keep the write. No state file: Logto is the state.
+- A kind matched by a natural key plans through `kindkit.Collection` (create, update, refuse an ambiguous match,
+  prune with `keep`); the fake's collections share `table` (generated id, unique name, 422, 404).
 - A sub-object Logto replaces whole is sent as the declared value over Logto's own (`kindkit.Overlay`): unmanaged
   fields survive. Deletes run after every create and update, kinds in reverse order; apply results are per op
   (`plan.Result`), failures `*engine.OpError`, `engine.Transient` says whether a retry may help.

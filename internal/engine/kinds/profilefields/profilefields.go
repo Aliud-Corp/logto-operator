@@ -61,51 +61,43 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	if err := env.Client.Do(ctx, req, &observed); err != nil {
 		return nil, err
 	}
-	byName := map[string]wireField{}
-	for _, f := range observed {
-		byName[f.Name] = f
-	}
-	declared := map[string]bool{}
-	var ops []plan.Op
-	for _, key := range kindkit.Keys(env.Spec.CustomProfileFields) {
-		d := env.Spec.CustomProfileFields[key]
-		declared[d.Name] = true
-		have, exists := byName[d.Name]
-		if !exists {
-			ops = append(ops, plan.Op{
+	return kindkit.Collection[v1alpha1.CustomProfileField, wireField]{
+		Kind: Name, Where: "spec.customProfileFields", Declared: env.Spec.CustomProfileFields,
+		Natural: func(_ string, d v1alpha1.CustomProfileField) string { return d.Name },
+		Held:    func(f wireField) string { return f.Name },
+		Prune:   env.Spec.Prune.CustomProfileFields, Keep: env.Spec.Prune.Keep,
+		Create: func(key string, d v1alpha1.CustomProfileField) ([]plan.Op, error) {
+			return []plan.Op{{
 				Kind: Name, Key: key, Name: d.Name, Action: plan.Create,
 				Changes: []plan.Change{{Field: "type", To: d.Type}, {Field: "label", To: d.Label}},
 				Payload: payload{name: d.Name, d: d, create: true},
-			})
-			continue
-		}
-		var changes []plan.Change
-		changes = kindkit.Field(changes, "type", have.Type, d.Type)
-		changes = kindkit.Field(changes, "label", have.Label, d.Label)
-		if d.Description != "" {
-			changes = kindkit.Field(changes, "description", kindkit.Deref(have.Description), d.Description)
-		}
-		changes = kindkit.Field(changes, "required", strconv.FormatBool(have.Required), strconv.FormatBool(d.Required))
-		if d.Config != nil {
-			var want any
-			if err := json.Unmarshal(d.Config.Raw, &want); err != nil {
-				return nil, err
-			}
-			if !kindkit.Subset(want, have.Config) {
-				changes = append(changes, plan.Change{Field: "config", From: kindkit.JSON(have.Config), To: kindkit.JSON(want)})
-			}
-		}
-		ops = append(ops, plan.Op{Kind: Name, Key: key, Name: d.Name, Action: kindkit.Action(changes), Changes: changes, Payload: payload{name: d.Name, d: d}})
+			}}, nil
+		},
+		Update: updateOp,
+		Delete: func(f wireField) plan.Op {
+			return plan.Op{Kind: Name, Key: f.Name, Name: f.Name, Action: plan.Delete, Payload: payload{name: f.Name, delete: true}}
+		},
+	}.Plan(observed)
+}
+
+func updateOp(key string, d v1alpha1.CustomProfileField, have wireField) ([]plan.Op, error) {
+	var changes []plan.Change
+	changes = kindkit.Field(changes, "type", have.Type, d.Type)
+	changes = kindkit.Field(changes, "label", have.Label, d.Label)
+	if d.Description != "" {
+		changes = kindkit.Field(changes, "description", kindkit.Deref(have.Description), d.Description)
 	}
-	if env.Spec.Prune.CustomProfileFields {
-		for _, f := range observed {
-			if declared[f.Name] || kindkit.Kept(env, f.Name) {
-				continue
-			}
-			ops = append(ops, plan.Op{Kind: Name, Key: f.Name, Name: f.Name, Action: plan.Delete, Payload: payload{name: f.Name, delete: true}})
+	changes = kindkit.Field(changes, "required", strconv.FormatBool(have.Required), strconv.FormatBool(d.Required))
+	if d.Config != nil {
+		var want any
+		if err := json.Unmarshal(d.Config.Raw, &want); err != nil {
+			return nil, err
+		}
+		if !kindkit.Subset(want, have.Config) {
+			changes = append(changes, plan.Change{Field: "config", From: kindkit.JSON(have.Config), To: kindkit.JSON(want)})
 		}
 	}
-	return ops, nil
+	return []plan.Op{{Kind: Name, Key: key, Name: d.Name, Action: kindkit.Action(changes), Changes: changes, Payload: payload{name: d.Name, d: d}}}, nil
 }
 
 // Apply runs one op.

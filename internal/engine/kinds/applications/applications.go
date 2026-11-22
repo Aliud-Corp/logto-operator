@@ -91,44 +91,45 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	if err != nil {
 		return nil, err
 	}
-	byName := map[string][]wireApp{}
-	for _, a := range observed {
-		byName[a.Name] = append(byName[a.Name], a)
-	}
 	roles, err := roleIDs(ctx, env)
 	if err != nil {
 		return nil, err
 	}
-	var ops []plan.Op
-	for _, key := range kindkit.Keys(env.Spec.Applications) {
-		d := env.Spec.Applications[key]
-		path := "spec.applications." + key
-		grant, err := wanted(path, d, roles)
-		if err != nil {
-			return nil, err
-		}
-		publish := d.Secret != nil && d.Secret.Publish
-		switch found := byName[d.Name]; len(found) {
-		case 0:
+	// The grants and the secret, from the declaration alone.
+	intent := func(key string, d v1alpha1.Application) ([]string, bool, error) {
+		grant, err := wanted("spec.applications."+key, d, roles)
+		return grant, d.Secret != nil && d.Secret.Publish, err
+	}
+	return kindkit.Collection[v1alpha1.Application, wireApp]{
+		Kind: Name, Where: "spec.applications", Declared: env.Spec.Applications,
+		Natural: func(_ string, d v1alpha1.Application) string { return d.Name },
+		Held:    func(a wireApp) string { return a.Name },
+		Create: func(key string, d v1alpha1.Application) ([]plan.Op, error) {
+			grant, publish, err := intent(key, d)
+			if err != nil {
+				return nil, err
+			}
 			changes := []plan.Change{{Field: "type", To: d.Type}}
 			for _, r := range d.Roles {
 				changes = append(changes, plan.Change{Field: "roles." + r.Name, To: "granted"})
 			}
-			ops = append(ops, plan.Op{
+			return []plan.Op{{
 				Kind: Name, Key: key, Name: d.Name, Action: plan.Create, Changes: changes,
 				Payload: payload{key: key, d: d, create: true, grant: grant, publish: publish},
-			})
-		case 1:
-			op, err := updateOp(ctx, env, path, key, d, found[0], grant, publish)
+			}}, nil
+		},
+		Update: func(key string, d v1alpha1.Application, have wireApp) ([]plan.Op, error) {
+			grant, publish, err := intent(key, d)
 			if err != nil {
 				return nil, err
 			}
-			ops = append(ops, op)
-		default:
-			return nil, fmt.Errorf("%s: %d Logto applications are named %q; rename the extra ones so the match is unique", path, len(found), d.Name)
-		}
-	}
-	return ops, nil
+			op, err := updateOp(ctx, env, "spec.applications."+key, key, d, have, grant, publish)
+			if err != nil {
+				return nil, err
+			}
+			return []plan.Op{op}, nil
+		},
+	}.Plan(observed)
 }
 
 func updateOp(ctx context.Context, env *engine.Env, path, key string, d v1alpha1.Application, have wireApp, grant []string, publish bool) (plan.Op, error) {

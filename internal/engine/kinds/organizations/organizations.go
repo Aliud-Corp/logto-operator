@@ -66,43 +66,35 @@ func (Scopes) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	if err != nil {
 		return nil, err
 	}
-	byName := map[string]wireScope{}
-	for _, s := range observed {
-		byName[s.Name] = s
-	}
-	var ops []plan.Op
-	for _, name := range kindkit.Keys(env.Spec.OrganizationScopes) {
-		d := env.Spec.OrganizationScopes[name]
-		have, exists := byName[name]
-		if !exists {
-			ops = append(ops, plan.Op{
+	return kindkit.Collection[v1alpha1.OrganizationScope, wireScope]{
+		Kind: ScopesName, Where: "spec.organizationScopes", Declared: env.Spec.OrganizationScopes,
+		Natural: func(name string, _ v1alpha1.OrganizationScope) string { return name },
+		Held:    func(s wireScope) string { return s.Name },
+		Prune:   env.Spec.Prune.OrganizationScopes, Keep: env.Spec.Prune.Keep,
+		Create: func(name string, d v1alpha1.OrganizationScope) ([]plan.Op, error) {
+			return []plan.Op{{
 				Kind: ScopesName, Key: name, Action: plan.Create,
 				Changes: []plan.Change{{Field: "description", To: d.Description}},
 				Payload: scopePayload{create: ptr(newScope(name, d))},
-			})
-			continue
-		}
-		env.Refs.Set(ScopesName, name, RefID, have.ID)
-		var changes []plan.Change
-		p := scopePayload{id: have.ID}
-		if d.Description != "" {
-			changes = kindkit.Field(changes, "description", kindkit.Deref(have.Description), d.Description)
-		}
-		if len(changes) > 0 {
-			desc := d.Description
-			p.update = &updateScope{Description: &desc}
-		}
-		ops = append(ops, plan.Op{Kind: ScopesName, Key: name, Action: kindkit.Action(changes), Changes: changes, Payload: p})
-	}
-	if env.Spec.Prune.OrganizationScopes {
-		for _, s := range observed {
-			if _, ok := env.Spec.OrganizationScopes[s.Name]; ok || kindkit.Kept(env, s.Name) {
-				continue
+			}}, nil
+		},
+		Update: func(name string, d v1alpha1.OrganizationScope, have wireScope) ([]plan.Op, error) {
+			env.Refs.Set(ScopesName, name, RefID, have.ID)
+			var changes []plan.Change
+			p := scopePayload{id: have.ID}
+			if d.Description != "" {
+				changes = kindkit.Field(changes, "description", kindkit.Deref(have.Description), d.Description)
 			}
-			ops = append(ops, plan.Op{Kind: ScopesName, Key: s.Name, Action: plan.Delete, Payload: scopePayload{id: s.ID, delete: true}})
-		}
-	}
-	return ops, nil
+			if len(changes) > 0 {
+				desc := d.Description
+				p.update = &updateScope{Description: &desc}
+			}
+			return []plan.Op{{Kind: ScopesName, Key: name, Action: kindkit.Action(changes), Changes: changes, Payload: p}}, nil
+		},
+		Delete: func(s wireScope) plan.Op {
+			return plan.Op{Kind: ScopesName, Key: s.Name, Action: plan.Delete, Payload: scopePayload{id: s.ID, delete: true}}
+		},
+	}.Plan(observed)
 }
 
 // Apply runs one op.
@@ -181,63 +173,57 @@ func (Roles) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	if err != nil {
 		return nil, err
 	}
-	byName := map[string]wireRole{}
-	for _, r := range observed {
-		byName[r.Name] = r
-	}
-	declared := map[string]bool{}
-	var ops []plan.Op
-	for _, key := range kindkit.Keys(env.Spec.OrganizationRoles) {
-		d := env.Spec.OrganizationRoles[key]
-		declared[d.Name] = true
-		wantScopes := append([]string(nil), d.OrganizationScopes...)
-		wantPairs := desiredPairs(env, d)
-		have, exists := byName[d.Name]
-		if !exists {
-			ops = append(ops, plan.Op{
+	return kindkit.Collection[v1alpha1.OrganizationRole, wireRole]{
+		Kind: RolesName, Where: "spec.organizationRoles", Declared: env.Spec.OrganizationRoles,
+		Natural: func(_ string, d v1alpha1.OrganizationRole) string { return d.Name },
+		Held:    func(r wireRole) string { return r.Name },
+		Prune:   env.Spec.Prune.OrganizationRoles, Keep: env.Spec.Prune.Keep,
+		Create: func(key string, d v1alpha1.OrganizationRole) ([]plan.Op, error) {
+			return []plan.Op{{
 				Kind: RolesName, Key: key, Name: d.Name, Action: plan.Create,
 				Changes: []plan.Change{
-					{Field: "organizationScopes", To: plan.List(wantScopes)},
-					{Field: "resourceScopes", To: renderPairs(wantPairs)},
+					{Field: "organizationScopes", To: plan.List(append([]string(nil), d.OrganizationScopes...))},
+					{Field: "resourceScopes", To: renderPairs(desiredPairs(env, d))},
 				},
 				Payload: rolePayload{d: d, create: true},
-			})
-			continue
-		}
-		env.Refs.Set(RolesName, key, RefID, have.ID)
-		p := rolePayload{id: have.ID, d: d}
-		var changes []plan.Change
-		if d.Description != kindkit.Deref(have.Description) && d.Description != "" {
-			changes = append(changes, plan.Change{Field: "description", From: kindkit.Deref(have.Description), To: d.Description})
-			p.description = true
-		}
-		var haveScopes []string
-		for _, s := range have.Scopes {
-			haveScopes = append(haveScopes, s.Name)
-		}
-		if !plan.SameSet(haveScopes, wantScopes) {
-			changes = append(changes, plan.Change{Field: "organizationScopes", From: plan.List(haveScopes), To: plan.List(wantScopes)})
-			p.scopes = true
-		}
-		var havePairs []pair
-		for _, s := range have.ResourceScopes {
-			havePairs = append(havePairs, pair{resourceID: s.Resource.ID, scope: s.Name})
-		}
-		if !samePairs(havePairs, wantPairs) {
-			changes = append(changes, plan.Change{Field: "resourceScopes", From: renderPairs(havePairs), To: renderPairs(wantPairs)})
-			p.rscope = true
-		}
-		ops = append(ops, plan.Op{Kind: RolesName, Key: key, Name: d.Name, Action: kindkit.Action(changes), Changes: changes, Payload: p})
+			}}, nil
+		},
+		Update: func(key string, d v1alpha1.OrganizationRole, have wireRole) ([]plan.Op, error) {
+			return []plan.Op{roleUpdate(env, key, d, have)}, nil
+		},
+		Delete: func(r wireRole) plan.Op {
+			return plan.Op{Kind: RolesName, Key: r.Name, Name: r.Name, Action: plan.Delete, Payload: rolePayload{id: r.ID, delete: true}}
+		},
+	}.Plan(observed)
+}
+
+func roleUpdate(env *engine.Env, key string, d v1alpha1.OrganizationRole, have wireRole) plan.Op {
+	env.Refs.Set(RolesName, key, RefID, have.ID)
+	wantScopes := append([]string(nil), d.OrganizationScopes...)
+	wantPairs := desiredPairs(env, d)
+	p := rolePayload{id: have.ID, d: d}
+	var changes []plan.Change
+	if d.Description != kindkit.Deref(have.Description) && d.Description != "" {
+		changes = append(changes, plan.Change{Field: "description", From: kindkit.Deref(have.Description), To: d.Description})
+		p.description = true
 	}
-	if env.Spec.Prune.OrganizationRoles {
-		for _, r := range observed {
-			if declared[r.Name] || kindkit.Kept(env, r.Name) {
-				continue
-			}
-			ops = append(ops, plan.Op{Kind: RolesName, Key: r.Name, Name: r.Name, Action: plan.Delete, Payload: rolePayload{id: r.ID, delete: true}})
-		}
+	var haveScopes []string
+	for _, s := range have.Scopes {
+		haveScopes = append(haveScopes, s.Name)
 	}
-	return ops, nil
+	if !plan.SameSet(haveScopes, wantScopes) {
+		changes = append(changes, plan.Change{Field: "organizationScopes", From: plan.List(haveScopes), To: plan.List(wantScopes)})
+		p.scopes = true
+	}
+	var havePairs []pair
+	for _, s := range have.ResourceScopes {
+		havePairs = append(havePairs, pair{resourceID: s.Resource.ID, scope: s.Name})
+	}
+	if !samePairs(havePairs, wantPairs) {
+		changes = append(changes, plan.Change{Field: "resourceScopes", From: renderPairs(havePairs), To: renderPairs(wantPairs)})
+		p.rscope = true
+	}
+	return plan.Op{Kind: RolesName, Key: key, Name: d.Name, Action: kindkit.Action(changes), Changes: changes, Payload: p}
 }
 
 func desiredPairs(env *engine.Env, d v1alpha1.OrganizationRole) []pair {

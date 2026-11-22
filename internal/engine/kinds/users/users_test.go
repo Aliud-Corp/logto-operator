@@ -56,3 +56,19 @@ func TestAMissingRoleIsRefused(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+// A role declared in spec.roles is created and granted by one run.
+func TestARoleCreatedByTheSameDocumentIsGranted(t *testing.T) {
+	fake, c := kindtest.Fake(t)
+	doc := declared + "  roles:\n    admin: {name: platform_admin, description: Administers, type: User}\n"
+	spec := kindtest.Spec(t, doc)
+	kindtest.Apply(t, c, spec, resources.Kind{}, roles.Kind{}, users.Kind{})
+	if u := fake.Users()["admin@example.test"]; strings.Join(u.Roles, ",") != "platform_admin" {
+		t.Fatalf("user = %+v", u)
+	}
+	writes := fake.Writes()
+	kindtest.Unchanged(t, kindtest.Apply(t, c, spec, resources.Kind{}, roles.Kind{}, users.Kind{}))
+	if fake.Writes() != writes {
+		t.Fatalf("the replay wrote %d times", fake.Writes()-writes)
+	}
+}

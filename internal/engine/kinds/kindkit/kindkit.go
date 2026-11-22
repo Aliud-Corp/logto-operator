@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"reflect"
 	"sort"
+	"strings"
 
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
@@ -206,6 +207,12 @@ func Keys[V any](m map[string]V) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+// ManagementAPI reports whether a resource indicator is Logto's own Management API: its resource, and any role
+// holding one of its scopes, is never deleted or stripped, or the tool would cut its own access.
+func ManagementAPI(indicator string) bool {
+	return strings.HasPrefix(indicator, "https://default.logto.app")
 }
 
 // Kept reports whether an object is protected from prune by spec.prune.keep, given the keys it can be listed by:

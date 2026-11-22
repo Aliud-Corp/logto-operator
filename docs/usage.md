@@ -87,12 +87,12 @@ succeed.
 
 - It never deletes an object that the document does not declare, unless that kind's `spec.prune` switch is set.
   Even then it never prunes users, Logto's own Management API resource, a global role holding one of its scopes,
-  or what `spec.prune.keep` lists (by name; a resource also by indicator, a connector by id).
+  a role the document grants, or what `spec.prune.keep` lists (by name; a resource also by indicator, a connector by id).
 - It never recreates an application: applications are matched by name and their type cannot change.
 - It never rotates a secret, and never sends a user a password.
 - It never revokes a role an application or a user holds; it only grants the declared ones. A role granted by
   name is either declared in `spec.roles` (created in the same run if needed) or must already exist in Logto.
 - It never changes a global role's type. A role's scopes are managed only when its `scopes` are declared; then it
-  holds exactly those.
+  holds exactly those, except that a scope of Logto's Management API is never taken away (the plan refuses).
 - It never drops what Logto holds next to a declared value: when it must send a whole object (a connector's
   config, a part of the sign-in experience), the fields it does not manage are sent back as Logto has them.

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
@@ -36,7 +35,7 @@ func ScopeRef(name string) string { return "scope:" + name }
 
 // protected resources are never pruned: Logto's own Management API.
 func protected(r wireResource) bool {
-	return strings.HasPrefix(r.Indicator, "https://default.logto.app")
+	return kindkit.ManagementAPI(r.Indicator)
 }
 
 // payload is what Apply needs for one op.

@@ -143,10 +143,16 @@ func (v *validator) organizationRoles(s *v1alpha1.LogtoConfigSpec) {
 	}
 }
 
-// resourceScopes checks that each reference names a declared resource and one of its declared scopes.
+// resourceScopes checks that each reference names a declared resource and one of its declared scopes, once.
 func (v *validator) resourceScopes(s *v1alpha1.LogtoConfigSpec, path string, refs []v1alpha1.ResourceScopeRef) {
+	seen := map[v1alpha1.ResourceScopeRef]bool{}
 	for i, rs := range refs {
 		p := fmt.Sprintf("%s[%d]", path, i)
+		if seen[rs] {
+			v.add(p, "scope %q of resource %q is already listed", rs.Scope, rs.Resource)
+			continue
+		}
+		seen[rs] = true
 		res, ok := s.Resources[rs.Resource]
 		if !ok {
 			v.add(p, "resource %q is not declared in spec.resources", rs.Resource)

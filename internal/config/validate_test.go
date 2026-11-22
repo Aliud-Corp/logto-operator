@@ -70,6 +70,18 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 			`spec.roles.a.scopes[0]: scope "write" is not declared in spec.resources.app.scopes`,
 		},
 		{
+			"duplicate role scope",
+			"  resources:\n    app: {name: A, indicator: https://a.test/api, scopes: {read: {}}}\n" +
+				"  roles:\n    a: {name: A, description: d, type: User, scopes: [{resource: app, scope: read}, {resource: app, scope: read}]}\n",
+			`spec.roles.a.scopes[1]: scope "read" of resource "app" is already listed`,
+		},
+		{
+			"duplicate organization role resource scope",
+			"  resources:\n    app: {name: A, indicator: https://a.test/api, scopes: {read: {}}}\n" +
+				"  organizationRoles:\n    o: {name: o, resourceScopes: [{resource: app, scope: read}, {resource: app, scope: read}]}\n",
+			`spec.organizationRoles.o.resourceScopes[1]: scope "read" of resource "app" is already listed`,
+		},
+		{
 			"a User role granted to an application",
 			"  roles:\n    viewer: {name: Viewer, description: d, type: User}\n" +
 				"  applications:\n    a: {name: A, type: MachineToMachine, roles: [{name: Viewer}]}\n",

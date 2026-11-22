@@ -136,3 +136,46 @@ func sorted(l []string) []string {
 	}
 	return l
 }
+
+// scopes: [] manages the scopes, and none are held.
+func TestAnEmptyScopeListRemovesEveryScope(t *testing.T) {
+	fake, c := kindtest.Fake(t)
+	apply(t, c, declared)
+	none := strings.Replace(declared, `scopes: [{resource: app, scope: "event:read"}, {resource: app, scope: "event:write"}]`, "scopes: []", 1)
+	apply(t, c, none)
+	if got := fake.Roles()["Event sync"].Scopes; len(got) != 0 {
+		t.Fatalf("scopes = %v, want none", got)
+	}
+	kindtest.Unchanged(t, kindtest.Apply(t, c, kindtest.Spec(t, none), resources.Kind{}, roles.Kind{}))
+}
+
+// Declared scopes never take a Management API scope away: the tool's own access goes through such a role.
+func TestAManagementAPIScopeIsNeverRemoved(t *testing.T) {
+	_, c := kindtest.Fake(t)
+	doc := "  roles:\n    mgmt: {name: " + logtofake.ManagementRole + ", description: Management, type: MachineToMachine, scopes: []}\n"
+	_, err := kindtest.Plan(c, kindtest.Spec(t, doc), resources.Kind{}, roles.Kind{})
+	if err == nil || !strings.Contains(err.Error(), "spec.roles.mgmt: removing the scope \"all\" of Logto's Management API") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// isDefault of a new role shows in its plan.
+func TestANewRolePlansItsDefault(t *testing.T) {
+	_, c := kindtest.Fake(t)
+	p, err := kindtest.Plan(c, kindtest.Spec(t, declared), resources.Kind{}, roles.Kind{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, op := range p.Ops {
+		if op.Key != "reader" {
+			continue
+		}
+		for _, ch := range op.Changes {
+			if ch.Field == "isDefault" && ch.To == "true" {
+				return
+			}
+		}
+		t.Fatalf("reader changes = %+v", op.Changes)
+	}
+	t.Fatal("no op for reader")
+}

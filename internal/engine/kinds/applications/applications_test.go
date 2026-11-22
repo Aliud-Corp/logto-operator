@@ -138,3 +138,51 @@ func TestAPlanPublishesNoSecret(t *testing.T) {
 		t.Fatalf("a plan published %d secret(s)", len(env.Outputs.Secrets))
 	}
 }
+
+// A role declared in spec.roles is created and granted by one run, plan included: the plan cannot know its id yet.
+func TestARoleCreatedByTheSameDocumentIsGranted(t *testing.T) {
+	fake, c := kindtest.Fake(t)
+	doc := strings.Replace(declared, "        - {name: Logto Management API access}\n", "        - {name: Logto Management API access}\n        - {name: event_sync}\n", 1) +
+		"  roles:\n    sync: {name: event_sync, description: Syncs events, type: MachineToMachine}\n"
+	spec := kindtest.Spec(t, doc)
+	p, err := kindtest.Plan(c, spec, resources.Kind{}, roles.Kind{}, applications.Kind{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	granted := false
+	for _, op := range p.Ops {
+		for _, ch := range op.Changes {
+			granted = granted || (op.Key == "backend" && ch.Field == "roles.event_sync")
+		}
+	}
+	if !granted {
+		t.Fatalf("the plan does not grant event_sync: %v", p.Ops)
+	}
+	apply(t, fake, kindtest.Env(c, spec))
+	var backendID string
+	for _, a := range fake.Applications() {
+		if a["name"] == "Example Backend" {
+			backendID = a["id"].(string)
+		}
+	}
+	if got := strings.Join(fake.ApplicationRoleNames(backendID), ","); got != logtofake.ManagementRole+",event_sync" {
+		t.Fatalf("roles = %q", got)
+	}
+	writes := fake.Writes()
+	apply(t, fake, kindtest.Env(c, spec))
+	if fake.Writes() != writes {
+		t.Fatalf("the replay wrote %d times", fake.Writes()-writes)
+	}
+}
+
+// Prune never deletes a role the document grants, declared in spec.roles or not.
+func TestPruneSparesARoleTheDocumentGrants(t *testing.T) {
+	fake, c := kindtest.Fake(t)
+	fake.SeedRole("ops_sync", "MachineToMachine")
+	doc := strings.Replace(declared, "        - {name: Logto Management API access}\n", "        - {name: Logto Management API access}\n        - {name: ops_sync}\n", 1) +
+		"  prune: {roles: true}\n"
+	apply(t, fake, kindtest.Env(c, kindtest.Spec(t, doc)))
+	if _, ok := fake.Roles()["ops_sync"]; !ok {
+		t.Fatal("prune deleted ops_sync, which the document grants")
+	}
+}

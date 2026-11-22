@@ -50,8 +50,8 @@ type Server struct {
 
 	resources             map[string]object
 	resourceScopes        map[string]map[string]object // resource id -> scope id -> scope
-	orgScopes             map[string]object
-	orgRoles              map[string]object
+	orgScopes             *table
+	orgRoles              *table
 	orgRoleScopes         map[string][]string // role id -> organization scope ids
 	orgRoleResourceScopes map[string][]string // role id -> resource scope ids
 	profileFields         map[string]object   // by name

@@ -10,8 +10,8 @@ func (s *Server) initOrganizations() {
 	if s.orgScopes != nil {
 		return
 	}
-	s.orgScopes = map[string]object{}
-	s.orgRoles = map[string]object{}
+	s.orgScopes = newTable("os", "name")
+	s.orgRoles = newTable("or", "name")
 	s.orgRoleScopes = map[string][]string{}
 	s.orgRoleResourceScopes = map[string][]string{}
 }
@@ -29,10 +29,10 @@ func (s *Server) OrganizationRoles() map[string]OrganizationRole {
 	defer s.mu.Unlock()
 	s.initOrganizations()
 	out := map[string]OrganizationRole{}
-	for id, o := range s.orgRoles {
+	for id, o := range s.orgRoles.rows {
 		role := OrganizationRole{Name: str(o, "name"), Description: str(o, "description")}
 		for _, sid := range s.orgRoleScopes[id] {
-			role.Scopes = append(role.Scopes, str(s.orgScopes[sid], "name"))
+			role.Scopes = append(role.Scopes, str(s.orgScopes.rows[sid], "name"))
 		}
 		for _, sid := range s.orgRoleResourceScopes[id] {
 			if sc, ok := s.scopeByID(sid); ok {
@@ -50,7 +50,7 @@ func (s *Server) OrganizationScopeNames() []string {
 	defer s.mu.Unlock()
 	s.initOrganizations()
 	var out []string
-	for _, o := range sorted(s.orgScopes) {
+	for _, o := range s.orgScopes.list() {
 		out = append(out, str(o, "name"))
 	}
 	return out
@@ -60,7 +60,7 @@ func (s *Server) OrganizationScopeNames() []string {
 func (s *Server) ListOrganizationScopes(w http.ResponseWriter, r *http.Request, _ mgmt.ListOrganizationScopesParams) {
 	s.mu.Lock()
 	s.initOrganizations()
-	items := sorted(s.orgScopes)
+	items := s.orgScopes.list()
 	s.mu.Unlock()
 	paginate(w, r, items)
 }
@@ -74,16 +74,10 @@ func (s *Server) CreateOrganizationScope(w http.ResponseWriter, r *http.Request)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initOrganizations()
-	for _, o := range s.orgScopes {
-		if str(o, "name") == str(body, "name") {
-			conflict(w, "entity.unique_integrity_violation")
-			return
-		}
+	o := object{"tenantId": "default", "name": str(body, "name"), "description": body["description"]}
+	if s.orgScopes.insert(s, w, o) {
+		writeJSON(w, http.StatusCreated, o)
 	}
-	id := s.nextID("os")
-	o := object{"tenantId": "default", "id": id, "name": str(body, "name"), "description": body["description"]}
-	s.orgScopes[id] = o
-	writeJSON(w, http.StatusCreated, o)
 }
 
 // UpdateOrganizationScope is PATCH /api/organization-scopes/{id}.
@@ -95,13 +89,9 @@ func (s *Server) UpdateOrganizationScope(w http.ResponseWriter, r *http.Request,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initOrganizations()
-	o, ok := s.orgScopes[id]
-	if !ok {
-		notFound(w)
-		return
+	if o, ok := s.orgScopes.patch(w, id, body); ok {
+		writeJSON(w, http.StatusOK, o)
 	}
-	merge(o, body)
-	writeJSON(w, http.StatusOK, o)
 }
 
 // DeleteOrganizationScope is DELETE /api/organization-scopes/{id}; roles lose it.
@@ -109,11 +99,9 @@ func (s *Server) DeleteOrganizationScope(w http.ResponseWriter, _ *http.Request,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initOrganizations()
-	if _, ok := s.orgScopes[id]; !ok {
-		notFound(w)
+	if !s.orgScopes.remove(w, id) {
 		return
 	}
-	delete(s.orgScopes, id)
 	for rid, list := range s.orgRoleScopes {
 		s.orgRoleScopes[rid] = without(list, id)
 	}
@@ -121,10 +109,10 @@ func (s *Server) DeleteOrganizationScope(w http.ResponseWriter, _ *http.Request,
 }
 
 func (s *Server) roleView(id string) object {
-	o := copyObject(s.orgRoles[id])
+	o := copyObject(s.orgRoles.rows[id])
 	scopes := []object{}
 	for _, sid := range s.orgRoleScopes[id] {
-		scopes = append(scopes, object{"id": sid, "name": str(s.orgScopes[sid], "name")})
+		scopes = append(scopes, object{"id": sid, "name": str(s.orgScopes.rows[sid], "name")})
 	}
 	resourceScopes := []object{}
 	for _, sid := range s.orgRoleResourceScopes[id] {
@@ -142,7 +130,7 @@ func (s *Server) ListOrganizationRoles(w http.ResponseWriter, r *http.Request, _
 	s.mu.Lock()
 	s.initOrganizations()
 	var items []object
-	for _, o := range sorted(s.orgRoles) {
+	for _, o := range s.orgRoles.list() {
 		items = append(items, s.roleView(str(o, "id")))
 	}
 	s.mu.Unlock()
@@ -161,21 +149,18 @@ func (s *Server) CreateOrganizationRole(w http.ResponseWriter, r *http.Request) 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initOrganizations()
-	for _, o := range s.orgRoles {
-		if str(o, "name") == str(body, "name") {
-			conflict(w, "entity.unique_integrity_violation")
-			return
-		}
-	}
 	typ := str(body, "type")
 	if typ == "" {
 		typ = "User"
 	}
-	id := s.nextID("or")
-	s.orgRoles[id] = object{"tenantId": "default", "id": id, "name": str(body, "name"), "description": body["description"], "type": typ}
+	o := object{"tenantId": "default", "name": str(body, "name"), "description": body["description"], "type": typ}
+	if !s.orgRoles.insert(s, w, o) {
+		return
+	}
+	id := str(o, "id")
 	s.orgRoleScopes[id] = stringList(body, "organizationScopeIds")
 	s.orgRoleResourceScopes[id] = stringList(body, "resourceScopeIds")
-	writeJSON(w, http.StatusCreated, s.orgRoles[id])
+	writeJSON(w, http.StatusCreated, o)
 }
 
 // UpdateOrganizationRole is PATCH /api/organization-roles/{id}.
@@ -187,13 +172,9 @@ func (s *Server) UpdateOrganizationRole(w http.ResponseWriter, r *http.Request, 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initOrganizations()
-	o, ok := s.orgRoles[id]
-	if !ok {
-		notFound(w)
-		return
+	if o, ok := s.orgRoles.patch(w, id, body); ok {
+		writeJSON(w, http.StatusOK, o)
 	}
-	merge(o, body)
-	writeJSON(w, http.StatusOK, o)
 }
 
 // DeleteOrganizationRole is DELETE /api/organization-roles/{id}.
@@ -201,11 +182,9 @@ func (s *Server) DeleteOrganizationRole(w http.ResponseWriter, _ *http.Request, 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initOrganizations()
-	if _, ok := s.orgRoles[id]; !ok {
-		notFound(w)
+	if !s.orgRoles.remove(w, id) {
 		return
 	}
-	delete(s.orgRoles, id)
 	delete(s.orgRoleScopes, id)
 	delete(s.orgRoleResourceScopes, id)
 	w.WriteHeader(http.StatusNoContent)
@@ -220,8 +199,7 @@ func (s *Server) ReplaceOrganizationRoleScopes(w http.ResponseWriter, r *http.Re
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initOrganizations()
-	if _, ok := s.orgRoles[id]; !ok {
-		notFound(w)
+	if _, ok := s.orgRoles.get(w, id); !ok {
 		return
 	}
 	s.orgRoleScopes[id] = stringList(body, "organizationScopeIds")
@@ -237,8 +215,7 @@ func (s *Server) ReplaceOrganizationRoleResourceScopes(w http.ResponseWriter, r 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initOrganizations()
-	if _, ok := s.orgRoles[id]; !ok {
-		notFound(w)
+	if _, ok := s.orgRoles.get(w, id); !ok {
 		return
 	}
 	s.orgRoleResourceScopes[id] = stringList(body, "scopeIds")

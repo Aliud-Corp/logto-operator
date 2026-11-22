@@ -99,41 +99,34 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 	if err != nil {
 		return nil, err
 	}
-	byIndicator := map[string]wireResource{}
-	for _, r := range observed {
-		byIndicator[r.Indicator] = r
-	}
-	declared := map[string]bool{}
-	var ops []plan.Op
-	for _, key := range kindkit.Keys(env.Spec.Resources) {
-		d := env.Spec.Resources[key]
-		declared[d.Indicator] = true
+	published := func(key string, d v1alpha1.Resource) {
 		env.Refs.Set(Name, key, RefIndicator, d.Indicator)
 		env.Outputs.SetID("resources."+key+".indicator", d.Indicator)
-		have, exists := byIndicator[d.Indicator]
-		if !exists {
-			ops = append(ops, createOp(key, d))
-			continue
-		}
-		op, err := updateOp(ctx, env, key, d, have)
-		if err != nil {
-			return nil, err
-		}
-		ops = append(ops, op...)
 	}
-	if env.Spec.Prune.Resources {
-		for _, r := range observed {
-			if declared[r.Indicator] || protected(r) || kindkit.Kept(env, r.Name, r.Indicator) {
-				continue
-			}
-			ops = append(ops, plan.Op{
+	return kindkit.Collection[v1alpha1.Resource, wireResource]{
+		Kind: Name, Where: "spec.resources", Declared: env.Spec.Resources,
+		Natural:   func(_ string, d v1alpha1.Resource) string { return d.Indicator },
+		Held:      func(r wireResource) string { return r.Indicator },
+		Prune:     env.Spec.Prune.Resources,
+		Keep:      env.Spec.Prune.Keep,
+		KeepKeys:  func(r wireResource) []string { return []string{r.Name, r.Indicator} },
+		Protected: protected,
+		Create: func(key string, d v1alpha1.Resource) ([]plan.Op, error) {
+			published(key, d)
+			return []plan.Op{createOp(key, d)}, nil
+		},
+		Update: func(key string, d v1alpha1.Resource, have wireResource) ([]plan.Op, error) {
+			published(key, d)
+			return updateOp(ctx, env, key, d, have)
+		},
+		Delete: func(r wireResource) plan.Op {
+			return plan.Op{
 				Kind: Name, Key: r.Indicator, Name: r.Name, Action: plan.Delete,
 				Changes: []plan.Change{{Field: "indicator", From: r.Indicator}},
 				Payload: payload{id: r.ID, delete: true},
-			})
-		}
-	}
-	return ops, nil
+			}
+		},
+	}.Plan(observed)
 }
 
 func createOp(key string, d v1alpha1.Resource) plan.Op {

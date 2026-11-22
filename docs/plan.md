@@ -357,9 +357,12 @@ default-tenant users and are in scope from milestone 2.
 - **M2 — remaining kinds.** Global roles, access control, webhooks, JWT customizer + id token, account center,
   captcha, `/api/email-templates`; the behaviour scenarios of section 9 complete; outputs files. Before the new
   kinds:
-  - a generic "collection by natural key" in `kindkit` (list, adopt, refuse an ambiguous match, create, update,
-    prune with `keep`, `Needs` built from the same request builders as Apply), and the matching helper in the fake,
-    so that twenty kinds do not each rewrite Logto;
+  - a generic "collection by natural key" in `kindkit` (adopt, refuse an ambiguous match, create, update, prune
+    with `keep`), and the matching helper in the fake, so that twenty kinds do not each rewrite Logto (done:
+    `kindkit.Collection`, used by applications, resources, organization scopes and roles, custom profile fields;
+    the fake's `table`, used by organization scopes and roles; connectors and users keep their own matching, by id
+    or factory and by case-insensitive e-mail). That every write is in `Needs` stays guarded by a test that scans
+    each kind's request builders;
   - global roles publish their ids as Refs; applications and users depend on them and read Refs, so that a role
     created and granted by the same document plans (today they resolve roles by reading Logto).
 - **M3 — operator.** CRD generated from `api/v1alpha1` (controller-gen, committed, drift-guarded), controller-runtime

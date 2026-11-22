@@ -108,7 +108,7 @@ func TestADuplicateNameIsRefused(t *testing.T) {
 	fake.SeedApplication(logtofake.Application{Name: "Example App", Type: "SPA"})
 	fake.SeedApplication(logtofake.Application{Name: "Example App", Type: "SPA"})
 	_, err := kindtest.Plan(c, kindtest.Spec(t, declared), applications.Kind{})
-	if err == nil || !strings.Contains(err.Error(), `2 Logto applications are named "Example App"`) {
+	if err == nil || !strings.Contains(err.Error(), `2 Logto objects match "Example App"`) {
 		t.Fatalf("err = %v", err)
 	}
 }

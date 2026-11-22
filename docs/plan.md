@@ -367,8 +367,8 @@ default-tenant users and are in scope from milestone 2.
     created and granted by the same document plans (today they resolve roles by reading Logto).
 - **M3 — operator.** CRD generated from `api/v1alpha1` (controller-gen, committed, drift-guarded), controller-runtime
   manager, Secret watch, resync (`RequeueAfter`, default 10 min, no CronJob), conditions, outputs Secret/ConfigMap,
-  `spec.mode: Observe|Apply` (Observe = plan only, status `Drifted`), narrow RBAC, manifests (kustomize, committed);
-  Chainsaw e2e with Logto inside k3d. From the engine:
+  `spec.mode: Observe|Apply` (Observe = plan only, status `Drifted`), narrow RBAC, manifests (kustomize, committed,
+  the source of the Helm chart of section 12); Chainsaw e2e with Logto inside k3d. From the engine:
   - conditions from each op's `plan.Result`; `engine.Transient` picks a requeue with backoff, anything else
     `Degraded` until the document changes;
   - one CR per Logto endpoint (a second one is refused through an index) and one reconcile at a time per endpoint:
@@ -392,6 +392,11 @@ default-tenant users and are in scope from milestone 2.
   `ghcr.io/<owner>/logto-operator` (public repository, public image, pinned by digest by its consumers). Promotion
   re-tags, never rebuilds. Release workflows publish with the workflow's `GITHUB_TOKEN` (`packages: write`) on tag
   pushes only, never from a pull request.
+- Helm chart (decided 2026-11-22): the kustomize manifests are the source; a chart is published next to them as an
+  OCI artifact (`oci://ghcr.io/<owner>/charts/logto-operator`), versioned with the release, for the adopters who
+  install operators with Helm. Its values cover what an install varies (image, resources, watched namespace,
+  resync interval); a test renders the chart with its defaults and compares it with `kustomize build`, so that
+  the two never drift apart. The CRD ships in the chart's `crds/` directory.
 
 ### 12b. CI runners (decided 2026-11-20)
 

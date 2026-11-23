@@ -200,7 +200,8 @@ type SMTPAuth struct {
 	Pass SecretSource `json:"pass"`
 }
 
-// EmailTemplates are inline items, or a directory relative to the document.
+// EmailTemplates are inline items, or a directory relative to the document, one JSON template per file, whose
+// content.fromFile is relative to that directory.
 type EmailTemplates struct {
 	// +optional
 	FromDir string `json:"fromDir,omitempty"`

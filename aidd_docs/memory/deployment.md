@@ -20,5 +20,14 @@
 
 ## Release
 
-- Not set up yet. The image is built by ko (`.ko.yaml`); `task image:build` (in `task check`) builds every platform
-  without pushing, `task image` loads one into the local Docker daemon.
+- release-please (`release.yml`, push to `main`): one release pull request; merging it tags `vX.Y.Z` (`go`
+  release type, `0.x` minor on a breaking change) and creates the GitHub release.
+- The release pull request is opened with a GitHub App's token (`RELEASE_APP_ID`, `RELEASE_APP_PRIVATE_KEY`): the
+  organisation forbids `GITHUB_TOKEN` to open pull requests, and its pull requests would trigger no CI.
+- `publish` runs `task release` on the tag: ko pushes the image to `ghcr.io/aliud-corp/logto-operator` and pins it in
+  `build/release/install.yaml`; GoReleaser (`.goreleaser.yaml`) builds the `logtoctl` archives and `checksums.txt`
+  and uploads them with `install.yaml` to the release (`keep-existing`: the notes stay release-please's).
+  `GITHUB_TOKEN`, `packages` and `contents` write, never on a pull request. `task release:snapshot` builds the
+  archives locally without publishing.
+- `task image:build` (in `task check`) builds every platform without pushing; `task image` loads one into the local
+  Docker daemon.

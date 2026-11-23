@@ -87,6 +87,31 @@ tasks:
     cmds:
       - ko build --bare --push=false ./cmd/logto-operator
 
+  release:
+    desc: Publish a release's artifacts (the release workflow runs it on the tag, with KO_DOCKER_REPO and GITHUB_TOKEN set). Pushes the image and uploads to the GitHub release.
+    env:
+      VERSION: '{{.VERSION}}'
+    cmds:
+      - 'test -n "$KO_DOCKER_REPO" || { echo "task release: KO_DOCKER_REPO is unset (the registry to push to)" >&2; exit 1; }'
+      - task: release:install
+      # The logtoctl archives and checksums.txt (install.yaml included), uploaded to the release release-please made.
+      - goreleaser release --clean
+
+  release:install:
+    desc: Render the install with its image built, pushed to KO_DOCKER_REPO and pinned by digest, into build/release/install.yaml.
+    internal: true
+    env:
+      VERSION: '{{.VERSION}}'
+    cmds:
+      - rm -rf build/release && mkdir -p build/release
+      - set -o pipefail; kubectl kustomize config/default | ko resolve --bare --tags={{.VERSION}} --image-label=org.opencontainers.image.source=https://github.com/Aliud-Corp/logto-operator -f - > build/release/install.yaml
+
+  release:snapshot:
+    desc: Build the release's logtoctl archives locally into dist/, without publishing anything (no image, no upload).
+    cmds:
+      - rm -rf build/release && mkdir -p build/release && touch build/release/install.yaml
+      - goreleaser release --snapshot --clean
+
   test:
     desc: Unit tests (no network, no Logto; the fake Management API runs in-process).
     cmds:
@@ -102,10 +127,11 @@ tasks:
           go test -race -count=1 -tags envtest -run 'AgainstARealAPIServer$' ./internal/operator/ ./test/manifests/
 
   lint:
-    desc: golangci-lint on the Go code (generated files excluded), actionlint on the workflows, the runner guard.
+    desc: golangci-lint on the Go code (generated files excluded), actionlint on the workflows, the GoReleaser config, the runner guard.
     cmds:
       - golangci-lint run ./...
       - actionlint
+      - goreleaser check
       - task: ci:runners
 
   ci:runners:

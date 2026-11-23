@@ -1,0 +1,42 @@
+# The logtoctl binaries of a release (`task release`, run by .github/workflows/release.yml on the tag release-please
+# created). The release and its notes are release-please's: GoReleaser only adds the archives, the checksums and the
+# install rendered by ko (build/release/install.yaml, image pinned by digest). The operator's image is ko's, not
+# GoReleaser's: `task release:install` builds and pushes it.
+version: 2
+
+project_name: logtoctl
+
+builds:
+  - id: logtoctl
+    main: ./cmd/logtoctl
+    binary: logtoctl
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Tag }}
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: logtoctl
+    formats: [tar.gz]
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    files:
+      - LICENSE
+      - NOTICE
+
+checksum:
+  name_template: checksums.txt
+  extra_files:
+    - glob: build/release/install.yaml
+
+release:
+  # release-please created the release and wrote its notes: keep them.
+  mode: keep-existing
+  extra_files:
+    - glob: build/release/install.yaml
+
+changelog:
+  disable: true

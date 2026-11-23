@@ -2,7 +2,7 @@
 
 The operator reconciles `LogtoConfig` objects on the same engine as `logtoctl`: the document is the one described in
 [usage.md](usage.md), applied as a Kubernetes object. It is milestone 3 of [plan.md](plan.md), in progress: the
-controller, its install manifests and its image exist; end-to-end tests and a published release come next.
+controller, its install manifests and its image exist, and releases publish them; end-to-end tests come next.
 
 ## What it does on each reconcile
 
@@ -97,9 +97,15 @@ endpoint learns it without waiting for that turn.
 ## Installing
 
 `config/default` is the install, as kustomize: the CRD, the ServiceAccount, the ClusterRole and its binding, and the
-manager's Deployment, all in the namespace `logto-operator-system` (Pod Security `restricted`). Its image is a
-`ko://` reference, which [ko](https://ko.build) turns into a built image pinned by digest. No image is published
-yet; until a release exists, build and push one to a registry the cluster can pull from:
+manager's Deployment, all in the namespace `logto-operator-system` (Pod Security `restricted`). Each release
+attaches it rendered, `install.yaml`, its image (`ghcr.io/aliud-corp/logto-operator`) pinned by digest:
+
+```bash
+kubectl apply -f https://github.com/Aliud-Corp/logto-operator/releases/download/<version>/install.yaml
+```
+
+In the source the image is a `ko://` reference, which [ko](https://ko.build) turns into a built image pinned by
+digest. To run a build of your own, push it to a registry the cluster can pull from:
 
 ```bash
 kubectl kustomize config/default | VERSION=$(git describe --tags --always) KO_DOCKER_REPO=registry.example.test/logto-operator ko resolve --bare -f - | kubectl apply -f -

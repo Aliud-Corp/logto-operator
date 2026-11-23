@@ -8,7 +8,7 @@ writing engine code.
 ## Rules
 
 - Everything written here is English (code, docs, commits). Conventional commits.
-- The repository will be public: nothing internal to the studio in any file or commit (internal hostnames,
+- The repository is public: nothing internal to the studio in any file or commit (internal hostnames,
   infrastructure, private repository paths, real ids, e-mails, secrets).
 - No trace of AI authorship: no `Co-Authored-By` line naming an AI, no "Generated with" footer, in commits or pull
   requests.

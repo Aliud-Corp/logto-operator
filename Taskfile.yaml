@@ -109,7 +109,7 @@ tasks:
       - task: ci:runners
 
   ci:runners:
-    desc: Fail when a workflow runs on anything but a GitHub-hosted `ubuntu-<version>` runner (the repository goes public).
+    desc: Fail when a workflow runs on anything but a GitHub-hosted `ubuntu-<version>` runner (the repository is public).
     cmds:
       - cmd: |
           bad=$(grep -nE '^[[:space:]]*runs-on:' .github/workflows/*.yml | grep -vE 'runs-on:[[:space:]]*ubuntu-[0-9]+\.[0-9]+[[:space:]]*$' || true)

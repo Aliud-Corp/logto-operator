@@ -3,7 +3,7 @@
 ## Setup
 
 - Main branch: `main`
-- Platform: GitHub; repository private for now, public later (write everything as if it were public already)
+- Platform: GitHub; repository public (since 2026-11-23): everything written is read by anyone
 
 ## Branches
 

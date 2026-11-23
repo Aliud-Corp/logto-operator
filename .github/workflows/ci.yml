@@ -1,10 +1,10 @@
 ---
-# CI of logto-operator, on GitHub-hosted runners only. The repository will become public: a fork's pull request must
-# never run on self-hosted infrastructure, and `task ci:runners` (part of `task check`) fails on any other `runs-on`.
+# CI of logto-operator, on GitHub-hosted runners only. The repository is public: a fork's pull request must never run
+# on self-hosted infrastructure, and `task ci:runners` (part of `task check`) fails on any other `runs-on`.
 #
-# While the repository is private, every minute counts against the organization's shared free quota, and an exhausted
-# quota blocks every hosted job of the organization until the next month. Hence ONE job running the whole gate (each
-# job is billed rounded up to the minute), the mise cache, and e2e in its own path-filtered workflow (e2e.yml).
+# ONE job runs the whole gate, with the mise cache, and e2e has its own path-filtered workflow (e2e.yml): chosen while
+# the repository was private and its minutes were billed. Hosted minutes are free now; the gate may be split into
+# readable jobs.
 #
 # CACHES. A pull request can read the caches of `main` but never another pull request's, so caches are SAVED ON
 # `main` ONLY (each push) and only RESTORED on pull requests: saving from pull requests would fill the repository's

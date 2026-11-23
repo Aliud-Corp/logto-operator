@@ -3,8 +3,7 @@
 # Pushes to main, and pull requests that change how Logto is called (the engine, the kinds, the client, the specs,
 # the reference document the acceptance test applies, the harness itself),
 # test every version of api/logto/versions.txt one after the other (`task it:all`); other pull requests test the
-# newest (`task it`). One job either way: while the repository is private, each job is billed rounded up to the
-# minute (see ci.yml). Caches are restored here and saved by ci.yml on main.
+# newest (`task it`). One job either way (see ci.yml). Caches are restored here and saved by ci.yml on main.
 name: integration
 
 on:

@@ -418,14 +418,13 @@ hand) or keeps it in its own database is the product's choice.
 ### 12b. CI runners (decided 2026-11-20)
 
 CI runs on **GitHub-hosted runners** (`ubuntu-<version>`, pinned), which carry a Docker daemon (k3d, the Logto of
-`test/integration/compose.yaml`). Never the studio's self-hosted runners: the repository will be **public**, and a
+`test/integration/compose.yaml`). Never the studio's self-hosted runners: the repository is **public**, and a
 fork's pull request would run arbitrary code on studio infrastructure. `task ci:runners` (in `task check`) fails on any other `runs-on`.
 
-The repository starts **private** and goes public later. While private, its minutes count against the organization's
-shared free quota, and an exhausted quota blocks every hosted job of the organization until the next month. So: one
-`check` job running the whole gate (jobs are billed rounded up to the minute), the mise
-cache, the e2e suite in its own path-filtered workflow, nothing on draft pull requests, superseded runs cancelled.
-Once public, minutes are free: the gate can be split back into readable jobs.
+The repository started **private** and went public on 2026-11-23. While private, its minutes counted against the
+organization's shared free quota, hence: one `check` job running the whole gate, the mise cache, the e2e suite in its
+own path-filtered workflow, nothing on draft pull requests, superseded runs cancelled. Hosted minutes are free now:
+the gate can be split back into readable jobs.
 
 Rules: no `pull_request_target`; `permissions: contents: read` by default; no secret in any pull request job (the
 integration and e2e Logtos are throwaway and local to the job); third-party actions pinned by commit SHA. Blacksmith

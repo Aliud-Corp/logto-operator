@@ -7,7 +7,7 @@ How this team drives AI coding assistants on this project.
 - The AI never commits, pushes or opens a pull request unless asked, and never adds an AI attribution line.
 - Never a call to a deployed Logto (stag, prod): the fake, a local Logto, or the throwaway Logto of a CI job.
 - Generated code is regenerated, never edited; a value the generator produces is imported, never retyped.
-- Nothing internal to the studio in any file: the repository will be public.
+- Nothing internal to the studio in any file: the repository is public.
 
 ## Validation depth
 

@@ -47,6 +47,7 @@ spec:
 - **Files.** `fromFile` and `fromDir` are resolved relative to the document, except the `content.fromFile` of a
   template read by `fromDir`, which is relative to that template's file (several documents can share one directory
   of templates). Use `as: dataUri` for images.
+- **One document.** A file holds a single `LogtoConfig`; a stream of several documents is refused.
 
 ## Credentials: the first M2M application
 
@@ -69,6 +70,13 @@ Logto cannot create that first application through its API, so it is a one-time 
 | `logtoctl plan -f FILE` | prints what `apply` would do; writes nothing | 0, 1 |
 | `logtoctl check -f FILE` | like `plan`, and exits 2 when Logto differs from the document | 0, 1, 2 |
 | `logtoctl apply -f FILE` | reconciles; prints the plan it ran on stderr and the identifiers on stdout | 0, 1, 3 |
+
+`-f -` reads the document on stdin; its `fromFile` and `fromDir` are then relative to the working directory. A
+document assembled by kustomize (a base and one overlay per environment) is rendered, and checked, in one line:
+
+```bash
+kubectl kustomize overlays/staging | logtoctl render -f - > rendered/staging/logto.yaml
+```
 
 An `apply` publishes the identifiers Logto generates (`applications.<key>.id`, `resources.<key>.indicator`)
 on stdout, as `name=value` lines or, with `--outputs json`, as JSON. The secrets it publishes (an

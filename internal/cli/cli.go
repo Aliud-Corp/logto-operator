@@ -5,6 +5,8 @@
 //	logtoctl check  -f config.yaml   plan, exit 2 when Logto differs from the document (drift)
 //	logtoctl apply  -f config.yaml   reconcile; identifiers on stdout, secrets to --secrets-out or --secrets-fd
 //
+// -f - reads the document on stdin, its files relative to the working directory.
+//
 // Exit codes: 0 done or in sync, 1 error, 2 drift (check), 3 applied with warnings (apply). Secrets never come from
 // a flag: the document names them (valueFrom env or file).
 package cli
@@ -52,7 +54,8 @@ commands:
   version  print the version
 
 flags (render, plan, check, apply):
-  -f FILE            the LogtoConfig document (required)
+  -f FILE            the LogtoConfig document (required); - reads it on stdin, its files relative to the
+                     working directory
 apply only:
   --outputs FORMAT   identifiers on stdout as env (name=value, default) or json
   --secrets-out FILE write published secrets (JSON) to FILE, created with mode 0600
@@ -65,7 +68,7 @@ exit codes: 0 done or in sync, 1 error, 2 drift (check) or usage error, 3 applie
 `
 
 // Run executes one command line and returns the exit code.
-func Run(ctx context.Context, args []string, version string, stdout, stderr io.Writer) int {
+func Run(ctx context.Context, args []string, version string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		_, _ = io.WriteString(stderr, Usage)
 		return exitUsage
@@ -121,7 +124,7 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 		_, _ = fmt.Fprintf(stderr, "logtoctl %s: %s\n", cmd, msg)
 		return ExitError
 	}
-	doc, err := config.Load(*file)
+	doc, err := load(*file, stdin)
 	if err != nil {
 		return fail(err)
 	}
@@ -178,6 +181,19 @@ func Run(ctx context.Context, args []string, version string, stdout, stderr io.W
 		}
 		return publishSecrets(env.Outputs, *secretsOut, *secretsFD, *printSecrets, stdout, stderr, fail)
 	}
+}
+
+// load reads the document at path, or on stdin for "-" (its relative files then resolve against the working
+// directory).
+func load(path string, stdin io.Reader) (*config.Document, error) {
+	if path != "-" {
+		return config.Load(path)
+	}
+	raw, err := io.ReadAll(stdin)
+	if err != nil {
+		return nil, fmt.Errorf("<stdin>: %w", err)
+	}
+	return config.Read(raw, "<stdin>", ".")
 }
 
 // render prints the document as it will be applied: files inlined, variables replaced and dropped. Every ${ left
@@ -276,5 +292,5 @@ func sortedKeys[V any](m map[string]V) []string {
 
 // Main is the binary's entry point.
 func Main(version string) {
-	os.Exit(Run(context.Background(), os.Args[1:], version, os.Stdout, os.Stderr))
+	os.Exit(Run(context.Background(), os.Args[1:], version, os.Stdin, os.Stdout, os.Stderr))
 }

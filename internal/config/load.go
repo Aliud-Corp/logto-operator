@@ -4,10 +4,12 @@
 package config
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"mime"
 	"os"
 	"path/filepath"
@@ -17,6 +19,7 @@ import (
 	"sync"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	yamlv3 "go.yaml.in/yaml/v3"
 	"sigs.k8s.io/yaml"
 
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
@@ -35,16 +38,22 @@ func Load(path string) (*Document, error) {
 	if err != nil {
 		return nil, err
 	}
-	dir, err := filepath.Abs(filepath.Dir(path))
+	return Read(raw, path, filepath.Dir(path))
+}
+
+// Read is Load on a document already read: name prefixes its errors, and its relative files resolve against dir
+// (the working directory for a document read on stdin).
+func Read(raw []byte, name, dir string) (*Document, error) {
+	dir, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err
 	}
 	cfg, err := Parse(raw)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", path, err)
+		return nil, fmt.Errorf("%s: %w", name, err)
 	}
 	if err := resolveFiles(cfg, osFiles(dir)); err != nil {
-		return nil, fmt.Errorf("%s: %w", path, err)
+		return nil, fmt.Errorf("%s: %w", name, err)
 	}
 	return &Document{Config: cfg, Dir: dir}, nil
 }
@@ -53,6 +62,9 @@ func Load(path string) (*Document, error) {
 // the generated JSON Schema checked on the document as written (what the CRD refuses: required fields, patterns,
 // enums, minimums), all violations at once. Files are not read. The rules across fields are Validate's.
 func Parse(raw []byte) (*v1alpha1.LogtoConfig, error) {
+	if err := oneDocument(raw); err != nil {
+		return nil, err
+	}
 	js, err := yaml.YAMLToJSON(raw)
 	if err != nil {
 		return nil, fmt.Errorf("not YAML: %w", err)
@@ -92,6 +104,30 @@ func Parse(raw []byte) (*v1alpha1.LogtoConfig, error) {
 }
 
 var varPattern = regexp.MustCompile(`\$\$\{|\$\{([^}]*)\}`)
+
+// oneDocument refuses a YAML stream of several documents: the YAML to JSON conversion would keep the first one and
+// drop the others silently. Empty documents (a leading or trailing ---) do not count.
+func oneDocument(raw []byte) error {
+	dec := yamlv3.NewDecoder(bytes.NewReader(raw))
+	n := 0
+	for {
+		var node yamlv3.Node
+		err := dec.Decode(&node)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("not YAML: %w", err)
+		}
+		if len(node.Content) > 0 && node.Content[0].Tag != "!!null" {
+			n++
+		}
+	}
+	if n > 1 {
+		return fmt.Errorf("a stream of %d documents: logtoctl reads one document, a single LogtoConfig", n)
+	}
+	return nil
+}
 
 // interpolate replaces ${name} in every string under spec (except spec.variables itself) with spec.variables[name].
 // $${ writes a literal ${. An unknown or malformed name is an error naming the field.

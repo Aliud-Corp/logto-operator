@@ -3,6 +3,7 @@
 ## Commands
 
 - `logtoctl render | plan | check | apply -f FILE`, and `version` (`internal/cli`; the binary is `cmd/logtoctl`).
+- `-f -` reads stdin (files relative to the working directory); a stream of several documents is refused.
 - Every command loads and validates the document first; `plan`, `check` and `apply` then read the target's own spec
   (capability check) and run every kind (`internal/engine/kinds.All`).
 

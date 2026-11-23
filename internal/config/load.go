@@ -264,7 +264,8 @@ func resolveText(ts *v1alpha1.TextSource, dir files) error {
 	return nil
 }
 
-// resolveTemplates reads <dir>/<fromDir>/*.json, one template per file, sorted by file name, appended to Items.
+// resolveTemplates reads <dir>/<fromDir>/*.json, one template per file, sorted by file name, appended to Items; a
+// template's content.fromFile is relative to its own file.
 func resolveTemplates(t *v1alpha1.EmailTemplates, dir files) error {
 	if t.FromDir == "" {
 		return nil
@@ -287,6 +288,9 @@ func resolveTemplates(t *v1alpha1.EmailTemplates, dir files) error {
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&item); err != nil {
 			return fmt.Errorf("%s: %w", filepath.Base(f), err)
+		}
+		if item.Content.FromFile != "" {
+			item.Content.FromFile = filepath.Join(filepath.Dir(f), item.Content.FromFile)
 		}
 		t.Items = append(t.Items, item)
 	}

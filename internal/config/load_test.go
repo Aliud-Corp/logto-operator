@@ -46,6 +46,11 @@ func TestTheReferenceDocumentLoadsAndValidates(t *testing.T) {
 	if n := len(s.Connectors["smtp"].SMTP.Templates.Items); n != 4 {
 		t.Errorf("%d templates read from fromDir, want 4", n)
 	}
+	for _, item := range s.Connectors["smtp"].SMTP.Templates.Items {
+		if item.Content.FromFile != "" || !strings.Contains(item.Content.Value, "{{code}}") {
+			t.Errorf("template %s: body not read: %+v", item.UsageType, item.Content)
+		}
+	}
 }
 
 func TestAnUnknownKeyFailsWithItsPath(t *testing.T) {
@@ -89,5 +94,43 @@ func TestAMissingFileFailsWithItsPath(t *testing.T) {
 	_, err := config.Load(path)
 	if err == nil || !strings.Contains(err.Error(), "spec.signInExperience.customCss: fromFile") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+// A template read from a directory names its body relative to that directory, so two documents in different
+// directories share one set of template files.
+func TestATemplateBodyIsReadNextToItsTemplate(t *testing.T) {
+	root := t.TempDir()
+	write := func(name, body string) {
+		t.Helper()
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("shared/templates/register.json",
+		`{"usageType": "Register", "contentType": "text/html", "subject": "s", "content": {"fromFile": "register.html"}}`)
+	write("shared/templates/register.html", "<p>{{code}}</p>\n")
+	write("stag/c.yaml", minimal+`  connectors:
+    smtp:
+      id: smtp
+      connectorId: simple-mail-transfer-protocol
+      smtp:
+        host: smtp.${zone}
+        port: 587
+        auth: {user: {value: u}, pass: {valueFrom: {env: PASS}}}
+        fromEmail: no-reply@${zone}
+        templates: {fromDir: ../shared/templates}
+`)
+	doc, err := config.Load(filepath.Join(root, "stag/c.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := doc.Config.Spec.Connectors["smtp"].SMTP.Templates.Items
+	if len(items) != 1 || items[0].Content.Value != "<p>{{code}}</p>\n" || items[0].Content.FromFile != "" {
+		t.Fatalf("items = %+v", items)
 	}
 }

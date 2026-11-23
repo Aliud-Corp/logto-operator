@@ -44,7 +44,9 @@ spec:
   required fields, URLs, colours, enums), then unique names, references that resolve, SMTP templates, distinct
   audiences, and so on.
 - **Secrets are never written in the document.** They are read from `valueFrom.env` or `valueFrom.file` at run time.
-- **Files.** `fromFile` and `fromDir` are resolved relative to the document. Use `as: dataUri` for images.
+- **Files.** `fromFile` and `fromDir` are resolved relative to the document, except the `content.fromFile` of a
+  template read by `fromDir`, which is relative to that template's file (several documents can share one directory
+  of templates). Use `as: dataUri` for images.
 
 ## Credentials: the first M2M application
 

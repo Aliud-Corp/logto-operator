@@ -9,6 +9,8 @@
 
 - Format: `<type>/<short-description>`
 - Never push to `main`, never force-push; every change lands through a pull request. No auto-merge.
+- Enforced by rulesets: `main` takes pull requests only (merge commits, no force-push, no deletion), with the `check`
+  status green; tags `v*` are created, moved or deleted only by the release App (and repository admins).
 
 ## Commits
 

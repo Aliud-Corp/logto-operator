@@ -17,6 +17,15 @@ ones (an older or newer minor, a patched build) is refused, because its behaviou
 
 ## Install and build
 
+Each [release](https://github.com/Aliud-Corp/logto-operator/releases) carries a static binary per platform,
+`logtoctl_<version>_<os>_<arch>.tar.gz` (linux and darwin, amd64 and arm64), and `checksums.txt`. With mise:
+
+```bash
+mise use github:Aliud-Corp/logto-operator@<version>
+```
+
+From a checkout:
+
 ```bash
 mise install      # the pinned toolchain
 task build        # writes bin/logtoctl, a static binary

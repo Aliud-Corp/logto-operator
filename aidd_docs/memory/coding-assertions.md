@@ -4,7 +4,7 @@
 
 | Order | Command | Checks |
 | ----- | ------- | ------ |
-| 1 | `task lint` | golangci-lint (generated files excluded), actionlint + shellcheck, `ci:runners` guard |
+| 1 | `task lint` | golangci-lint (generated files excluded), actionlint + shellcheck, `goreleaser check`, `ci:runners` guard |
 | 2 | `task test` | unit tests with the race detector |
 
 ## Before push

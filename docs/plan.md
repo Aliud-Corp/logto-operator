@@ -391,8 +391,8 @@ hand) or keeps it in its own database is the product's choice.
   one object per normalized endpoint, Secrets read only for the endpoints their `logto.aliud.fr/readable-by` annotation lists, and a generated
   ClusterRole (docs/operator.md); its manager runs against envtest in `task check`. The install (`config/default`,
   kustomize) and the image (ko, `.ko.yaml`) exist: envtest applies the manifests and runs the manager as their
-  ServiceAccount, and `task check` builds the image for every platform. Next: the Chainsaw e2e with Logto in k3d,
-  then the Helm chart.
+  ServiceAccount, and `task check` builds the image for every platform. Releases are published by release-please
+  (section 12). Next: the Chainsaw e2e with Logto in k3d, then the Helm chart.
 - **M4 — first adopters.** A consuming project renders its `LogtoConfig` and runs `check` in its CI; each
   environment starts in `Observe` (drift reviewed, anything edited by hand in a console shows up), then `Apply`.
 - **M5 — admin console users** (only if section 8's spike succeeds).
@@ -403,8 +403,11 @@ hand) or keeps it in its own database is the product's choice.
 - SemVer tags `vX.Y.Z` (Go modules require SemVer: a deliberate deviation from the studio's CalVer tags).
   `v0.x` until M4. The supported Logto version is part of the release notes; a Logto upgrade = new spec, regenerate,
   minor (or major if the schema breaks) release.
-- Binary: goreleaser, `linux` / `darwin` × `amd64` / `arm64`, CGO off, checksums and SBOM, attached to the GitHub
-  release; `logtoctl version` prints the tag and the Logto version it targets.
+- Releases (decided 2026-11-23): **release-please** (`.github/workflows/release.yml`) keeps a release pull request
+  open from the conventional commits; merging it tags `vX.Y.Z`, writes `CHANGELOG.md` and creates the GitHub release.
+  `task release` then attaches its artifacts: `install.yaml` (the install, its image built by ko and pinned by
+  digest), and the `logtoctl` archives built by GoReleaser (`linux` / `darwin` × `amd64` / `arm64`, CGO off) with
+  `checksums.txt`. `logtoctl version` prints the tag.
 - Image: built with **ko** (Go-native, reproducible, no Dockerfile), distroless static base, multi-arch. Registry:
   `ghcr.io/<owner>/logto-operator` (public repository, public image, pinned by digest by its consumers). Promotion
   re-tags, never rebuilds. Release workflows publish with the workflow's `GITHUB_TOKEN` (`packages: write`) on tag

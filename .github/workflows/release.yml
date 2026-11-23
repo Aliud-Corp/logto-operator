@@ -1,0 +1,81 @@
+# Releases of logto-operator, with release-please. On every push to main, release-please opens (or updates) ONE
+# release pull request: the next version, read from the conventional commits since the last release, and its
+# CHANGELOG.md entry. Merging that pull request IS the release: release-please tags `vX.Y.Z` and creates the GitHub
+# release, then `publish` builds and attaches its artifacts (`task release`):
+#   - the operator's image (ko), pushed to ghcr.io/aliud-corp/logto-operator, tagged with the version;
+#   - install.yaml: the install (config/default) with the image pinned by digest, applied as is;
+#   - the logtoctl archives (GoReleaser: linux and darwin, amd64 and arm64) and checksums.txt.
+#
+# TOKENS. The default token cannot open the release pull request (the organisation forbids GitHub Actions to create
+# pull requests), and a pull request or a tag it creates would trigger no workflow: release-please gets a GitHub App's
+# token, from the repository secrets RELEASE_APP_ID and RELEASE_APP_PRIVATE_KEY (an App with contents and pull
+# requests write, installed on this repository). `publish` needs only the default token: packages write (the image)
+# and contents write (the release's assets). Neither job runs on a pull request: no secret reaches a fork.
+#
+# `name:` is a join key for anything triggering on `workflow_run`: do not rename it casually.
+name: release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  release-please:
+    name: release-please
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # One run at a time, never cancelled: two runs would rewrite the release branch together.
+    concurrency:
+      group: release-please
+      cancel-in-progress: false
+    outputs:
+      created: ${{ steps.rp.outputs.release_created }}
+      tag: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+      - id: rp
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7  # v5.0.0
+        with:
+          token: ${{ steps.app.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    name: publish
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write   # the release's assets
+      packages: write   # the image on ghcr.io
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+          fetch-depth: 0   # GoReleaser reads the tags
+          persist-credentials: false
+      - name: Install the pinned toolchain (from mise.toml)
+        uses: jdx/mise-action@dba19683ed58901619b14f395a24841710cb4925  # v4.1.0
+        with:
+          cache: true
+          cache_save: false
+      - name: Log in to ghcr.io
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GH_TOKEN" | ko login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: task release
+        env:
+          KO_DOCKER_REPO: ghcr.io/aliud-corp/logto-operator
+          GITHUB_TOKEN: ${{ github.token }}   # GoReleaser uploads to the release
+        run: task release VERSION="$TAG"

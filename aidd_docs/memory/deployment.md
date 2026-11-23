@@ -20,4 +20,5 @@
 
 ## Release
 
-- Not set up yet.
+- Not set up yet. The image is built by ko (`.ko.yaml`); `task image:build` (in `task check`) builds every platform
+  without pushing, `task image` loads one into the local Docker daemon.

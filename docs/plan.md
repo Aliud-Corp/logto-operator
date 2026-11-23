@@ -389,8 +389,10 @@ hand) or keeps it in its own database is the product's choice.
   Progress: the controller (`internal/operator`, `cmd/logto-operator`) runs the engine per reconcile (`spec.mode`,
   `spec.resyncInterval`, `spec.outputs` with optional key names for `envFrom`, `spec.allowUntestedLogto`), with conditions, outputs, `secretKeyRef`,
   one object per normalized endpoint, Secrets read only for the endpoints their `logto.aliud.fr/readable-by` annotation lists, and a generated
-  ClusterRole (docs/operator.md); its manager runs against envtest in `task check`. Next: kustomize manifests, the ko image,
-  the Chainsaw e2e with Logto in k3d, then the Helm chart.
+  ClusterRole (docs/operator.md); its manager runs against envtest in `task check`. The install (`config/default`,
+  kustomize) and the image (ko, `.ko.yaml`) exist: envtest applies the manifests and runs the manager as their
+  ServiceAccount, and `task check` builds the image for every platform. Next: the Chainsaw e2e with Logto in k3d,
+  then the Helm chart.
 - **M4 — first adopters.** A consuming project renders its `LogtoConfig` and runs `check` in its CI; each
   environment starts in `Observe` (drift reviewed, anything edited by hand in a console shows up), then `Apply`.
 - **M5 — admin console users** (only if section 8's spike succeeds).

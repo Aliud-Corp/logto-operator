@@ -1,0 +1,15 @@
+# The operator's image (ko, pinned in mise.toml; `task image`). The base is distroless static, nonroot, pinned by
+# digest: the image depends on the commit only, not on the day it was built. Bump the digest deliberately.
+defaultBaseImage: gcr.io/distroless/static-debian13:nonroot@sha256:aafe993665bf6200db38a02c11a9351e782a84b6a45e7f33b6695638c88e3931
+defaultPlatforms:
+  - linux/amd64
+  - linux/arm64
+builds:
+  - id: logto-operator
+    main: ./cmd/logto-operator
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Env.VERSION}}

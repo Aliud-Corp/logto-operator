@@ -2,7 +2,7 @@
 
 The operator reconciles `LogtoConfig` objects on the same engine as `logtoctl`: the document is the one described in
 [usage.md](usage.md), applied as a Kubernetes object. It is milestone 3 of [plan.md](plan.md), in progress: the
-controller runs; manifests, image and end-to-end tests come next.
+controller, its install manifests and its image exist; end-to-end tests and a published release come next.
 
 ## What it does on each reconcile
 
@@ -93,6 +93,23 @@ Endpoints are compared without scheme, host case, default port and trailing slas
 hosts (a Service and an ingress) cannot be told apart, so name it one way. Several objects reconcile at once
 (`--max-concurrent-reconciles`, default 4); runs on one endpoint take turns, and an object that does not have the
 endpoint learns it without waiting for that turn.
+
+## Installing
+
+`config/default` is the install, as kustomize: the CRD, the ServiceAccount, the ClusterRole and its binding, and the
+manager's Deployment, all in the namespace `logto-operator-system` (Pod Security `restricted`). Its image is a
+`ko://` reference, which [ko](https://ko.build) turns into a built image pinned by digest. No image is published
+yet; until a release exists, build and push one to a registry the cluster can pull from:
+
+```bash
+kubectl kustomize config/default | VERSION=$(git describe --tags --always) KO_DOCKER_REPO=registry.example.test/logto-operator ko resolve --bare -f - | kubectl apply -f -
+```
+
+`task image` builds the image into the local Docker daemon instead (`ko.local/logto-operator`), for a local cluster
+that can import it (`k3d image import`, `kind load`); replace the `ko://` reference with that image before applying.
+
+The manager runs as a non-root user on a read-only root filesystem, with no capability and no privilege
+escalation; one replica, with leader election.
 
 ## Running
 

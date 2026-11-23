@@ -11,7 +11,7 @@
 
 | Order | Command | Checks |
 | ----- | ------- | ------ |
-| 1 | `task check` | generate drift, `go mod tidy`, lint, unit tests, build (= `ci.yml`) |
+| 1 | `task check` | generate drift, `go mod tidy`, lint, unit tests, envtest, build, image build (= `ci.yml`) |
 | 2 | `task e2e` | Chainsaw suite on a throwaway k3d cluster, needs Docker (= `e2e.yml`) |
 
 `task generate:check` compares against the git index: it fails on generated files that are not yet committed.

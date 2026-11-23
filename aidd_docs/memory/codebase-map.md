@@ -32,7 +32,9 @@ flowchart TD
 - `internal/logto/logtofake/`: in-process fake on the generated server; unmodelled routes answer 501.
 - `cmd/logtoctl/`: the binary; `internal/cli/`: the commands.
 - `cmd/logto-operator/`: the operator's manager; `internal/operator/`: the LogtoConfig reconciler; `config/rbac/`:
-  its generated ClusterRole.
+  its generated ClusterRole, its ServiceAccount and binding; `config/manager/`: the Deployment; `config/default/`:
+  the install (kustomize); `.ko.yaml`: the image (ko, distroless base pinned by digest).
+- `test/manifests/`: the install manifests against envtest (its own package: one controller name per process).
 - `internal/target/`: connects a document to its Logto (credentials, capability), for the CLI and the operator.
 - `internal/engine/kinds/`: one package per kind (`all.go` lists them), `kindkit` (shared helpers), `kindtest` (test
   harness on the fake and on a real Logto).

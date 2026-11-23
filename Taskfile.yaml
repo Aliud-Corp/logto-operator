@@ -70,19 +70,36 @@ tasks:
       - CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN_DIR}}/logtoctl ./cmd/logtoctl
       - CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN_DIR}}/logto-operator ./cmd/logto-operator
 
+  image:
+    desc: Build the operator's image for this machine's architecture into the local Docker daemon (ko.local/logto-operator). Needs Docker.
+    env:
+      VERSION: '{{.VERSION}}'
+      KO_DOCKER_REPO: ko.local/logto-operator
+    cmds:
+      - ko build --bare --platform=linux/{{ARCH}} ./cmd/logto-operator
+
+  image:build:
+    desc: Build the operator's image for every platform of .ko.yaml without pushing it anywhere (no Docker needed; part of check).
+    env:
+      VERSION: '{{.VERSION}}'
+      # Required by ko even when nothing is pushed; .invalid can never resolve.
+      KO_DOCKER_REPO: example.invalid/logto-operator
+    cmds:
+      - ko build --bare --push=false ./cmd/logto-operator
+
   test:
     desc: Unit tests (no network, no Logto; the fake Management API runs in-process).
     cmds:
       - go test -race -count=1 ./...
 
   test:envtest:
-    desc: The operator's manager against a real API server (envtest; kube-apiserver and etcd fetched once into .cache/envtest).
+    desc: The operator's manager and the install manifests (config/default) against a real API server (envtest; kube-apiserver and etcd fetched once into .cache/envtest).
     env:
       LOGTO_ENVTEST_REQUIRED: "1"
     cmds:
       - |
         KUBEBUILDER_ASSETS="$(setup-envtest use {{.ENVTEST_K8S}} --bin-dir {{.ROOT_DIR}}/.cache/envtest -p path)" \
-          go test -race -count=1 -tags envtest -run TestTheManagerAgainstARealAPIServer ./internal/operator/
+          go test -race -count=1 -tags envtest -run 'AgainstARealAPIServer$' ./internal/operator/ ./test/manifests/
 
   lint:
     desc: golangci-lint on the Go code (generated files excluded), actionlint on the workflows, the runner guard.
@@ -187,3 +204,4 @@ tasks:
       - task: test
       - task: test:envtest
       - task: build
+      - task: image:build

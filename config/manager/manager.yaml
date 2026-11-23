@@ -1,0 +1,52 @@
+# The manager. One replica: leader election keeps a second one idle, and two active ones would both write to Logto.
+# Metrics stay off (--metrics-bind-address=0) until something scrapes them.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logto-operator
+  labels:
+    app.kubernetes.io/component: manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: logto-operator
+      app.kubernetes.io/component: manager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: logto-operator
+        app.kubernetes.io/component: manager
+    spec:
+      serviceAccountName: logto-operator
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: manager
+          image: ko://github.com/Aliud-Corp/logto-operator/cmd/logto-operator
+          args:
+            - --leader-elect=true
+            - --health-probe-bind-address=:8081
+            - --metrics-bind-address=0
+          ports:
+            - name: probes
+              containerPort: 8081
+          livenessProbe:
+            httpGet: {path: /healthz, port: probes}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: {path: /readyz, port: probes}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 10m, memory: 64Mi}
+            limits: {memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]

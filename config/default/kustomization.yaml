@@ -1,0 +1,14 @@
+# The operator's install: the CRD, its ServiceAccount and ClusterRole, the manager's Deployment, in one namespace.
+# `kubectl kustomize config/default` renders it; the image is a ko:// reference, resolved by ko (`ko resolve`) into a
+# built image pinned by digest. internal/operator/manifests_envtest_test.go applies it to a real API server.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: logto-operator-system
+labels:
+  - pairs:
+      app.kubernetes.io/name: logto-operator
+      app.kubernetes.io/part-of: logto-operator
+resources:
+  - ../crd
+  - ../rbac
+  - ../manager

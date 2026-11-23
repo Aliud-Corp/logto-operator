@@ -34,6 +34,7 @@
 
 - `task test` for unit tests.
 - `task it` (newest version, or `LOGTO_VERSION=`), `task it:all` (every version), `task it:down` cleans up.
-- `task test:envtest` (in `task check`): the operator's manager against envtest (kube-apiserver and etcd fetched
+- `task test:envtest` (in `task check`): the operator's manager, and the install manifests (applied with strict
+  field validation, the manager run as their ServiceAccount through impersonation), against envtest (kube-apiserver and etcd fetched
   into `.cache/envtest` by `setup-envtest`, pinned in mise); `LOGTO_ENVTEST_REQUIRED` makes a missing harness fail.
 - `task e2e` for the e2e suite (creates the cluster if missing, its own kubeconfig in `build/`); `task e2e:cluster:down` removes it.

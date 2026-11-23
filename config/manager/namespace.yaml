@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logto-operator-system
+  labels:
+    # The manager runs under the restricted Pod Security profile.
+    pod-security.kubernetes.io/enforce: restricted

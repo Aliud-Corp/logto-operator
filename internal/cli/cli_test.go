@@ -96,9 +96,11 @@ type result struct {
 	stdout, stderr string
 }
 
-func run(args ...string) result {
+func run(args ...string) result { return runWithStdin("", args...) }
+
+func runWithStdin(stdin string, args ...string) result {
 	var out, errb bytes.Buffer
-	code := cli.Run(context.Background(), args, "test", &out, &errb)
+	code := cli.Run(context.Background(), args, "test", strings.NewReader(stdin), &out, &errb)
 	return result{code, out.String(), errb.String()}
 }
 
@@ -344,4 +346,60 @@ func toJSON(t *testing.T, v any) string {
 		t.Fatal(err)
 	}
 	return string(b)
+}
+
+const piped = `apiVersion: logto.aliud.fr/v1alpha1
+kind: LogtoConfig
+metadata: {name: piped}
+spec:
+  endpoint: https://auth.example.test
+  credentials:
+    clientId: {value: id}
+    clientSecret: {valueFrom: {secretKeyRef: {name: s, key: k}}}
+  signInExperience:
+    customCss: {fromFile: theme.css}
+`
+
+// -f - reads the document on stdin (the output of kustomize build, say); its relative files resolve against the
+// working directory, and render reads no secret (a secretKeyRef is left as it is).
+func TestADocumentIsReadFromStdin(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "theme.css"), []byte(".piped {}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir)
+	r := runWithStdin(piped, "render", "-f", "-")
+	if r.code != cli.ExitOK || !strings.Contains(r.stdout, ".piped {}") || !strings.Contains(r.stdout, "secretKeyRef") {
+		t.Fatalf("render -f -: %d\n%s%s", r.code, r.stdout, r.stderr)
+	}
+	r = runWithStdin(strings.Replace(piped, "metadata: {name: piped}", "metadata: {name: piped}\nunknown: 1", 1), "render", "-f", "-")
+	if r.code != cli.ExitError || !strings.Contains(r.stderr, "<stdin>") {
+		t.Fatalf("an error on stdin does not name it: %d\n%s", r.code, r.stderr)
+	}
+}
+
+// A stream of several documents (kustomize build with a resource left in) is refused, not read up to its first one.
+func TestAStreamOfSeveralDocumentsIsRefused(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "theme.css"), []byte(".piped {}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir)
+	stream := piped + "---\napiVersion: v1\nkind: ConfigMap\nmetadata: {name: left-in}\n"
+	if err := os.WriteFile(filepath.Join(dir, "doc.yaml"), []byte(stream), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for name, r := range map[string]result{
+		"stdin": runWithStdin(stream, "render", "-f", "-"),
+		"file":  run("render", "-f", filepath.Join(dir, "doc.yaml")),
+	} {
+		if r.code != cli.ExitError || !strings.Contains(r.stderr, "one document") {
+			t.Errorf("%s: %d\n%s%s", name, r.code, r.stdout, r.stderr)
+		}
+	}
+	// A leading separator and a trailing empty document are not a second document.
+	r := runWithStdin("---\n"+piped+"---\n", "render", "-f", "-")
+	if r.code != cli.ExitOK {
+		t.Fatalf("separators only: %d\n%s", r.code, r.stderr)
+	}
 }

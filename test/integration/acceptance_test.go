@@ -234,6 +234,21 @@ func assertObjects(t *testing.T, c *client.Client) {
 	if types["Example App"] != "SPA" || types["Example Backend"] != "MachineToMachine" {
 		t.Errorf("applications = %v", types)
 	}
+	if types["Example Connector"] != "Traditional" {
+		t.Errorf("applications = %v", types)
+	}
+	var consent struct {
+		ResourceScopes []struct {
+			Scopes []struct{ Name string } `json:"scopes"`
+		} `json:"resourceScopes"`
+		UserScopes []string `json:"userScopes"`
+	}
+	req, err = mgmt.NewListApplicationUserConsentScopesRequest(c.Endpoint(), ids["Example Connector"])
+	get(req, err, &consent)
+	if len(consent.ResourceScopes) != 1 || len(consent.ResourceScopes[0].Scopes) != 1 || consent.ResourceScopes[0].Scopes[0].Name != "event:read" ||
+		strings.Join(consent.UserScopes, ",") != "email,profile" && strings.Join(consent.UserScopes, ",") != "profile,email" {
+		t.Errorf("consent scopes of Example Connector = %+v", consent)
+	}
 	var granted []struct{ Name string }
 	req, err = mgmt.NewListApplicationRolesRequest(c.Endpoint(), ids["Example Backend"], &mgmt.ListApplicationRolesParams{Page: &page, PageSize: &size})
 	get(req, err, &granted)

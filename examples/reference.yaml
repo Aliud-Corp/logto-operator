@@ -111,6 +111,19 @@ spec:
       customClientMetadata:
         corsAllowedOrigins: ["https://app.${zone}"]
         alwaysIssueRefreshToken: true
+    connector:
+      # A third-party application: its users go through a consent screen, and its tokens are capped to the
+      # consent scopes below. isThirdParty is set at creation and cannot change afterwards.
+      name: Example Connector
+      type: Traditional
+      description: An OAuth client that may read events, and nothing else
+      isThirdParty: true
+      oidcClientMetadata:
+        redirectUris: ["https://connector.${zone}/callback"]
+      consentScopes:
+        resources:
+          - {resource: app, scope: "event:read"}
+        user: [profile, email]
     backend:
       name: Example Backend
       type: MachineToMachine

@@ -37,3 +37,7 @@
   `POST /api/roles/{id}/scopes` adds scopes and answers 201 with the role's scopes, without their resource.
 - Logto's "Logto Management API access" role holds the `all` scope of `https://default.logto.app/api`: prune never
   deletes a role holding a scope of that resource.
+- `isThirdParty` is a field of `POST /api/applications` only (absent from the update body): create-only, like `type`;
+  the plan refuses a difference. Consent scopes (`/api/applications/{id}/user-consent-scopes`) exist for third-party
+  applications only; `POST` adds, `DELETE .../{scopeType}/{scopeId}` removes (the scope id of a resource scope, the
+  name of a user scope), and the user scope enum gains `urn:logto:scope:personal_access_tokens` in 1.46.0.

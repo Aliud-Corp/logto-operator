@@ -1,0 +1,15 @@
+# The operator's install (config/default) as the e2e suite runs it: the image `task e2e` builds with ko and imports
+# into the k3d cluster (ko.local/logto-operator:e2e), never pulled from a registry.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../config/default
+patches:
+  - target: {kind: Deployment, name: logto-operator}
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: ko.local/logto-operator:e2e
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never

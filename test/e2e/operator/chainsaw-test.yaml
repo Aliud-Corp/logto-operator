@@ -1,0 +1,165 @@
+# The operator against a real Logto in the cluster (`task e2e` installs both): a LogtoConfig is applied and published,
+# reports a change made behind its back (Observe), repairs it (Apply), and leaves Logto as it is once deleted.
+# Objects are named after the test's namespace: a rerun on the same cluster creates its own.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: operator
+spec:
+  timeouts:
+    assert: 120s
+  steps:
+    - name: the m-default credentials, readable by the Logto endpoints
+      try:
+        - script:
+            # The secret goes from the throwaway database to the Secret through pipes only: never in argv or output.
+            content: |
+              set -eu
+              kubectl exec -n logto deploy/postgres -- psql -U logto -d logto -tAc "select secret from applications where id = 'm-default'" \
+                | tr -d '\n' \
+                | kubectl create secret generic logto-credentials -n "$NAMESPACE" --from-literal=id=m-default \
+                    --from-file=secret=/dev/stdin --dry-run=client -o yaml \
+                | kubectl apply -f - >/dev/null
+              kubectl annotate secret logto-credentials -n "$NAMESPACE" \
+                logto.aliud.fr/readable-by=http://logto.logto.svc:3001,http://logto.logto.svc:3002 >/dev/null
+    - name: an applied LogtoConfig is ready and publishes the identifiers and the secret
+      try:
+        - apply:
+            resource:
+              apiVersion: logto.aliud.fr/v1alpha1
+              kind: LogtoConfig
+              metadata:
+                name: e2e
+              spec:
+                endpoint: http://logto.logto.svc:3001
+                mode: Apply
+                resyncInterval: 30s
+                credentials:
+                  tokenEndpoint: http://logto.logto.svc:3002
+                  clientId: {valueFrom: {secretKeyRef: {name: logto-credentials, key: id}}}
+                  clientSecret: {valueFrom: {secretKeyRef: {name: logto-credentials, key: secret}}}
+                outputs:
+                  configMap: {name: logto-ids}
+                  secret: {name: logto-secrets}
+                resources:
+                  app:
+                    name: (join('', ['E2E API ', $namespace]))
+                    indicator: (join('', ['https://', $namespace, '.example.test/api']))
+                    scopes: {"event:read": {}}
+                applications:
+                  backend:
+                    name: (join('', ['E2E Backend ', $namespace]))
+                    description: Declared by the e2e suite
+                    type: MachineToMachine
+                    secret: {publish: true}
+        - assert:
+            resource:
+              apiVersion: logto.aliud.fr/v1alpha1
+              kind: LogtoConfig
+              metadata:
+                name: e2e
+              status:
+                (conditions[?type == 'Ready'].status): ['True']
+                (conditions[?type == 'Drifted'].status): ['False']
+                (conditions[?type == 'Degraded'].status): ['False']
+                (length(logtoVersion) > `0`): true
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: logto-ids
+                labels:
+                  app.kubernetes.io/managed-by: logto-operator
+              (length(data."applications.backend.id") > `0`): true
+              (data."resources.app.indicator"): (join('', ['https://', $namespace, '.example.test/api']))
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: logto-secrets
+                labels:
+                  app.kubernetes.io/managed-by: logto-operator
+              (length(data."applications.backend.secret") > `0`): true
+    - name: in Observe, a change made behind the operator's back is reported, not repaired
+      try:
+        - patch:
+            resource:
+              apiVersion: logto.aliud.fr/v1alpha1
+              kind: LogtoConfig
+              metadata:
+                name: e2e
+              spec:
+                mode: Observe
+        - assert:
+            resource:
+              apiVersion: logto.aliud.fr/v1alpha1
+              kind: LogtoConfig
+              metadata:
+                name: e2e
+              status:
+                (conditions[?type == 'Ready'].status): ['True']
+                (conditions[?type == 'Drifted'].status): ['False']
+        - script:
+            content: &logto |
+              set -eu
+              kubectl get secret logto-credentials -n "$NAMESPACE" -o jsonpath='{.data.secret}' | base64 -d \
+                | kubectl exec -i -n logto deploy/logto -- node --input-type=module -e "$(cat logto.mjs)" "$ACTION" "E2E Backend $NAMESPACE"
+            env:
+              - name: ACTION
+                value: drift
+        - assert:
+            # The next resync (30s) plans again and finds the change.
+            resource:
+              apiVersion: logto.aliud.fr/v1alpha1
+              kind: LogtoConfig
+              metadata:
+                name: e2e
+              status:
+                (conditions[?type == 'Drifted'].status): ['True']
+                (conditions[?type == 'Degraded'].status): ['False']
+    - name: in Apply, the change is repaired
+      try:
+        - patch:
+            resource:
+              apiVersion: logto.aliud.fr/v1alpha1
+              kind: LogtoConfig
+              metadata:
+                name: e2e
+              spec:
+                mode: Apply
+        - assert:
+            resource:
+              apiVersion: logto.aliud.fr/v1alpha1
+              kind: LogtoConfig
+              metadata:
+                name: e2e
+              status:
+                (conditions[?type == 'Ready'].status): ['True']
+                (conditions[?type == 'Drifted'].status): ['False']
+                (lastAppliedTime != null): true
+    - name: a deleted LogtoConfig takes its outputs and leaves Logto untouched
+      try:
+        - delete:
+            ref:
+              apiVersion: logto.aliud.fr/v1alpha1
+              kind: LogtoConfig
+              name: e2e
+        - error:
+            resource:
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: logto-ids
+        - error:
+            resource:
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: logto-secrets
+        - script:
+            content: *logto
+            env:
+              - name: ACTION
+                value: exists

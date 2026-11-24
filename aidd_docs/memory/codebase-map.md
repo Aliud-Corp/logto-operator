@@ -41,7 +41,8 @@ flowchart TD
 - `internal/outputs/`: identifiers on stdout, secrets to a 0600 file or a descriptor.
 - `test/integration/`: the throwaway Logto (compose, bootstrap) and the integration tests;
   `internal/logto/integration/` loads its credentials.
-- `test/e2e/`: Chainsaw tests and the k3d cluster config.
+- `test/e2e/`: the k3d cluster config, the throwaway Logto (`logto/`), the install as the suite runs it (`install/`),
+  and the Chainsaw tests (`operator/`).
 
 ## Entry points
 

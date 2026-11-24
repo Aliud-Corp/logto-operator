@@ -9,8 +9,11 @@
 
 - Format: `<type>/<short-description>`
 - Never push to `main`, never force-push; every change lands through a pull request. No auto-merge.
-- Enforced by rulesets: `main` takes pull requests only (merge commits, no force-push, no deletion), with the `check`
+- Enforced by rulesets: `main` takes pull requests only (squash merge, no force-push, no deletion), with the `check`
   status green; tags `v*` are created, moved or deleted only by the release App (and repository admins).
+- Squash merge, the commit titled by the pull request (`PR_TITLE`, empty body): the pull request title is the
+  conventional commit release-please reads. A merge commit carried the title again in its body (the only body GitHub
+  allows with a "Merge pull request" title), and release-please listed every change twice (0.2.0, 0.2.1).
 
 ## Commits
 

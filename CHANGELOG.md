@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.1](https://github.com/Aliud-Corp/logto-operator/compare/v0.2.0...v0.2.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **connectors:** tell templates of one usage type apart by content type in the plan ([dca11af](https://github.com/Aliud-Corp/logto-operator/commit/dca11af84ed85967ac9e2d82ff683fdcbc865567))
+* **connectors:** tell templates of one usage type apart by content type in the plan ([af91c33](https://github.com/Aliud-Corp/logto-operator/commit/af91c33a3e00d040d4e6256a1adbb8f3ef48819f))
+* **operator:** look again for an unreadable Secret after 30s ([c631c13](https://github.com/Aliud-Corp/logto-operator/commit/c631c13e0b4e939a872589cf8a6fd842e311e68c))
+* **operator:** look again for an unreadable Secret after 30s ([4d52906](https://github.com/Aliud-Corp/logto-operator/commit/4d52906d575ebb43c7280829190412ebe02a7cc6))
+
 ## [0.2.0](https://github.com/Aliud-Corp/logto-operator/compare/v0.1.0...v0.2.0) (2026-11-24)
 
 

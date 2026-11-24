@@ -85,6 +85,25 @@ compare it with `metadata.generation` see the failure, not a run in progress). `
 supported version the target matched, empty when untested; `status.lastAppliedTime` is when the last apply that
 wrote ended, even one that failed after writing.
 
+## Logs
+
+Every reconcile logs one structured line, `reconciled`, through controller-runtime's logger (zap; `--zap-encoder
+json` for JSON, `--zap-log-level` for the level). Besides controller-runtime's own keys, it carries:
+
+| Key | Value |
+| --- | ----- |
+| `logtoConfig` | the object, `namespace/name` |
+| `endpoint` | the endpoint, compared form (like the endpoint index) |
+| `mode`, `generation` | the mode and the generation the run read |
+| `outcome` | `InSync`, `Drifted`, `Applied`, `Degraded`, `ApplyFailed`, `Transient`, or `Deleting` |
+| `reason`, `error` | of `Degraded` (the status reasons) or `ApplyFailed`; `error` also for `Transient` |
+| `created`, `updated`, `deleted` | what Observe would change, or what Apply changed, once the target answered |
+| `logtoVersion` | the supported version the target matched, empty when untested |
+| `requeueAfter` | the next resync, or `backoff` after a transient failure |
+
+A Secret value never appears in it: its errors are the status's, redacted. A credential Secret created or changed
+after a run is read at the next resync (`requeueAfter`), not when it changes: the cache does not hold it.
+
 ## One object per Logto
 
 Two objects on one endpoint would fight over the sign-in experience and prune each other's objects: the oldest one

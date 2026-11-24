@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -156,8 +157,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err := r.Client.Get(ctx, req.NamespacedName, &obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	logger := log.FromContext(ctx).WithValues("logtoConfig", req.String(), "endpoint", normalized(obj.Spec.Endpoint),
+		"mode", modeOf(&obj), "generation", obj.Generation)
 	if !obj.DeletionTimestamp.IsZero() {
 		// Being deleted: no write to Logto, no output re-created under the garbage collector.
+		logger.Info("reconciled", "outcome", "Deleting")
 		return ctrl.Result{}, nil
 	}
 	resync := DefaultResync
@@ -182,6 +186,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		out = r.run(ctx, &obj)
 		release()
 	}
+	logger.Info("reconciled", out.logFields(resync)...)
 	if err := r.writeStatus(ctx, req.NamespacedName, obj.Generation, out); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -203,6 +208,60 @@ type outcome struct {
 	version   string
 	applied   bool      // an apply wrote to Logto, even if it then failed
 	appliedAt time.Time // when that apply ended
+	// Objects to create, update and delete (Observe), or created, updated and deleted (Apply).
+	created, updated, deleted int
+}
+
+// redacted is the outcome with every error passed through the redactor: what the status and the log show.
+func (o outcome) redacted(r *secrets.Redactor) outcome {
+	redact := func(err error) error {
+		if err == nil {
+			return nil
+		}
+		return errors.New(r.Redact(err.Error()))
+	}
+	o.degraded, o.transient, o.failed = redact(o.degraded), redact(o.transient), redact(o.failed)
+	return o
+}
+
+// logFields is the outcome as the key-value pairs of the reconcile's log line. Its errors are those of the status,
+// redacted.
+func (o outcome) logFields(resync time.Duration) []any {
+	var kv []any
+	switch {
+	case o.degraded != nil:
+		reason := o.reason
+		if reason == "" {
+			reason = "Error"
+		}
+		kv = append(kv, "outcome", "Degraded", "reason", reason, "error", o.degraded.Error())
+	case o.failed != nil:
+		kv = append(kv, "outcome", "ApplyFailed", "reason", "ApplyFailed", "error", o.failed.Error())
+	case o.transient != nil:
+		kv = append(kv, "outcome", "Transient", "error", o.transient.Error())
+	case o.drift != "":
+		kv = append(kv, "outcome", "Drifted")
+	case o.applied:
+		kv = append(kv, "outcome", "Applied")
+	default:
+		kv = append(kv, "outcome", "InSync")
+	}
+	if o.connected {
+		kv = append(kv, "logtoVersion", o.version, "created", o.created, "updated", o.updated, "deleted", o.deleted)
+	}
+	if o.transient != nil {
+		// controller-runtime retries with backoff; the resync comes back after.
+		return append(kv, "requeueAfter", "backoff")
+	}
+	return append(kv, "requeueAfter", resync.String())
+}
+
+// modeOf is the document's mode, Observe when it names none.
+func modeOf(obj *v1alpha1.LogtoConfig) string {
+	if obj.Spec.Mode == "" {
+		return v1alpha1.ModeObserve
+	}
+	return obj.Spec.Mode
 }
 
 // secretError is a Secret a document names that could not be read.
@@ -239,12 +298,14 @@ func readableBy(s *corev1.Secret) map[string]bool {
 	return out
 }
 
-func (r *Reconciler) run(ctx context.Context, obj *v1alpha1.LogtoConfig) outcome {
+func (r *Reconciler) run(ctx context.Context, obj *v1alpha1.LogtoConfig) (result outcome) {
 	cfg, err := config.FromObject(obj)
 	if err == nil {
 		err = config.Validate(cfg)
 	}
 	redactor := &secrets.Redactor{}
+	// Every error leaves redacted, whichever path made it: the status and the log show it.
+	defer func() { result = result.redacted(redactor) }()
 	redact := func(err error) error { return errors.New(redactor.Redact(err.Error())) }
 	if err != nil {
 		return outcome{reason: "InvalidDocument", degraded: redact(err)}
@@ -308,10 +369,12 @@ func (r *Reconciler) run(ctx context.Context, obj *v1alpha1.LogtoConfig) outcome
 	if cfg.Spec.Mode == v1alpha1.ModeApply {
 		p, err = e.Apply(ctx, env)
 		out.applied, out.appliedAt = wrote(p), r.now()
+		out.created, out.updated, out.deleted = appliedCounts(p)
 	} else {
 		p, err = e.Plan(ctx, env)
 		if err == nil && p.Changed() {
 			out.drift = summary(p)
+			out.created, out.updated, out.deleted = p.Count(plan.Create), p.Count(plan.Update), p.Count(plan.Delete)
 		}
 	}
 	var se *secretError
@@ -357,6 +420,27 @@ func wrote(p *plan.Plan) bool {
 		}
 	}
 	return false
+}
+
+// appliedCounts are how many objects an apply created, updated and deleted.
+func appliedCounts(p *plan.Plan) (created, updated, deleted int) {
+	if p == nil {
+		return 0, 0, 0
+	}
+	for _, op := range p.Ops {
+		if op.Result != plan.Applied {
+			continue
+		}
+		switch op.Action {
+		case plan.Create:
+			created++
+		case plan.Update:
+			updated++
+		case plan.Delete:
+			deleted++
+		}
+	}
+	return created, updated, deleted
 }
 
 // transientAPI reports whether the API server may answer a request later.

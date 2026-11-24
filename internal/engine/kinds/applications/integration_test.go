@@ -49,3 +49,33 @@ func TestOnARealLogto(t *testing.T) {
 		t.Fatal("a replay published another secret")
 	}
 }
+
+// On a real Logto: a third-party application is created with its consent scopes, which Logto answers back, a replay
+// plans nothing, and a changed consent scope is converged.
+func TestAThirdPartyApplicationOnARealLogto(t *testing.T) {
+	c := kindtest.Real(t)
+	u := kindtest.Unique(t)
+	doc := strings.NewReplacer("Example MCP", "IT MCP "+u, "https://mcp.example.test", "https://mcp-"+u+".example.test", "Example Connector", "IT Connector "+u).Replace(thirdParty)
+	e, err := engine.New(resources.Kind{}, roles.Kind{}, applications.Kind{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.Apply(context.Background(), kindtest.Env(c, kindtest.Spec(t, doc))); err != nil {
+		t.Fatal(err)
+	}
+	p, err := e.Apply(context.Background(), kindtest.Env(c, kindtest.Spec(t, doc)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	kindtest.Unchanged(t, p)
+
+	changed := strings.NewReplacer("{resource: mcp, scope: read}", "{resource: mcp, scope: write}", "[profile, email]", "[email]").Replace(doc)
+	if _, err := e.Apply(context.Background(), kindtest.Env(c, kindtest.Spec(t, changed))); err != nil {
+		t.Fatal(err)
+	}
+	p, err = e.Apply(context.Background(), kindtest.Env(c, kindtest.Spec(t, changed)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	kindtest.Unchanged(t, p)
+}

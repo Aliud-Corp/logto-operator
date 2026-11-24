@@ -8,9 +8,10 @@ import (
 
 // Application is the subset of a Logto application a test seeds.
 type Application struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	ThirdParty bool   `json:"isThirdParty"`
 }
 
 func (s *Server) initApplications() {
@@ -20,6 +21,7 @@ func (s *Server) initApplications() {
 	s.apps = map[string]object{}
 	s.appSecrets = map[string][]object{}
 	s.appRoles = map[string][]string{}
+	s.appConsent = map[string]*consent{}
 }
 
 func newApplication(id, name, typ string) object {
@@ -40,6 +42,7 @@ func (s *Server) SeedApplication(a Application) {
 		a.ID = s.nextID("app")
 	}
 	s.apps[a.ID] = newApplication(a.ID, a.Name, a.Type)
+	s.apps[a.ID]["isThirdParty"] = a.ThirdParty
 	if a.Type == "MachineToMachine" {
 		s.appSecrets[a.ID] = []object{s.newSecret(a.ID, "Default secret")}
 	}

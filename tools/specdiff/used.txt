@@ -36,6 +36,9 @@ ListApplicationSecrets
 CreateApplicationSecret
 ListApplicationRoles
 AssignApplicationRoles
+ListApplicationUserConsentScopes
+CreateApplicationUserConsentScope
+DeleteApplicationUserConsentScope
 ListRoles
 GetSwaggerJson
 CreateRole

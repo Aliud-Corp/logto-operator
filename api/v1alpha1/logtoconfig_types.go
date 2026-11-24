@@ -373,6 +373,14 @@ type Application struct {
 	Type string `json:"type"`
 	// +optional
 	Description string `json:"description,omitempty"`
+	// IsThirdParty makes the application a third-party one: its users go through a consent screen, and its tokens
+	// are capped to the consent scopes. Logto sets it at creation only: like the type, it cannot change once the
+	// application exists. Applies to a Native, SPA or Traditional application.
+	// +optional
+	IsThirdParty *bool `json:"isThirdParty,omitempty"`
+	// ConsentScopes are the scopes the consent screen of a third-party application may grant.
+	// +optional
+	ConsentScopes *ConsentScopes `json:"consentScopes,omitempty"`
 	// +optional
 	OIDCClientMetadata *OIDCClientMetadata `json:"oidcClientMetadata,omitempty"`
 	// +optional
@@ -384,6 +392,22 @@ type Application struct {
 	// +optional
 	Secret *ApplicationSecret `json:"secret,omitempty"`
 }
+
+// ConsentScopes of a third-party application. A list that is declared is exact (the application holds these scopes
+// and no other of its kind: an empty list removes them all); a list that is omitted leaves what Logto holds.
+// Organization scopes are not managed yet.
+type ConsentScopes struct {
+	// Resources are scopes of declared resources.
+	// +optional
+	Resources *[]ResourceScopeRef `json:"resources,omitempty"`
+	// User are user scopes: the claims of the user, by Logto's own names.
+	// +optional
+	User *[]ConsentUserScope `json:"user,omitempty"`
+}
+
+// ConsentUserScope is a user scope Logto accepts in a consent screen. personal_access_tokens needs Logto 1.46.
+// +kubebuilder:validation:Enum=profile;email;phone;address;custom_data;identities;roles;"urn:logto:scope:organizations";"urn:logto:scope:organization_roles";"urn:logto:scope:sessions";"urn:logto:scope:trusted_devices";"urn:logto:scope:personal_access_tokens"
+type ConsentUserScope string
 
 // OIDCClientMetadata of an application; URI lists are compared as sets.
 type OIDCClientMetadata struct {

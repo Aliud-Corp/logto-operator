@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/Aliud-Corp/logto-operator/compare/v0.1.0...v0.2.0) (2026-11-24)
+
+
+### Features
+
+* **operator:** log one structured line per reconcile ([ee3e464](https://github.com/Aliud-Corp/logto-operator/commit/ee3e464d96b37e7fe61aa9556620c6fcd1f2dc1e))
+* **operator:** log one structured line per reconcile ([9459177](https://github.com/Aliud-Corp/logto-operator/commit/9459177a92c5229f3d57b9199b416554182daa15))
+
 ## 0.1.0 (2026-11-23)
 
 

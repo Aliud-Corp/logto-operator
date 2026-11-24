@@ -24,10 +24,11 @@ on:
     paths-ignore:
       # A documentation change must be able to trigger nothing.
       - '**/*.md'
+  # Every pull request runs: `check` is a required status, and a workflow skipped by a path filter reports none, which
+  # would leave a documentation pull request unmergeable. Its first step (`task ci:docs-only`) skips the gate when only
+  # Markdown changed, so `check` still reports in seconds.
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore:
-      - '**/*.md'
 
 permissions:
   contents: read
@@ -57,7 +58,19 @@ jobs:
         with:
           cache: true
           cache_save: ${{ github.event_name == 'push' }}
+      # Only on pull requests (a push to main that changes only Markdown never starts). A failure here, of any kind,
+      # runs the gate.
+      - name: Only Markdown changed? (task ci:docs-only)
+        id: scope
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if task ci:docs-only BASE="$BASE"; then
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Restore the Go caches (module, build, lint)
+        if: steps.scope.outputs.docs != 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: .cache
@@ -66,6 +79,7 @@ jobs:
             go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.toml') }}-
             go-${{ runner.os }}-
       - name: task check
+        if: steps.scope.outputs.docs != 'true'
         run: task check
       - name: Save the Go caches (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

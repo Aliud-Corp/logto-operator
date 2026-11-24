@@ -145,6 +145,27 @@ tasks:
             exit 1
           fi
 
+  ci:docs-only:
+    desc: Succeed when every file changed since BASE is Markdown (ci.yml then skips the gate); fail otherwise, or when the changes cannot be listed.
+    requires:
+      vars: [BASE]
+    cmds:
+      - cmd: |
+          git cat-file -e '{{.BASE}}^{commit}' 2>/dev/null || git fetch --quiet --depth=1 origin '{{.BASE}}'
+          changed=$(git diff --name-only '{{.BASE}}' HEAD)
+          if [ -z "$changed" ]; then
+            echo "ci:docs-only: no change since {{.BASE}}: the gate runs" >&2
+            exit 1
+          fi
+          code=$(printf '%s\n' "$changed" | grep -v '\.md$' || true)
+          if [ -n "$code" ]; then
+            echo "ci:docs-only: not only Markdown, the gate runs:" >&2
+            printf '%s\n' "$code" >&2
+            exit 1
+          fi
+          echo "ci:docs-only: only Markdown changed:"
+          printf '%s\n' "$changed"
+
   e2e:cluster:up:
     desc: Create (or reuse) the throwaway k3d cluster of the e2e suite. Needs a Docker daemon.
     status:

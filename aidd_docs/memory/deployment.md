@@ -4,7 +4,9 @@
 
 - GitHub Actions on GitHub-hosted runners only (`ubuntu-<version>`, pinned): the repository is public, and a
   fork's pull request must never run on self-hosted infrastructure. `task ci:runners` fails on any other `runs-on`.
-- `ci.yml`: one `check` job running `task check`. `e2e.yml`: `task e2e`, path-filtered on what it exercises.
+- `ci.yml`: one `check` job running `task check`, a required status: it runs on every pull request, and skips the
+  gate when only Markdown changed (`task ci:docs-only`), since a path-filtered workflow reports no status at all.
+- `e2e.yml`: `task e2e`, path-filtered on what it exercises.
 - `integration.yml`: one job, path-filtered; pushes to `main`, and pull requests that touch `internal/engine/`,
   `internal/logto/`, `api/`, `examples/` or `test/integration/`, run `task it:all` (every version, one after the
   other); other pull requests run `task it` (newest).

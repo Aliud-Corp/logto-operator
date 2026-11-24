@@ -62,6 +62,10 @@ const ReadableByAnnotation = "logto.aliud.fr/readable-by"
 // DefaultResync is how often an unchanged document is reconciled.
 const DefaultResync = 10 * time.Minute
 
+// SecretRetry is how soon a document whose Secret cannot be read runs again (when its resync is longer): Secrets are
+// read uncached, so a Secret created or annotated later wakes nothing.
+const SecretRetry = 30 * time.Second
+
 // EndpointIndex indexes LogtoConfigs by the endpoint they manage.
 const EndpointIndex = "spec.endpoint"
 
@@ -168,7 +172,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if obj.Spec.ResyncInterval != nil && obj.Spec.ResyncInterval.Duration > 0 {
 		resync = obj.Spec.ResyncInterval.Duration
 	}
-	next := ctrl.Result{RequeueAfter: resync}
 
 	// Whether this object has the endpoint is known without its turn: a waiting worker is one another endpoint lacks.
 	var out outcome
@@ -186,6 +189,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		out = r.run(ctx, &obj)
 		release()
 	}
+	if out.reason == "SecretNotReadable" && SecretRetry < resync {
+		resync = SecretRetry
+	}
+	next := ctrl.Result{RequeueAfter: resync}
 	logger.Info("reconciled", out.logFields(resync)...)
 	if err := r.writeStatus(ctx, req.NamespacedName, obj.Generation, out); err != nil {
 		return ctrl.Result{}, err
@@ -648,7 +655,7 @@ func setStatus(st *v1alpha1.LogtoConfigStatus, gen int64, out outcome, appliedAt
 // SetupWithManager registers the controller. A LogtoConfig reconciles when its spec, labels or annotations change
 // (not its status, which every run writes), when an output it owns changes, when another LogtoConfig of its
 // endpoint goes away or moves, and every resync. A changed credential Secret is read at the next resync (the cache
-// does not hold it).
+// does not hold it); one that cannot be read is looked for again after SecretRetry.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha1.LogtoConfig{}, EndpointIndex, EndpointOf); err != nil {
 		return err

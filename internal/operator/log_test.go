@@ -103,7 +103,8 @@ func TestAnObserveRunLogsItsDrift(t *testing.T) {
 	want(t, s.only(t), map[string]any{"mode": v1alpha1.ModeObserve, "outcome": "Drifted", "created": float64(2)})
 }
 
-// A degraded run logs its reason and its error: a Secret created after the last resync shows up as such.
+// A degraded run logs its reason and its error: a Secret not there yet shows up as such, and is looked for again
+// soon, not at the next resync.
 func TestADegradedRunLogsItsReason(t *testing.T) {
 	_, lc := kindtest.Fake(t)
 	r, _ := setup(t, doc(t, lc.Endpoint(), "main", v1alpha1.ModeApply))
@@ -112,7 +113,7 @@ func TestADegradedRunLogsItsReason(t *testing.T) {
 		t.Fatal(err)
 	}
 	line := s.only(t)
-	want(t, line, map[string]any{"outcome": "Degraded", "reason": "SecretNotReadable", "requeueAfter": "10m0s"})
+	want(t, line, map[string]any{"outcome": "Degraded", "reason": "SecretNotReadable", "requeueAfter": operator.SecretRetry.String()})
 	if msg, _ := line["error"].(string); !strings.Contains(msg, `secrets "logto-credentials" not found`) {
 		t.Errorf("error = %q", line["error"])
 	}

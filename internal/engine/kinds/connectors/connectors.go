@@ -189,7 +189,12 @@ func body(want smtpConfig, have map[string]any) (map[string]any, error) {
 // diff compares the config to send with Logto's, key by key; the password is a sensitive change.
 func diff(next, have map[string]any) []plan.Change {
 	if t, ok := have["templates"].([]any); ok {
-		sort.Slice(t, func(i, j int) bool { return usage(t[i]) < usage(t[j]) })
+		sort.SliceStable(t, func(i, j int) bool {
+			if usage(t[i]) != usage(t[j]) {
+				return usage(t[i]) < usage(t[j])
+			}
+			return content(t[i]) < content(t[j])
+		})
 	}
 	keys := map[string]bool{}
 	for k := range next {
@@ -222,14 +227,15 @@ func diff(next, have map[string]any) []plan.Change {
 	return changes
 }
 
-// templateChanges compares the templates by usage type, field by field: a template added or removed is one change,
-// a changed one shows only its changed fields.
+// templateChanges compares the templates by usage type (and content type when Logto holds several for one usage
+// type), field by field: a template added or removed is one change, a changed one shows only its changed fields.
 func templateChanges(next, have any) []plan.Change {
 	if kindkit.Equal(next, have) {
 		return nil
 	}
-	n, okN := byUsage(next)
-	h, okH := byUsage(have)
+	split := splitUsages(next, have)
+	n, okN := byUsage(next, split)
+	h, okH := byUsage(have, split)
 	if !okN || !okH {
 		return []plan.Change{{Field: "config.templates", From: kindkit.JSON(have), To: kindkit.JSON(next)}}
 	}
@@ -268,8 +274,30 @@ func templateChanges(next, have any) []plan.Change {
 	return changes
 }
 
-// byUsage indexes templates by usage type; false when they are not a list of objects with distinct usage types.
-func byUsage(v any) (map[string]map[string]any, bool) {
+// splitUsages names the usage types that come with more than one content type across both lists: their templates
+// are keyed by usage type and content type, the others by usage type alone.
+func splitUsages(lists ...any) map[string]bool {
+	types := map[string]map[string]bool{}
+	for _, v := range lists {
+		list, _ := v.([]any)
+		for _, t := range list {
+			u := usage(t)
+			if types[u] == nil {
+				types[u] = map[string]bool{}
+			}
+			types[u][content(t)] = true
+		}
+	}
+	split := map[string]bool{}
+	for u, c := range types {
+		split[u] = len(c) > 1
+	}
+	return split
+}
+
+// byUsage indexes templates by their key (see splitUsages); false when they are not a list of objects with distinct
+// keys.
+func byUsage(v any, split map[string]bool) (map[string]map[string]any, bool) {
 	list, ok := v.([]any)
 	if !ok && v != nil {
 		return nil, false
@@ -278,10 +306,14 @@ func byUsage(v any) (map[string]map[string]any, bool) {
 	for _, t := range list {
 		m, ok := t.(map[string]any)
 		u := usage(t)
-		if _, dup := out[u]; !ok || u == "" || dup {
+		key := u
+		if split[u] {
+			key = u + " " + content(t)
+		}
+		if _, dup := out[key]; !ok || u == "" || dup {
 			return nil, false
 		}
-		out[u] = m
+		out[key] = m
 	}
 	return out, true
 }
@@ -300,6 +332,12 @@ func text(v any) string {
 func usage(t any) string {
 	m, _ := t.(map[string]any)
 	s, _ := m["usageType"].(string)
+	return s
+}
+
+func content(t any) string {
+	m, _ := t.(map[string]any)
+	s, _ := m["contentType"].(string)
 	return s
 }
 

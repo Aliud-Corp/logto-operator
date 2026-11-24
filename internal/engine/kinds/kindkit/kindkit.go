@@ -110,13 +110,15 @@ func normalize(v any) any {
 	return out
 }
 
-// JSON renders a value compactly for a plan change.
+// JSON renders a value compactly for a plan change, HTML as written (not escaped to \u003c).
 func JSON(v any) string {
-	b, err := json.Marshal(v)
-	if err != nil {
+	var b strings.Builder
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
 		return fmt.Sprint(v)
 	}
-	return string(b)
+	return strings.TrimSuffix(b.String(), "\n")
 }
 
 // Field appends a change when two rendered values differ.

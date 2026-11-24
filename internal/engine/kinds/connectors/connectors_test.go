@@ -186,3 +186,41 @@ func TestAFieldTurnedOffOrRemovedReachesLogto(t *testing.T) {
 	}
 	kindtest.Unchanged(t, kindtest.Apply(t, c, kindtest.Spec(t, declared), connectors.Kind{}))
 }
+
+// Logto may hold a text/plain and a text/html template for one usage type: they are told apart by content type, and
+// a template's HTML is shown as written, not escaped.
+func TestTemplatesOfOneUsageTypeAreToldApartByContentType(t *testing.T) {
+	t.Setenv("TEST_SMTP_PASS", "first-password")
+	_, c := kindtest.Fake(t)
+	both := strings.Replace(declared, `            - {usageType: SignIn,`,
+		`            - {usageType: SignIn, contentType: text/html, subject: "Sign in", content: {value: "<p>{{code}}</p>"}}
+            - {usageType: SignIn,`, 1)
+	kindtest.Apply(t, c, kindtest.Spec(t, both), connectors.Kind{})
+	htmlOnly := strings.Replace(both, `            - {usageType: SignIn, contentType: text/plain, subject: "Sign in {{code}}", content: {value: "c {{code}}"}}
+`, "", 1)
+	htmlOnly = strings.Replace(htmlOnly, `subject: "Sign in", content`, `subject: "Your sign-in code", content`, 1)
+	p := kindtest.Apply(t, c, kindtest.Spec(t, htmlOnly), connectors.Kind{})
+	var out bytes.Buffer
+	_ = plan.Render(&out, p)
+	for _, want := range []string{
+		"config.templates[SignIn text/html].subject: Sign in -> Your sign-in code\n",
+		`config.templates[SignIn text/plain]: {"content":"c {{code}}","contentType":"text/plain","subject":"Sign in {{code}}","usageType":"SignIn"} -> (none)` + "\n",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("plan lacks %q:\n%s", want, out.String())
+		}
+	}
+	if strings.Contains(out.String(), "Generic") {
+		t.Errorf("an unchanged template is shown:\n%s", out.String())
+	}
+	kindtest.Unchanged(t, kindtest.Apply(t, c, kindtest.Spec(t, htmlOnly), connectors.Kind{}))
+	p = kindtest.Apply(t, c, kindtest.Spec(t, both), connectors.Kind{})
+	out.Reset()
+	_ = plan.Render(&out, p)
+	if want := `config.templates[SignIn text/plain]: (none) -> {"content":"c {{code}}"`; !strings.Contains(out.String(), want) {
+		t.Errorf("plan lacks %q:\n%s", want, out.String())
+	}
+	if strings.Contains(out.String(), `\u003c`) {
+		t.Errorf("HTML is escaped:\n%s", out.String())
+	}
+}

@@ -272,6 +272,14 @@ func TestADocumentInErrorIsDegraded(t *testing.T) {
 			if res.RequeueAfter == 0 {
 				t.Fatal("a degraded document must still be resynced")
 			}
+			// A Secret is read uncached, so its creation wakes nothing: an unreadable one is looked for again soon.
+			want := operator.DefaultResync
+			if tc.reason == "SecretNotReadable" {
+				want = operator.SecretRetry
+			}
+			if res.RequeueAfter != want {
+				t.Fatalf("requeueAfter %s, want %s", res.RequeueAfter, want)
+			}
 			got := get(t, c, "main")
 			if d := condition(t, got, operator.Degraded); d.Status != metav1.ConditionTrue || d.Reason != tc.reason || !strings.Contains(d.Message, tc.want) {
 				t.Fatalf("Degraded = %+v", d)

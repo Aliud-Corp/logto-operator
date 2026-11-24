@@ -28,7 +28,8 @@ controller, its install manifests and its image exist, and releases publish them
   `app.kubernetes.io/managed-by: logto-operator`.
 - It comes back every `spec.resyncInterval` (default `10m`, at least `30s`), at once when the object's spec, labels
   or annotations change (not its status), when someone changes or deletes an output it owns, and when another object
-  of its endpoint goes away or moves. A changed credential Secret is read at the next resync.
+  of its endpoint goes away or moves. A changed credential Secret is read at the next resync; while a Secret cannot be
+  read (`SecretNotReadable`: missing, or not annotated for the endpoint), the object comes back after `30s`.
 - An object being deleted is left alone: no write to Logto, no output re-created while the garbage collector removes
   them.
 
@@ -99,10 +100,11 @@ json` for JSON, `--zap-log-level` for the level). Besides controller-runtime's o
 | `reason`, `error` | of `Degraded` (the status reasons) or `ApplyFailed`; `error` also for `Transient` |
 | `created`, `updated`, `deleted` | what Observe would change, or what Apply changed, once the target answered |
 | `logtoVersion` | the supported version the target matched, empty when untested |
-| `requeueAfter` | the next resync, or `backoff` after a transient failure |
+| `requeueAfter` | the next resync (`30s` while a Secret cannot be read), or `backoff` after a transient failure |
 
 A Secret value never appears in it: its errors are the status's, redacted. A credential Secret created or changed
-after a run is read at the next resync (`requeueAfter`), not when it changes: the cache does not hold it.
+after a run is read at the next resync (`requeueAfter`), not when it changes: the cache does not hold it. A Secret
+that could not be read is looked for again after `30s`.
 
 ## One object per Logto
 

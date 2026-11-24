@@ -66,3 +66,6 @@ flowchart LR
   second object on one endpoint (normalized), one run per endpoint at a time. Its cache holds only the outputs it
   labels; credentials are read uncached, from Secrets whose `logto.aliud.fr/readable-by` annotation lists the endpoint (and token endpoint), secretKeyRef
   only, all before the first call.
+- Each reconcile logs one line (`reconciled`, `log.FromContext`): object, endpoint, mode, outcome, counts, Logto
+  version, next resync. Every error of a run leaves it through the redactor (`outcome.redacted`), for the status
+  and the log alike (`internal/operator/log_test.go`).

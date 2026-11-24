@@ -321,9 +321,11 @@ hand) or keeps it in its own database is the product's choice.
 5. **End-to-end, Chainsaw on k3d** (`test/e2e`, `task e2e`): the operator deployed in a throwaway k3d cluster with
    Logto + Postgres in it; scenarios as Chainsaw tests (apply a `LogtoConfig`, assert `status` conditions and the
    published Secret/ConfigMap, edit Logto behind the operator's back and assert `Drifted` then repaired, delete the
-   CR and assert Logto untouched). **Today:** harness only (pinned k3d 5.9.0, k3s `v1.37.2-k3s1`, chainsaw 0.2.15,
-   kubectl 1.37.2, one smoke test) — **measured green locally** (cluster up, test passed, cluster down), run in CI
-   by the path-filtered `e2e` workflow on a GitHub-hosted runner.
+   CR and assert Logto untouched). **Done:** pinned k3d 5.9.0, k3s `v1.37.2-k3s1`, chainsaw 0.2.15, kubectl 1.37.2;
+   `task e2e` builds the image with ko and imports it (never pulled), deploys Postgres and Logto (`LOGTO_VERSION`,
+   default the newest) and the install (`test/e2e/install`, over `config/default`), then runs `test/e2e/operator`:
+   those four scenarios, the drift made from inside Logto's Pod with the `m-default` secret on stdin. Run in CI by the
+   path-filtered `e2e` workflow on a GitHub-hosted runner.
 6. **Guards**: `task generate:check` (always regenerates, fails on drift; proven to fail on a tampered file),
    `task ci:runners` (GitHub-hosted `ubuntu-<version>` only; proven to fail on a self-hosted and on an unpinned
    label), `go mod tidy -diff`, golangci-lint, actionlint + shellcheck. Each new guard is shown failing once in its PR.
@@ -392,7 +394,7 @@ hand) or keeps it in its own database is the product's choice.
   ClusterRole (docs/operator.md); its manager runs against envtest in `task check`. The install (`config/default`,
   kustomize) and the image (ko, `.ko.yaml`) exist: envtest applies the manifests and runs the manager as their
   ServiceAccount, and `task check` builds the image for every platform. Releases are published by release-please
-  (section 12). Next: the Chainsaw e2e with Logto in k3d, then the Helm chart.
+  (section 12). The Chainsaw e2e runs the install against Logto in k3d (`task e2e`). Next: the Helm chart.
 - **M4 — first adopters.** A consuming project renders its `LogtoConfig` and runs `check` in its CI; each
   environment starts in `Observe` (drift reviewed, anything edited by hand in a console shows up), then `Apply`.
 - **M5 — admin console users** (only if section 8's spike succeeds).

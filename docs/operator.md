@@ -2,7 +2,8 @@
 
 The operator reconciles `LogtoConfig` objects on the same engine as `logtoctl`: the document is the one described in
 [usage.md](usage.md), applied as a Kubernetes object. It is milestone 3 of [plan.md](plan.md), in progress: the
-controller, its install manifests and its image exist, and releases publish them; end-to-end tests come next.
+controller, its install manifests and its image exist, releases publish them, and an end-to-end suite runs them against
+a real Logto in a k3d cluster (`task e2e`).
 
 ## What it does on each reconcile
 

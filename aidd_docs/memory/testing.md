@@ -5,7 +5,9 @@
 - Unit: engine and tools against the in-process fake (`internal/logto/logtofake`), no network.
 - Integration: tests tagged `integration` against a throwaway real Logto (`test/integration/compose.yaml`), one
   version of the support window at a time; credentials through the `m-default` route (`build/it.env`, 0600).
-- End-to-end: Chainsaw on a throwaway k3d cluster (`test/e2e`); today only a smoke test of the harness.
+- End-to-end: Chainsaw on a throwaway k3d cluster (`test/e2e`): the install and the image built from the checkout,
+  against Postgres and Logto deployed in the cluster (`test/e2e/logto`); `test/e2e/operator` applies, observes a
+  drift made behind the operator's back, repairs it, and deletes.
 
 ## Tools
 

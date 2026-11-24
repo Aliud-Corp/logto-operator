@@ -1,7 +1,7 @@
 ---
 # End-to-end suite: Chainsaw on a throwaway k3d cluster, in the Docker daemon of a GitHub-hosted runner.
-# Path-filtered: it runs only when something it exercises changes (see ci.yml for why minutes are counted).
-# Add the operator's code paths here when it exists.
+# Path-filtered: it runs only when something it exercises changes: the operator's code, its install and image, the
+# suite (see ci.yml for why minutes are counted).
 name: e2e
 
 on:
@@ -10,6 +10,13 @@ on:
       - main
     paths:
       - 'test/e2e/**'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'api/**'
+      - 'config/**'
+      - '.ko.yaml'
+      - 'go.mod'
+      - 'go.sum'
       - 'mise.toml'
       - 'Taskfile.yaml'
       - '.github/workflows/e2e.yml'
@@ -17,6 +24,13 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'test/e2e/**'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'api/**'
+      - 'config/**'
+      - '.ko.yaml'
+      - 'go.mod'
+      - 'go.sum'
       - 'mise.toml'
       - 'Taskfile.yaml'
       - '.github/workflows/e2e.yml'
@@ -33,7 +47,7 @@ jobs:
     name: e2e
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:

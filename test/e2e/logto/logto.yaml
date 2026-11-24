@@ -1,0 +1,98 @@
+# The throwaway Logto of the e2e suite: Postgres plus Logto (the version `task e2e` substitutes for LOGTO_VERSION),
+# in namespace logto of the k3d cluster, like test/integration/compose.yaml. Nothing is kept: the database is an
+# emptyDir, and `task e2e:cluster:down` removes the cluster.
+#
+# The operator reaches Logto at its Service names; ENDPOINT and ADMIN_ENDPOINT are those names, because Logto picks
+# the tenant of a request by matching its URL against them.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logto
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: logto
+spec:
+  selector: {app: postgres}
+  ports:
+    - {name: postgres, port: 5432}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: logto
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: postgres}
+  template:
+    metadata:
+      labels: {app: postgres}
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17.11-alpine
+          env:
+            - {name: POSTGRES_USER, value: logto}
+            - {name: POSTGRES_PASSWORD, value: logto}
+            - {name: POSTGRES_DB, value: logto}
+            - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+          ports:
+            - containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "logto", "-d", "logto"]
+            periodSeconds: 2
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/postgresql/data}
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logto
+  namespace: logto
+spec:
+  selector: {app: logto}
+  ports:
+    - {name: tenant, port: 3001}
+    - {name: admin, port: 3002}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logto
+  namespace: logto
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: logto}
+  template:
+    metadata:
+      labels: {app: logto}
+    spec:
+      initContainers:
+        # Logto seeds and alters its database before it starts; it needs Postgres to answer first.
+        - name: wait-for-postgres
+          image: postgres:17.11-alpine
+          command: ["sh", "-c", "until pg_isready -h postgres -U logto -d logto; do sleep 1; done"]
+      containers:
+        - name: logto
+          image: ghcr.io/logto-io/logto:LOGTO_VERSION
+          command: ["sh", "-c", "npm run cli db seed -- --swe && npm run alteration deploy latest && npm start"]
+          env:
+            - {name: DB_URL, value: "postgres://logto:logto@postgres:5432/logto"}
+            - {name: ENDPOINT, value: "http://logto.logto.svc:3001"}
+            - {name: ADMIN_ENDPOINT, value: "http://logto.logto.svc:3002"}
+          ports:
+            - {name: tenant, containerPort: 3001}
+            - {name: admin, containerPort: 3002}
+          readinessProbe:
+            httpGet: {path: /api/status, port: tenant}
+            periodSeconds: 3
+            failureThreshold: 100

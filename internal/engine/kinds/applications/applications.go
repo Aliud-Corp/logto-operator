@@ -60,6 +60,23 @@ func (Kind) Needs(env *engine.Env) ([]capability.Need, error) {
 			}
 			needs = append(needs, need)
 		}
+		if cs := d.ConsentScopes; cs != nil {
+			body := addConsent{}
+			if cs.Resources != nil {
+				body.ResourceScopes = []string{"id"}
+			}
+			if cs.User != nil {
+				body.UserScopes = []string{"profile"}
+			}
+			need, err := kindkit.Need("CreateApplicationUserConsentScope", where+".consentScopes", body)
+			if err != nil {
+				return nil, err
+			}
+			needs = append(needs, need)
+			needs = append(needs,
+				capability.Need{OperationID: "ListApplicationUserConsentScopes", Where: where + ".consentScopes"},
+				capability.Need{OperationID: "DeleteApplicationUserConsentScope", Where: where + ".consentScopes"})
+		}
 		if len(d.Roles) > 0 {
 			need, err := kindkit.Need("AssignApplicationRoles", where+".roles", assignRoles{RoleIDs: []string{}})
 			if err != nil {
@@ -78,6 +95,7 @@ type payload struct {
 	create  bool
 	update  *updateApp
 	grant   []roles.Grant
+	consent consentChange
 	publish bool
 }
 
@@ -111,12 +129,17 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 				return nil, err
 			}
 			changes := []plan.Change{{Field: "type", To: d.Type}}
+			if d.IsThirdParty != nil && *d.IsThirdParty {
+				changes = append(changes, plan.Change{Field: "isThirdParty", To: "true"})
+			}
+			consent, consentChanges := consentCreate(env, d)
+			changes = append(changes, consentChanges...)
 			for _, r := range d.Roles {
 				changes = append(changes, plan.Change{Field: "roles." + r.Name, To: "granted"})
 			}
 			return []plan.Op{{
 				Kind: Name, Key: key, Name: d.Name, Action: plan.Create, Changes: changes,
-				Payload: payload{key: key, d: d, create: true, grant: grant, publish: publish},
+				Payload: payload{key: key, d: d, create: true, grant: grant, consent: consent, publish: publish},
 			}}, nil
 		},
 		Update: func(key string, d v1alpha1.Application, have wireApp) ([]plan.Op, error) {
@@ -136,6 +159,9 @@ func (Kind) Plan(ctx context.Context, env *engine.Env) ([]plan.Op, error) {
 func updateOp(ctx context.Context, env *engine.Env, path, key string, d v1alpha1.Application, have wireApp, grant []roles.Grant, publish bool) (plan.Op, error) {
 	if have.Type != d.Type {
 		return plan.Op{}, fmt.Errorf("%s: the application exists with type %s; Logto cannot change an application's type (declared %s)", path, have.Type, d.Type)
+	}
+	if d.IsThirdParty != nil && *d.IsThirdParty != have.IsThirdParty {
+		return plan.Op{}, fmt.Errorf("%s: the application exists with isThirdParty %t; Logto sets it at creation only and cannot change it (declared %t)", path, have.IsThirdParty, *d.IsThirdParty)
 	}
 	env.Refs.Set(Name, key, RefID, have.ID)
 	env.Outputs.SetID(OutputID(key), have.ID)
@@ -158,6 +184,12 @@ func updateOp(ctx context.Context, env *engine.Env, path, key string, d v1alpha1
 	if len(changes) > 0 {
 		p.update = newUpdate(d, have)
 	}
+	consent, consentChanges, err := consentUpdate(ctx, env, d, have.ID)
+	if err != nil {
+		return plan.Op{}, err
+	}
+	p.consent = consent
+	changes = append(changes, consentChanges...)
 	if len(grant) > 0 {
 		granted, err := applicationRoles(ctx, env, have.ID)
 		if err != nil {
@@ -281,6 +313,11 @@ func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 		if err := kindkit.Send(ctx, env, assignRoles{RoleIDs: ids}, nil, func(s, ct string, b *bytes.Reader) (*http.Request, error) {
 			return mgmt.NewAssignApplicationRolesRequestWithBody(s, p.id, ct, b)
 		}); err != nil {
+			return err
+		}
+	}
+	if !p.consent.empty() {
+		if err := applyConsent(ctx, env, p.id, p.consent); err != nil {
 			return err
 		}
 	}

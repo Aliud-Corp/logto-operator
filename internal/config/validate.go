@@ -213,6 +213,27 @@ func (v *validator) applications(s *v1alpha1.LogtoConfigSpec) {
 			v.add(path, "roles and secret apply to a MachineToMachine application only")
 		}
 		v.grantable(s, path, a.Roles, "MachineToMachine", "an application")
+		thirdParty := a.IsThirdParty != nil && *a.IsThirdParty
+		if thirdParty && a.Type == "MachineToMachine" {
+			v.add(path+".isThirdParty", "applies to a Native, SPA or Traditional application, not a MachineToMachine one")
+		}
+		if c := a.ConsentScopes; c != nil {
+			if !thirdParty {
+				v.add(path+".consentScopes", "applies to a third-party application only (set isThirdParty: true)")
+			}
+			if c.Resources != nil {
+				v.resourceScopes(s, path+".consentScopes.resources", *c.Resources)
+			}
+			if c.User != nil {
+				seen := map[v1alpha1.ConsentUserScope]bool{}
+				for i, u := range *c.User {
+					if seen[u] {
+						v.add(fmt.Sprintf("%s.consentScopes.user[%d]", path, i), "user scope %q is already listed", u)
+					}
+					seen[u] = true
+				}
+			}
+		}
 	}
 }
 

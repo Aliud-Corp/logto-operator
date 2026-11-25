@@ -102,12 +102,36 @@ were never run. Nothing is rolled back: run `apply` again once the cause is fixe
 When the failure is transient (Logto overloaded, failing or unreachable), the message says a later apply may
 succeed.
 
+## Third-party applications
+
+An application declared with `isThirdParty: true` (Native, SPA or Traditional) shows its users a consent screen, and
+its tokens are capped to the scopes that screen may grant. `consentScopes` lists them: `resources` are scopes of the
+resources declared in `spec.resources`, `user` are Logto's user scopes (`profile`, `email`, ...;
+`urn:logto:scope:personal_access_tokens` needs Logto 1.46). Organization scopes are not managed yet.
+
+```yaml
+  applications:
+    connector:
+      name: Example Connector
+      type: Traditional
+      isThirdParty: true
+      consentScopes:
+        resources: [{resource: app, scope: "event:read"}]
+        user: [profile, email]
+```
+
+`isThirdParty` is create-only in Logto: an existing application with another value is refused at plan time.
+`consentScopes` on an application that is not third-party is refused by the document rules.
+
 ## What the tool never does
 
 - It never deletes an object that the document does not declare, unless that kind's `spec.prune` switch is set.
   Even then it never prunes Logto's own Management API resource, a global role holding one of its scopes,
   a role the document grants, or what `spec.prune.keep` lists (by name; a resource also by indicator, a connector by id).
-- It never recreates an application: applications are matched by name and their type cannot change.
+- It never recreates an application: applications are matched by name, and their type and `isThirdParty` cannot
+  change (Logto sets both at creation: the plan refuses a difference).
+- It manages an application's consent scopes only when `consentScopes` lists are declared; a declared list is exact
+  (the application holds those scopes and no other of its kind), an omitted one leaves what Logto holds.
 - It never rotates a secret, and never sends a user a password.
 - It never revokes a role an application or a user holds; it only grants the declared ones. A role granted by
   name is either declared in `spec.roles` (created in the same run if needed) or must already exist in Logto.

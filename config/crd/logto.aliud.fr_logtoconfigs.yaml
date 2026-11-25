@@ -66,6 +66,48 @@ spec:
                   description: Application is matched by its Logto name and never
                     deleted or recreated.
                   properties:
+                    consentScopes:
+                      description: ConsentScopes are the scopes the consent screen
+                        of a third-party application may grant.
+                      properties:
+                        resources:
+                          description: Resources are scopes of declared resources.
+                          items:
+                            description: ResourceScopeRef names a scope of a resource
+                              declared in spec.resources, by local key and scope name.
+                            properties:
+                              resource:
+                                type: string
+                              scope:
+                                type: string
+                            required:
+                            - resource
+                            - scope
+                            type: object
+                          type: array
+                        user:
+                          description: 'User are user scopes: the claims of the user,
+                            by Logto''s own names.'
+                          items:
+                            description: ConsentUserScope is a user scope Logto accepts
+                              in a consent screen. personal_access_tokens needs Logto
+                              1.46.
+                            enum:
+                            - profile
+                            - email
+                            - phone
+                            - address
+                            - custom_data
+                            - identities
+                            - roles
+                            - urn:logto:scope:organizations
+                            - urn:logto:scope:organization_roles
+                            - urn:logto:scope:sessions
+                            - urn:logto:scope:trusted_devices
+                            - urn:logto:scope:personal_access_tokens
+                            type: string
+                          type: array
+                      type: object
                     customClientMetadata:
                       description: CustomClientMetadata of an application; undeclared
                         keys are left as Logto has them.
@@ -89,6 +131,12 @@ spec:
                       type: object
                     description:
                       type: string
+                    isThirdParty:
+                      description: |-
+                        IsThirdParty makes the application a third-party one: its users go through a consent screen, and its tokens
+                        are capped to the consent scopes. Logto sets it at creation only: like the type, it cannot change once the
+                        application exists. Applies to a Native, SPA or Traditional application.
+                      type: boolean
                     name:
                       type: string
                     oidcClientMetadata:

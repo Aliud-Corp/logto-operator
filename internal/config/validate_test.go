@@ -39,6 +39,36 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 			"spec.applications.a.type: value is not one of the allowed values",
 		},
 		{
+			"consent scopes on a first-party application",
+			"  applications:\n    a: {name: A, type: Native, consentScopes: {user: [email]}}\n",
+			"spec.applications.a.consentScopes: applies to a third-party application only (set isThirdParty: true)",
+		},
+		{
+			"consent scopes on an application declared first-party",
+			"  applications:\n    a: {name: A, type: Native, isThirdParty: false, consentScopes: {user: [email]}}\n",
+			"spec.applications.a.consentScopes: applies to a third-party application only (set isThirdParty: true)",
+		},
+		{
+			"a third-party machine-to-machine application",
+			"  applications:\n    a: {name: A, type: MachineToMachine, isThirdParty: true}\n",
+			"spec.applications.a.isThirdParty: applies to a Native, SPA or Traditional application",
+		},
+		{
+			"a consent scope of an undeclared resource",
+			"  applications:\n    a: {name: A, type: Traditional, isThirdParty: true, consentScopes: {resources: [{resource: app, scope: read}]}}\n",
+			`spec.applications.a.consentScopes.resources[0]: resource "app" is not declared in spec.resources`,
+		},
+		{
+			"a user consent scope listed twice",
+			"  applications:\n    a: {name: A, type: Traditional, isThirdParty: true, consentScopes: {user: [email, email]}}\n",
+			`spec.applications.a.consentScopes.user[1]: user scope "email" is already listed`,
+		},
+		{
+			"a user consent scope Logto does not know",
+			"  applications:\n    a: {name: A, type: Traditional, isThirdParty: true, consentScopes: {user: [passport]}}\n",
+			"spec.applications.a.consentScopes.user.0: value is not one of the allowed values",
+		},
+		{
 			"roles on a SPA",
 			"  applications:\n    a: {name: A, type: SPA, roles: [{name: R}]}\n",
 			"spec.applications.a: roles and secret apply to a MachineToMachine application only",

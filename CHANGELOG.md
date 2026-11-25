@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/Aliud-Corp/logto-operator/compare/v0.2.1...v0.3.0) (2026-11-25)
+
+
+### Features
+
+* **applications:** third-party applications and their consent scopes ([a809ca8](https://github.com/Aliud-Corp/logto-operator/commit/a809ca8f48ae706e4a42172e7b0c54b89f86944d))
+* **cimd:** declare Client ID Metadata Document settings and their consent scopes ([fe0571b](https://github.com/Aliud-Corp/logto-operator/commit/fe0571bfa3b46fff31fcc520c60a051037f5558c))
+
 ## [0.2.1](https://github.com/Aliud-Corp/logto-operator/compare/v0.2.0...v0.2.1) (2026-11-24)
 
 

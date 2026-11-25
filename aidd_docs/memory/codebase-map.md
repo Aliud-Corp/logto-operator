@@ -36,8 +36,8 @@ flowchart TD
   the install (kustomize); `.ko.yaml`: the image (ko, distroless base pinned by digest).
 - `test/manifests/`: the install manifests against envtest (its own package: one controller name per process).
 - `internal/target/`: connects a document to its Logto (credentials, capability), for the CLI and the operator.
-- `internal/engine/kinds/`: one package per kind (`all.go` lists them), `kindkit` (shared helpers), `kindtest` (test
-  harness on the fake and on a real Logto).
+- `internal/engine/kinds/`: one package per kind (`all.go` lists them), `kindkit` (shared helpers), `consentscopes` (the
+  consent-screen diff and apply of applications and CIMD), `kindtest` (test harness on the fake and on a real Logto).
 - `internal/outputs/`: identifiers on stdout, secrets to a 0600 file or a descriptor.
 - `test/integration/`: the throwaway Logto (compose, bootstrap) and the integration tests;
   `internal/logto/integration/` loads its credentials.

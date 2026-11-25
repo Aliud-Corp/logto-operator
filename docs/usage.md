@@ -45,7 +45,7 @@ spec:
     tokenEndpoint: https://console.example.test # only for the m-default route (see below)
   variables: {zone: example.test}              # usable as ${zone} in string fields
   # connectors, customProfileFields, signInExperience, resources, organizationScopes,
-  # organizationRoles, roles, applications: see examples/reference.yaml
+  # organizationRoles, roles, applications, cimd: see examples/reference.yaml
 ```
 
 - **Strict.** An unknown key fails with its path, and `${name}` only reads `spec.variables`. Every rule is checked
@@ -123,6 +123,31 @@ resources declared in `spec.resources`, `user` are Logto's user scopes (`profile
 `isThirdParty` is create-only in Logto: an existing application with another value is refused at plan time.
 `consentScopes` on an application that is not third-party is refused by the document rules.
 
+## Client ID Metadata Documents (CIMD)
+
+Logto 1.44 and later can let a client identify itself by the URL of a metadata document (a CIMD client) instead of
+being registered. `spec.cimd` turns it on for the tenant and sets the ceiling of what the consent screen of such a
+client may grant. It is a tenant setting, not an application: there is one, and an absent `cimd` block is not managed
+at all (nothing is read, nothing is written).
+
+```yaml
+  cimd:
+    enabled: true                              # required when the block is present
+    addConsentPromptForOfflineAccess: false    # optional (Logto: experimental); omitted, left as Logto has it
+    consentScopes:                             # the same lists as an application's; a declared list is exact
+      resources: [{resource: app, scope: "event:read"}]
+      user: [profile, email]
+```
+
+`consentScopes` follows the rules of the application's: `resources` name scopes declared in `spec.resources`, `user`
+are Logto's user scopes, an omitted list leaves what Logto holds, an empty one removes them all, and organization
+scopes are not managed yet.
+
+Logto refuses to change the CIMD configuration (it answers 422) while its outbound SSRF protection is disabled
+(`SSRF_PROTECTION_DISABLED`, `OIDC_PROVIDER_SSRF_PROTECTION_DISABLED`) or restricted by an allowlist
+(`SSRF_ALLOWED_ADDRESSES`), because CIMD makes Logto fetch URLs a client chooses. The tool reports that refusal with its
+cause and does not work around it: change the Logto instance, not the document.
+
 ## What the tool never does
 
 - It never deletes an object that the document does not declare, unless that kind's `spec.prune` switch is set.
@@ -132,6 +157,7 @@ resources declared in `spec.resources`, `user` are Logto's user scopes (`profile
   change (Logto sets both at creation: the plan refuses a difference).
 - It manages an application's consent scopes only when `consentScopes` lists are declared; a declared list is exact
   (the application holds those scopes and no other of its kind), an omitted one leaves what Logto holds.
+- It manages the CIMD consent scopes the same way: only the lists the document declares, each exact.
 - It never rotates a secret, and never sends a user a password.
 - It never revokes a role an application or a user holds; it only grants the declared ones. A role granted by
   name is either declared in `spec.roles` (created in the same run if needed) or must already exist in Logto.

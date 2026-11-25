@@ -41,3 +41,10 @@
   the plan refuses a difference. Consent scopes (`/api/applications/{id}/user-consent-scopes`) exist for third-party
   applications only; `POST` adds, `DELETE .../{scopeType}/{scopeId}` removes (the scope id of a resource scope, the
   name of a user scope), and the user scope enum gains `urn:logto:scope:personal_access_tokens` in 1.46.0.
+- CIMD (1.44+, same shapes in 1.44 to 1.46): `GET`/`PATCH /api/configs/cimd` (`enabled`, experimental
+  `addConsentPromptForOfflineAccess`, which an answer may omit) and tenant-wide consent scopes on
+  `/api/cimd/user-consent-scopes` (list, `POST` adds, `DELETE .../{scopeType}/{scopeId}`), exactly the application
+  routes minus the application (and without its third-party requirement). `PATCH` answers 422 `request.invalid_input`
+  when Logto's SSRF protection is disabled or has an allowlist (measured with `SSRF_PROTECTION_DISABLED=true`); the
+  throwaway Logto of the integration tests accepts it. The `consentscopes` package is the diff and apply both kinds
+  share.

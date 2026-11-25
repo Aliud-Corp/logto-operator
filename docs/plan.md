@@ -192,6 +192,8 @@ Order of one apply (prune runs afterwards, in the reverse order, only for kinds 
 5. **roles** (global, User and M2M) with their resource scopes.
 6. **organizationScopes**, then **organizationRoles** (scopes and resource scopes `PUT` = the declared set).
 7. **applications** — adopt by name or create; then M2M **secrets**, **role grants**, **access control** (needs 5).
+   **cimd** — singleton (Logto 1.44+): `PATCH /api/configs/cimd`, then the tenant-wide consent scopes (they name
+   resource scopes, so after 4).
 8. **webhooks** (signing key read back, never rotated by a replay).
 9. **jwtCustomizer**, **idToken** extended claims, **accountCenter**, **captcha**.
 10. **outputs** published (ids first, then secrets).

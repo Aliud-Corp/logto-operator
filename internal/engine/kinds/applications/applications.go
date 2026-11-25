@@ -13,6 +13,7 @@ import (
 
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/consentscopes"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/kindkit"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/roles"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/plan"
@@ -61,7 +62,7 @@ func (Kind) Needs(env *engine.Env) ([]capability.Need, error) {
 			needs = append(needs, need)
 		}
 		if cs := d.ConsentScopes; cs != nil {
-			body := addConsent{}
+			body := consentscopes.Add{}
 			if cs.Resources != nil {
 				body.ResourceScopes = []string{"id"}
 			}
@@ -95,7 +96,7 @@ type payload struct {
 	create  bool
 	update  *updateApp
 	grant   []roles.Grant
-	consent consentChange
+	consent consentscopes.Change
 	publish bool
 }
 
@@ -316,7 +317,7 @@ func (Kind) Apply(ctx context.Context, env *engine.Env, op plan.Op) error {
 			return err
 		}
 	}
-	if !p.consent.empty() {
+	if !p.consent.Empty() {
 		if err := applyConsent(ctx, env, p.id, p.consent); err != nil {
 			return err
 		}

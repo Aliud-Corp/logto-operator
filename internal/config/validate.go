@@ -37,6 +37,7 @@ func Validate(cfg *v1alpha1.LogtoConfig) error {
 	v.organizationRoles(s)
 	v.roles(s)
 	v.applications(s)
+	v.cimd(s)
 	v.outputs(s)
 	if r := s.ResyncInterval; r != nil && r.Duration < MinResync {
 		v.add("spec.resyncInterval", "at least %s: every resync plans against Logto", MinResync)
@@ -151,6 +152,22 @@ func (v *validator) organizationRoles(s *v1alpha1.LogtoConfigSpec) {
 	}
 }
 
+// consentScopes checks the lists of a consent screen: declared resource scopes, each user scope once.
+func (v *validator) consentScopes(s *v1alpha1.LogtoConfigSpec, path string, c *v1alpha1.ConsentScopes) {
+	if c.Resources != nil {
+		v.resourceScopes(s, path+".resources", *c.Resources)
+	}
+	if c.User != nil {
+		seen := map[v1alpha1.ConsentUserScope]bool{}
+		for i, u := range *c.User {
+			if seen[u] {
+				v.add(fmt.Sprintf("%s.user[%d]", path, i), "user scope %q is already listed", u)
+			}
+			seen[u] = true
+		}
+	}
+}
+
 // resourceScopes checks that each reference names a declared resource and one of its declared scopes, once.
 func (v *validator) resourceScopes(s *v1alpha1.LogtoConfigSpec, path string, refs []v1alpha1.ResourceScopeRef) {
 	seen := map[v1alpha1.ResourceScopeRef]bool{}
@@ -221,18 +238,7 @@ func (v *validator) applications(s *v1alpha1.LogtoConfigSpec) {
 			if !thirdParty {
 				v.add(path+".consentScopes", "applies to a third-party application only (set isThirdParty: true)")
 			}
-			if c.Resources != nil {
-				v.resourceScopes(s, path+".consentScopes.resources", *c.Resources)
-			}
-			if c.User != nil {
-				seen := map[v1alpha1.ConsentUserScope]bool{}
-				for i, u := range *c.User {
-					if seen[u] {
-						v.add(fmt.Sprintf("%s.consentScopes.user[%d]", path, i), "user scope %q is already listed", u)
-					}
-					seen[u] = true
-				}
-			}
+			v.consentScopes(s, path+".consentScopes", c)
 		}
 	}
 }
@@ -326,4 +332,11 @@ func Sources(s *v1alpha1.LogtoConfigSpec) []Source {
 		}
 	}
 	return out
+}
+
+// cimd checks the tenant's CIMD consent scopes against the declared resources.
+func (v *validator) cimd(s *v1alpha1.LogtoConfigSpec) {
+	if c := s.CIMD; c != nil && c.ConsentScopes != nil {
+		v.consentScopes(s, "spec.cimd.consentScopes", c.ConsentScopes)
+	}
 }

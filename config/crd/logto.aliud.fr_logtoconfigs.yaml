@@ -188,6 +188,66 @@ spec:
                   - type
                   type: object
                 type: object
+              cimd:
+                description: |-
+                  CIMD is the tenant's Client ID Metadata Document setting (Logto 1.44 and later): whether a client may identify
+                  itself with the URL of a metadata document, and the scopes its consent screen may grant. Absent, it is not
+                  managed at all.
+                properties:
+                  addConsentPromptForOfflineAccess:
+                    description: |-
+                      AddConsentPromptForOfflineAccess is Logto's experimental switch that adds `consent` to the prompt of CIMD
+                      authorization requests asking for offline access. Omitted, it is left as Logto has it.
+                    type: boolean
+                  consentScopes:
+                    description: |-
+                      ConsentScopes is the tenant-wide ceiling of what the consent screen of a CIMD client may grant; the same lists
+                      as an application's, with the same rules.
+                    properties:
+                      resources:
+                        description: Resources are scopes of declared resources.
+                        items:
+                          description: ResourceScopeRef names a scope of a resource
+                            declared in spec.resources, by local key and scope name.
+                          properties:
+                            resource:
+                              type: string
+                            scope:
+                              type: string
+                          required:
+                          - resource
+                          - scope
+                          type: object
+                        type: array
+                      user:
+                        description: 'User are user scopes: the claims of the user,
+                          by Logto''s own names.'
+                        items:
+                          description: ConsentUserScope is a user scope Logto accepts
+                            in a consent screen. personal_access_tokens needs Logto
+                            1.46.
+                          enum:
+                          - profile
+                          - email
+                          - phone
+                          - address
+                          - custom_data
+                          - identities
+                          - roles
+                          - urn:logto:scope:organizations
+                          - urn:logto:scope:organization_roles
+                          - urn:logto:scope:sessions
+                          - urn:logto:scope:trusted_devices
+                          - urn:logto:scope:personal_access_tokens
+                          type: string
+                        type: array
+                    type: object
+                  enabled:
+                    description: Enabled turns CIMD on or off for the tenant.
+                    type: boolean
+                required:
+                - enabled
+                type: object
               connectors:
                 additionalProperties:
                   description: Connector is a passwordless connector. M1 supports

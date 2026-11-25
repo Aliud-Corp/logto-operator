@@ -89,6 +89,11 @@ type LogtoConfigSpec struct {
 	Roles map[string]Role `json:"roles,omitempty"`
 	// +optional
 	Applications map[string]Application `json:"applications,omitempty"`
+	// CIMD is the tenant's Client ID Metadata Document setting (Logto 1.44 and later): whether a client may identify
+	// itself with the URL of a metadata document, and the scopes its consent screen may grant. Absent, it is not
+	// managed at all.
+	// +optional
+	CIMD *CIMD `json:"cimd,omitempty"`
 }
 
 // Credentials of the Management API client.
@@ -393,8 +398,24 @@ type Application struct {
 	Secret *ApplicationSecret `json:"secret,omitempty"`
 }
 
-// ConsentScopes of a third-party application. A list that is declared is exact (the application holds these scopes
-// and no other of its kind: an empty list removes them all); a list that is omitted leaves what Logto holds.
+// CIMD is Logto's Client ID Metadata Document setting. Turning it on needs Logto's outbound SSRF protection to be on
+// with no allowlist (Logto refuses it otherwise, and the run fails with that refusal).
+type CIMD struct {
+	// Enabled turns CIMD on or off for the tenant.
+	Enabled bool `json:"enabled"`
+	// AddConsentPromptForOfflineAccess is Logto's experimental switch that adds `consent` to the prompt of CIMD
+	// authorization requests asking for offline access. Omitted, it is left as Logto has it.
+	// +optional
+	AddConsentPromptForOfflineAccess *bool `json:"addConsentPromptForOfflineAccess,omitempty"`
+	// ConsentScopes is the tenant-wide ceiling of what the consent screen of a CIMD client may grant; the same lists
+	// as an application's, with the same rules.
+	// +optional
+	ConsentScopes *ConsentScopes `json:"consentScopes,omitempty"`
+}
+
+// ConsentScopes of a consent screen (a third-party application's, or the tenant's CIMD clients'). A list that is
+// declared is exact (the screen holds these scopes and no other of its kind: an empty list removes them all); a list
+// that is omitted leaves what Logto holds.
 // Organization scopes are not managed yet.
 type ConsentScopes struct {
 	// Resources are scopes of declared resources.

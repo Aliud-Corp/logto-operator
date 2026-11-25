@@ -47,26 +47,6 @@ type wireRole struct {
 	Type string `json:"type"`
 }
 
-// wireConsent is what an application's consent screen holds. Organization scopes are not managed: they are not read.
-type wireConsent struct {
-	ResourceScopes []struct {
-		Resource struct {
-			Indicator string `json:"indicator"`
-		} `json:"resource"`
-		Scopes []struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"scopes"`
-	} `json:"resourceScopes"`
-	UserScopes []string `json:"userScopes"`
-}
-
-// addConsent adds consent scopes; a list that is empty is not sent.
-type addConsent struct {
-	ResourceScopes []string `json:"resourceScopes,omitempty"`
-	UserScopes     []string `json:"userScopes,omitempty"`
-}
-
 type assignRoles struct {
 	RoleIDs []string `json:"roleIds"`
 }

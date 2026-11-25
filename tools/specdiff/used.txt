@@ -47,3 +47,8 @@ DeleteRole
 ListRoleScopes
 CreateRoleScope
 DeleteRoleScope
+GetCimdConfig
+UpdateCimdConfig
+ListCimdUserConsentScopes
+AssignCimdUserConsentScopes
+DeleteCimdUserConsentScope

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Aliud-Corp/logto-operator/api/v1alpha1"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/consentscopes"
 	"github.com/Aliud-Corp/logto-operator/internal/logto/contract"
 )
 
@@ -36,7 +37,7 @@ func TestTheWireBodiesAreValidForTheWholeWindow(t *testing.T) {
 		p, err = contract.Request("UpdateApplication", newUpdate(d, wireApp{}))
 		requireValid(t, "UpdateApplication "+d.Name, p, err)
 	}
-	p, err := contract.Request("CreateApplicationUserConsentScope", addConsent{ResourceScopes: []string{"s1"}, UserScopes: []string{"profile", "email"}})
+	p, err := contract.Request("CreateApplicationUserConsentScope", consentscopes.Add{ResourceScopes: []string{"s1"}, UserScopes: []string{"profile", "email"}})
 	requireValid(t, "CreateApplicationUserConsentScope", p, err)
 	p, err = contract.Request("CreateApplicationSecret", createSecret{Name: SecretName})
 	requireValid(t, "CreateApplicationSecret", p, err)

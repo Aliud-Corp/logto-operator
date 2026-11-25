@@ -4,6 +4,7 @@ package kinds
 import (
 	"github.com/Aliud-Corp/logto-operator/internal/engine"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/applications"
+	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/cimd"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/connectors"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/organizations"
 	"github.com/Aliud-Corp/logto-operator/internal/engine/kinds/profilefields"
@@ -23,5 +24,6 @@ func All() []engine.Kind {
 		organizations.Roles{},
 		roles.Kind{},
 		applications.Kind{},
+		cimd.Kind{},
 	}
 }

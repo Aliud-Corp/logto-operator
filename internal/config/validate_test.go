@@ -69,6 +69,26 @@ func TestEverySchemaRuleIsEnforced(t *testing.T) {
 			"spec.applications.a.consentScopes.user.0: value is not one of the allowed values",
 		},
 		{
+			"a CIMD consent scope of an undeclared resource",
+			"  cimd: {enabled: true, consentScopes: {resources: [{resource: app, scope: read}]}}\n",
+			`spec.cimd.consentScopes.resources[0]: resource "app" is not declared in spec.resources`,
+		},
+		{
+			"a CIMD consent scope the resource does not declare",
+			"  resources:\n    app: {name: A, indicator: https://a.test/api}\n  cimd: {enabled: true, consentScopes: {resources: [{resource: app, scope: read}]}}\n",
+			`spec.cimd.consentScopes.resources[0]: scope "read" is not declared in spec.resources.app.scopes`,
+		},
+		{
+			"a CIMD user consent scope listed twice",
+			"  cimd: {enabled: true, consentScopes: {user: [email, email]}}\n",
+			`spec.cimd.consentScopes.user[1]: user scope "email" is already listed`,
+		},
+		{
+			"a CIMD block that does not say whether it is enabled",
+			"  cimd: {consentScopes: {user: [email]}}\n",
+			"spec.cimd.enabled",
+		},
+		{
 			"roles on a SPA",
 			"  applications:\n    a: {name: A, type: SPA, roles: [{name: R}]}\n",
 			"spec.applications.a: roles and secret apply to a MachineToMachine application only",

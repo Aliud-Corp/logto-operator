@@ -19,14 +19,10 @@ type ConsentScopes struct {
 	User      []string
 }
 
-// ApplicationConsentScopes returns the consent scopes of an application.
-func (s *Server) ApplicationConsentScopes(id string) ConsentScopes {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.initApplications()
-	s.initResources()
+// scopes lists a consent screen's scopes as "<indicator> <scope>" and by user scope name.
+func (s *Server) scopes(c *consent) ConsentScopes {
 	out := ConsentScopes{}
-	if c := s.appConsent[id]; c != nil {
+	if c != nil {
 		for _, sid := range c.resources {
 			if sc, ok := s.scopeByID(sid); ok {
 				out.Resources = append(out.Resources, str(s.resources[str(sc, "resourceId")], "indicator")+" "+str(sc, "name"))
@@ -37,21 +33,13 @@ func (s *Server) ApplicationConsentScopes(id string) ConsentScopes {
 	return out
 }
 
-// ListApplicationUserConsentScopes is GET /api/applications/{applicationId}/user-consent-scopes: the resource scopes
-// are grouped by resource, as Logto answers them. Organization scopes are never held.
-func (s *Server) ListApplicationUserConsentScopes(w http.ResponseWriter, _ *http.Request, id mgmt.ApplicationId) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.initApplications()
-	s.initResources()
-	if _, ok := s.apps[id]; !ok {
-		notFound(w)
-		return
-	}
+// listing is what Logto answers when a consent screen is listed: the resource scopes are grouped by resource.
+// Organization scopes are never held.
+func (s *Server) listing(c *consent) object {
 	byResource := map[string][]any{}
 	var order []string
 	user := []string{}
-	if c := s.appConsent[id]; c != nil {
+	if c != nil {
 		for _, sid := range c.resources {
 			sc, ok := s.scopeByID(sid)
 			if !ok {
@@ -73,13 +61,82 @@ func (s *Server) ListApplicationUserConsentScopes(w http.ResponseWriter, _ *http
 			"scopes":   byResource[rid],
 		})
 	}
-	writeJSON(w, http.StatusOK, object{
-		"organizationScopes": []any{}, "resourceScopes": groups, "organizationResourceScopes": []any{}, "userScopes": user,
-	})
+	return object{"organizationScopes": []any{}, "resourceScopes": groups, "organizationResourceScopes": []any{}, "userScopes": user}
+}
+
+// add adds the scopes of a body to a consent screen; an unknown resource scope answers 404 and adds nothing.
+func (s *Server) add(w http.ResponseWriter, body object, c *consent) bool {
+	add := stringList(body, "resourceScopes")
+	for _, sid := range add {
+		if _, ok := s.scopeByID(sid); !ok {
+			notFound(w)
+			return false
+		}
+	}
+	for _, sid := range add {
+		if !contains(c.resources, sid) {
+			c.resources = append(c.resources, sid)
+		}
+	}
+	for _, u := range stringList(body, "userScopes") {
+		if !contains(c.user, u) {
+			c.user = append(c.user, u)
+		}
+	}
+	return true
+}
+
+// remove removes one scope of a consent screen: the scope id of a resource scope, the name of a user scope. A scope
+// the screen does not hold answers 404.
+func remove(w http.ResponseWriter, c *consent, scopeType, scopeID string) {
+	if c == nil {
+		notFound(w)
+		return
+	}
+	switch scopeType {
+	case "resource-scopes":
+		if !contains(c.resources, scopeID) {
+			notFound(w)
+			return
+		}
+		c.resources = without(c.resources, scopeID)
+	case "user-scopes":
+		if !contains(c.user, scopeID) {
+			notFound(w)
+			return
+		}
+		c.user = without(c.user, scopeID)
+	default:
+		notFound(w)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// ApplicationConsentScopes returns the consent scopes of an application.
+func (s *Server) ApplicationConsentScopes(id string) ConsentScopes {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.initApplications()
+	s.initResources()
+	return s.scopes(s.appConsent[id])
+}
+
+// ListApplicationUserConsentScopes is GET /api/applications/{applicationId}/user-consent-scopes.
+func (s *Server) ListApplicationUserConsentScopes(w http.ResponseWriter, _ *http.Request, id mgmt.ApplicationId) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.initApplications()
+	s.initResources()
+	if _, ok := s.apps[id]; !ok {
+		notFound(w)
+		return
+	}
+	writeJSON(w, http.StatusOK, s.listing(s.appConsent[id]))
 }
 
 // CreateApplicationUserConsentScope is POST /api/applications/{applicationId}/user-consent-scopes: the scopes are
-// added. Only a third-party application has a consent screen (422, like Logto); an unknown resource scope answers 404.
+// added. Only a third-party application has a consent screen (422, like Logto).
 func (s *Server) CreateApplicationUserConsentScope(w http.ResponseWriter, r *http.Request, id mgmt.ApplicationId) {
 	body, ok := decode(w, r)
 	if !ok {
@@ -98,33 +155,17 @@ func (s *Server) CreateApplicationUserConsentScope(w http.ResponseWriter, r *htt
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"code": "application.third_party_application_only", "message": "Only third-party applications have consent scopes."})
 		return
 	}
-	add := stringList(body, "resourceScopes")
-	for _, sid := range add {
-		if _, ok := s.scopeByID(sid); !ok {
-			notFound(w)
-			return
-		}
-	}
 	c := s.appConsent[id]
 	if c == nil {
 		c = &consent{}
 		s.appConsent[id] = c
 	}
-	for _, sid := range add {
-		if !contains(c.resources, sid) {
-			c.resources = append(c.resources, sid)
-		}
+	if s.add(w, body, c) {
+		w.WriteHeader(http.StatusCreated)
 	}
-	for _, u := range stringList(body, "userScopes") {
-		if !contains(c.user, u) {
-			c.user = append(c.user, u)
-		}
-	}
-	w.WriteHeader(http.StatusCreated)
 }
 
-// DeleteApplicationUserConsentScope is DELETE /api/applications/{applicationId}/user-consent-scopes/{scopeType}/{scopeId}:
-// the scope id of a resource scope, the name of a user scope. A scope the application does not hold answers 404.
+// DeleteApplicationUserConsentScope is DELETE /api/applications/{applicationId}/user-consent-scopes/{scopeType}/{scopeId}.
 func (s *Server) DeleteApplicationUserConsentScope(w http.ResponseWriter, _ *http.Request, id mgmt.ApplicationId, scopeType mgmt.DeleteApplicationUserConsentScopeParamsScopeType, scopeID mgmt.ScopeId) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -133,27 +174,5 @@ func (s *Server) DeleteApplicationUserConsentScope(w http.ResponseWriter, _ *htt
 		notFound(w)
 		return
 	}
-	c := s.appConsent[id]
-	if c == nil {
-		notFound(w)
-		return
-	}
-	switch string(scopeType) {
-	case "resource-scopes":
-		if !contains(c.resources, scopeID) {
-			notFound(w)
-			return
-		}
-		c.resources = without(c.resources, scopeID)
-	case "user-scopes":
-		if !contains(c.user, scopeID) {
-			notFound(w)
-			return
-		}
-		c.user = without(c.user, scopeID)
-	default:
-		notFound(w)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	remove(w, s.appConsent[id], string(scopeType), scopeID)
 }

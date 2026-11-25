@@ -57,6 +57,9 @@ type Server struct {
 	profileFields         map[string]object   // by name
 	connectors            map[string]object   // by id
 	signInExp             object
+	cimd                  object   // the tenant's CIMD config
+	cimdConsent           *consent // the consent ceiling of its clients
+	cimdBlocked           bool
 }
 
 // New returns a fake that issues Management API tokens to the given client credentials only.

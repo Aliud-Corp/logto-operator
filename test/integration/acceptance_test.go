@@ -249,6 +249,21 @@ func assertObjects(t *testing.T, c *client.Client) {
 		strings.Join(consent.UserScopes, ",") != "email,profile" && strings.Join(consent.UserScopes, ",") != "profile,email" {
 		t.Errorf("consent scopes of Example Connector = %+v", consent)
 	}
+	var cimd struct {
+		Enabled bool `json:"enabled"`
+	}
+	req, err = mgmt.NewGetCimdConfigRequest(c.Endpoint())
+	get(req, err, &cimd)
+	if !cimd.Enabled {
+		t.Errorf("CIMD is not enabled: %+v", cimd)
+	}
+	consent.ResourceScopes, consent.UserScopes = nil, nil
+	req, err = mgmt.NewListCimdUserConsentScopesRequest(c.Endpoint())
+	get(req, err, &consent)
+	if len(consent.ResourceScopes) != 1 || len(consent.ResourceScopes[0].Scopes) != 1 || consent.ResourceScopes[0].Scopes[0].Name != "event:read" ||
+		strings.Join(consent.UserScopes, ",") != "email,profile" && strings.Join(consent.UserScopes, ",") != "profile,email" {
+		t.Errorf("CIMD consent scopes = %+v", consent)
+	}
 	var granted []struct{ Name string }
 	req, err = mgmt.NewListApplicationRolesRequest(c.Endpoint(), ids["Example Backend"], &mgmt.ListApplicationRolesParams{Page: &page, PageSize: &size})
 	get(req, err, &granted)

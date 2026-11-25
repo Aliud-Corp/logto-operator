@@ -133,3 +133,13 @@ spec:
         - {name: event_sync}
       secret: {publish: true}
 
+
+  # Client ID Metadata Document (Logto 1.44 and later): a client identifies itself by the URL of a metadata document.
+  # Turning it on needs Logto's outbound SSRF protection on, with no allowlist. consentScopes is the tenant-wide ceiling
+  # of what the consent screen of such a client may grant; a declared list is exact, an omitted one is left alone.
+  cimd:
+    enabled: true
+    consentScopes:
+      resources:
+        - {resource: app, scope: "event:read"}
+      user: [profile, email]
